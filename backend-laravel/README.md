@@ -147,3 +147,23 @@ All CRM API routes are versioned under:
 ```text
 /api/v1
 ```
+
+## Docker Setup
+
+From the repository root, the backend is included in the full local stack:
+
+```bash
+docker compose up --build
+```
+
+The backend container runs migrations and seeders before serving the API with:
+
+```bash
+php artisan serve --host=0.0.0.0 --port=8000
+```
+
+Then open:
+
+```text
+http://localhost:8000/api/v1/health
+```

@@ -1,0 +1,133 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: lifely-mysql
+    restart: unless-stopped
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    environment:
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-lifely}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+    volumes:
+      - lifely_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: lifely-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - lifely_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: lifely-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend-laravel:/var/www/html
+      - lifely_backend_vendor:/var/www/html/vendor
+    environment:
+      APP_NAME: Lifely
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: "http://localhost:${BACKEND_PORT:-8000}"
+      FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
+      SANCTUM_STATEFUL_DOMAINS: "localhost:${FRONTEND_PORT:-5173},127.0.0.1:${FRONTEND_PORT:-5173}"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: "${MYSQL_DATABASE:-lifely}"
+      DB_USERNAME: root
+      DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+      CACHE_STORE: database
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      MAIL_MAILER: log
+      LIFELY_ACCESS_TOKEN_MINUTES: 15
+      LIFELY_REFRESH_TOKEN_DAYS: 30
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: lifely-queue
+    restart: unless-stopped
+    volumes:
+      - ./backend-laravel:/var/www/html
+      - lifely_backend_vendor:/var/www/html/vendor
+    environment:
+      APP_NAME: Lifely
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: "http://localhost:${BACKEND_PORT:-8000}"
+      FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: "${MYSQL_DATABASE:-lifely}"
+      DB_USERNAME: root
+      DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+      CACHE_STORE: database
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      MAIL_MAILER: log
+      LIFELY_ACCESS_TOKEN_MINUTES: 15
+      LIFELY_REFRESH_TOKEN_DAYS: 30
+    depends_on:
+      backend:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan queue:work --tries=3 --timeout=90
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: lifely-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend:/app
+      - lifely_frontend_node_modules:/app/node_modules
+    environment:
+      VITE_API_BASE_URL: "http://localhost:${BACKEND_PORT:-8000}/api/v1"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      - backend
+
+volumes:
+  lifely_mysql_data:
+  lifely_redis_data:
+  lifely_backend_vendor:
+  lifely_frontend_node_modules:

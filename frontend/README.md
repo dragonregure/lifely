@@ -87,3 +87,17 @@ npm run lint
 - The frontend stores Sanctum bearer tokens in local storage for the local SPA flow.
 - The API base URL is environment-driven through `VITE_API_BASE_URL`.
 - Keep backend CORS `FRONTEND_URL` aligned with the frontend dev server URL.
+
+## Docker Setup
+
+From the repository root, the frontend is included in the full local stack:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+```text
+http://localhost:5173
+```
