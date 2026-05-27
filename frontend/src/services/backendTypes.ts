@@ -1,0 +1,96 @@
+import type { ActivityLog, ContactStatus, EmailCampaign, Listing, ListingStatus, PipelineStage, Role } from "@/types";
+
+export type ApiEnvelope<T> = { data: T };
+
+export type BackendTenant = {
+  id: string;
+  name: string;
+  created_at?: string | null;
+};
+
+export type BackendUser = {
+  id: string;
+  tenant_id: string;
+  role: Role;
+  name: string;
+  email: string;
+  tenant?: BackendTenant;
+};
+
+export type AuthPayload = {
+  token_type: "Bearer";
+  access_token: string;
+  access_expires_at: string;
+  refresh_token: string;
+  refresh_expires_at: string;
+  user: BackendUser;
+};
+
+export type BackendContact = {
+  id: string;
+  tenant_id: string;
+  owner_id?: string | null;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string | null;
+  status: ContactStatus;
+  budget?: number | null;
+  source?: string | null;
+  last_contacted_at?: string | null;
+  created_at?: string | null;
+};
+
+export type BackendListing = {
+  id: string;
+  tenant_id: string;
+  title: string;
+  address: string;
+  price: number;
+  status: ListingStatus;
+  bedrooms: number;
+  bathrooms: number;
+  property_type: Listing["type"];
+};
+
+export type BackendDeal = {
+  id: string;
+  tenant_id: string;
+  contact_id: string;
+  listing_id: string;
+  user_id: string;
+  stage: PipelineStage;
+  value: number;
+  next_task?: string | null;
+  due_at?: string | null;
+  contact?: BackendContact | null;
+  listing?: BackendListing | null;
+};
+
+export type BackendActivity = {
+  id: string;
+  tenant_id: string;
+  user_id?: string | null;
+  action_type: ActivityLog["actionType"];
+  description: string;
+  created_at?: string | null;
+};
+
+export type BackendCampaign = {
+  id: string;
+  tenant_id: string;
+  user_id?: string | null;
+  subject: string;
+  recipient_count: number;
+  status: EmailCampaign["status"];
+  created_at?: string | null;
+};
+
+export type BackendDashboard = {
+  new_leads: number;
+  pending_tasks: number;
+  pipeline_value: number;
+  win_rate: number;
+  lead_health: Array<{ label: ContactStatus; value: number }>;
+  pipeline_by_stage: Array<{ stage: string; deals: number; value: number }>;
+};
