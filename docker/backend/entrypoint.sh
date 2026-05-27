@@ -16,4 +16,7 @@ if [ "${DB_CONNECTION:-mysql}" = "mysql" ]; then
   done
 fi
 
+php artisan optimize:clear
+php artisan config:cache
+
 exec "$@"

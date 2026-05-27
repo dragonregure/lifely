@@ -4,7 +4,7 @@ Lifely backend is a Laravel API for the real estate CRM frontend. It provides te
 
 ## Tech Stack
 
-- PHP 8.3+
+- PHP 8.4+
 - Laravel 13
 - Laravel Sanctum
 - MySQL
@@ -14,7 +14,7 @@ Lifely backend is a Laravel API for the real estate CRM frontend. It provides te
 
 ## Requirements
 
-- PHP 8.3 or newer
+- PHP 8.4 or newer
 - Composer
 - MySQL 8 or compatible
 - PHP extensions required by Laravel, including `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, and `fileinfo`

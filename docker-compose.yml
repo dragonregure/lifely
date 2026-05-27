@@ -16,6 +16,22 @@ services:
       timeout: 5s
       retries: 20
 
+  phpmyadmin:
+    image: phpmyadmin:5-apache
+    container_name: lifely-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   redis:
     image: redis:7-alpine
     container_name: lifely-redis
@@ -41,6 +57,7 @@ services:
     volumes:
       - ./backend-laravel:/var/www/html
       - lifely_backend_vendor:/var/www/html/vendor
+      - lifely_backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
       APP_NAME: Lifely
       APP_ENV: local
@@ -54,6 +71,7 @@ services:
       DB_DATABASE: "${MYSQL_DATABASE:-lifely}"
       DB_USERNAME: root
       DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+      SESSION_DRIVER: file
       CACHE_STORE: database
       QUEUE_CONNECTION: redis
       REDIS_CLIENT: phpredis
@@ -79,6 +97,7 @@ services:
     volumes:
       - ./backend-laravel:/var/www/html
       - lifely_backend_vendor:/var/www/html/vendor
+      - lifely_backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
       APP_NAME: Lifely
       APP_ENV: local
@@ -91,6 +110,7 @@ services:
       DB_DATABASE: "${MYSQL_DATABASE:-lifely}"
       DB_USERNAME: root
       DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+      SESSION_DRIVER: file
       CACHE_STORE: database
       QUEUE_CONNECTION: redis
       REDIS_CLIENT: phpredis
@@ -130,4 +150,5 @@ volumes:
   lifely_mysql_data:
   lifely_redis_data:
   lifely_backend_vendor:
+  lifely_backend_bootstrap_cache:
   lifely_frontend_node_modules:

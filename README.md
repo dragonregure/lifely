@@ -54,6 +54,7 @@ You do not need local PHP, Composer, Node.js, MySQL, or Redis for the Docker wor
    Frontend: http://localhost:5173
    Backend health: http://localhost:8000/api/v1/health
    API docs: http://localhost:8000/api/documentation
+   phpMyAdmin: http://localhost:8080
    ```
 
 ## Local Demo Login
@@ -71,6 +72,7 @@ Password: password
 - `backend`: Laravel API served with `php artisan serve`
 - `queue`: Laravel Redis queue worker
 - `mysql`: MySQL database
+- `phpmyadmin`: Browser database admin UI
 - `redis`: Redis queue/cache service
 
 ## Useful Commands
@@ -94,13 +96,32 @@ Defaults can be changed in the root `.env`.
 ```text
 Frontend: 5173
 Backend: 8000
+phpMyAdmin: 8080
 MySQL: 3307 on the host, 3306 inside Docker
 Redis: 6380 on the host, 6379 inside Docker
+```
+
+## phpMyAdmin
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+Default local credentials:
+
+```text
+Server: mysql
+Username: root
+Password: secret
+Database: lifely
 ```
 
 ## Notes
 
 - Laravel environment values for Docker are injected from `docker-compose.yml`.
 - The backend code is bind-mounted for local development, while `vendor/` is kept in a Docker named volume.
+- Laravel's Docker config cache is kept in a Docker named volume, so local `.env` values do not leak into the container.
 - The frontend code is bind-mounted for local development, while `node_modules/` is kept in a Docker named volume.
 - MySQL and Redis data are stored in Docker named volumes.
