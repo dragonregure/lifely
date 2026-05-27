@@ -149,6 +149,14 @@ All CRM API routes are versioned under:
 /api/v1
 ```
 
+## Railway Deployment
+
+Railway reads the PHP version from `composer.json`. This app requires PHP 8.4 or newer because the locked Laravel/Symfony dependency set includes Symfony 8 packages.
+
+Make sure the deployed service root is `backend-laravel/`, then provide the required environment variables in Railway, including `APP_KEY`, `APP_URL`, `FRONTEND_URL`, `DB_CONNECTION=mysql`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD`.
+
+The `composer.json` file also requires `ext-pdo_mysql` so Railway installs the MySQL PDO extension during build.
+
 ## Docker Setup
 
 From the repository root, the backend is included in the full local stack:
