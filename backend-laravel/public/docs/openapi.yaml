@@ -1,0 +1,282 @@
+openapi: 3.0.3
+info:
+  title: Lifely API
+  version: 1.0.0
+  description: API-first Laravel backend for the Lifely multi-tenant real estate CRM.
+servers:
+  - url: http://localhost:8000/api/v1
+security:
+  - BearerAuth: []
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum token
+    TenantHeader:
+      type: apiKey
+      in: header
+      name: X-Tenant-Id
+  schemas:
+    Tenant:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        created_at: { type: string, format: date-time, nullable: true }
+    Contact:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid, nullable: true }
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        status: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        budget: { type: number, nullable: true }
+        source: { type: string, nullable: true }
+        last_contacted_at: { type: string, format: date-time, nullable: true }
+    Listing:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        title: { type: string }
+        address: { type: string }
+        price: { type: number }
+        status: { type: string, enum: [Available, Reserved, Under Contract, Sold] }
+        bedrooms: { type: integer }
+        bathrooms: { type: integer }
+        property_type: { type: string, enum: [House, Condo, Townhome, Land] }
+    PipelineDeal:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        contact_id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        stage: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
+        value: { type: number }
+        next_task: { type: string, nullable: true }
+        due_at: { type: string, format: date-time, nullable: true }
+    EmailCampaign:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        subject: { type: string }
+        recipient_count: { type: integer }
+        status: { type: string, enum: [Queued, Sent] }
+paths:
+  /health:
+    get:
+      security: []
+      summary: Health check
+      responses:
+        "200": { description: Service is healthy. }
+  /auth/register:
+    post:
+      security: []
+      summary: Register an office admin and tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenant_name, name, email, password, password_confirmation]
+              properties:
+                tenant_name: { type: string }
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                password_confirmation: { type: string, format: password }
+                device_name: { type: string }
+      responses:
+        "201": { description: User, access token, and refresh token created. }
+  /auth/login:
+    post:
+      security: []
+      summary: Login and issue Sanctum access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                device_name: { type: string }
+      responses:
+        "200": { description: User, access token, and refresh token. }
+  /auth/refresh:
+    post:
+      security: []
+      summary: Rotate refresh token and issue a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+                device_name: { type: string }
+      responses:
+        "200": { description: New access and refresh token pair. }
+  /auth/me:
+    get:
+      summary: Current authenticated user
+      responses:
+        "200": { description: Current user profile and tenant. }
+  /auth/logout:
+    post:
+      summary: Revoke the current access token
+      responses:
+        "200": { description: Current token revoked. }
+  /auth/revoke-all:
+    post:
+      summary: Revoke all tokens for the current user
+      responses:
+        "200": { description: All user tokens revoked. }
+  /auth/password:
+    put:
+      summary: Update password and revoke all tokens
+      responses:
+        "200": { description: Password updated. }
+  /tenant:
+    get:
+      summary: Current tenant
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      responses:
+        "200": { description: Tenant profile. }
+  /members:
+    get:
+      summary: Office members
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      responses:
+        "200": { description: Members for the current tenant. }
+  /dashboard:
+    get:
+      summary: Dashboard summary
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      responses:
+        "200": { description: Dashboard KPIs and pipeline reporting. }
+  /contacts:
+    get:
+      summary: List contacts
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string }
+      responses:
+        "200": { description: Tenant-scoped contacts. }
+    post:
+      summary: Create contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [first_name, last_name, email]
+              properties:
+                owner_id: { type: string, format: uuid, nullable: true }
+                first_name: { type: string }
+                last_name: { type: string }
+                email: { type: string, format: email }
+                phone: { type: string }
+                status: { type: string }
+                budget: { type: number }
+                source: { type: string }
+      responses:
+        "201": { description: Contact created. }
+  /contacts/{contact}:
+    get:
+      summary: Show contact
+      parameters:
+        - in: path
+          name: contact
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Contact details. }
+    put:
+      summary: Update contact
+      parameters:
+        - in: path
+          name: contact
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Contact updated. }
+  /listings:
+    get:
+      summary: List listings
+      responses:
+        "200": { description: Tenant-scoped listings. }
+    post:
+      summary: Create listing
+      responses:
+        "201": { description: Listing created. }
+  /pipeline:
+    get:
+      summary: List pipeline deals
+      responses:
+        "200": { description: Tenant-scoped pipeline deals. }
+    post:
+      summary: Create pipeline deal
+      responses:
+        "201": { description: Deal created. }
+  /pipeline/{pipeline}/stage:
+    patch:
+      summary: Move pipeline deal to a new stage
+      parameters:
+        - in: path
+          name: pipeline
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Deal stage updated. }
+  /activity-logs:
+    get:
+      summary: List activity logs
+      responses:
+        "200": { description: Tenant-scoped audit trail. }
+  /email-campaigns:
+    get:
+      summary: List email campaigns
+      responses:
+        "200": { description: Tenant-scoped campaigns. }
+  /bulk-emails:
+    post:
+      summary: Queue bulk email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contact_ids, subject, body]
+              properties:
+                user_id: { type: string, format: uuid, nullable: true }
+                contact_ids:
+                  type: array
+                  items: { type: string, format: uuid }
+                subject: { type: string }
+                body: { type: string }
+      responses:
+        "202": { description: Campaign accepted and queued. }
