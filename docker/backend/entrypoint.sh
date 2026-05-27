@@ -19,4 +19,12 @@ fi
 php artisan optimize:clear
 php artisan config:cache
 
+if [ "${LIFELY_RUN_MIGRATIONS:-false}" = "true" ]; then
+  php artisan migrate --force
+fi
+
+if [ "${LIFELY_RUN_SEEDERS:-false}" = "true" ]; then
+  php artisan db:seed --force
+fi
+
 exec "$@"

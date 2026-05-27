@@ -81,12 +81,14 @@ services:
       MAIL_MAILER: log
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
+      LIFELY_RUN_MIGRATIONS: "true"
+      LIFELY_RUN_SEEDERS: "true"
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: sh -c "php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"
+    command: php artisan serve --host=0.0.0.0 --port=8000
 
   queue:
     build:
@@ -120,6 +122,8 @@ services:
       MAIL_MAILER: log
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
+      LIFELY_RUN_MIGRATIONS: "false"
+      LIFELY_RUN_SEEDERS: "false"
     depends_on:
       backend:
         condition: service_started

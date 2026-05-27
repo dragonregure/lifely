@@ -156,7 +156,14 @@ From the repository root, the backend is included in the full local stack:
 docker compose up --build
 ```
 
-The backend container runs migrations and seeders before serving the API with:
+The backend container entrypoint runs migrations and seeders before serving the API when these Docker environment flags are enabled:
+
+```env
+LIFELY_RUN_MIGRATIONS=true
+LIFELY_RUN_SEEDERS=true
+```
+
+The API service enables both flags in `docker-compose.yml`, then serves the API with:
 
 ```bash
 php artisan serve --host=0.0.0.0 --port=8000

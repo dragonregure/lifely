@@ -59,7 +59,7 @@ You do not need local PHP, Composer, Node.js, MySQL, or Redis for the Docker wor
 
 ## Local Demo Login
 
-The backend container runs migrations and seeds demo data on startup.
+The backend container entrypoint runs migrations and seeds demo data on startup.
 
 ```text
 Email: maya@skyline.example
@@ -85,6 +85,7 @@ docker compose down -v
 docker compose logs -f backend
 docker compose exec backend php artisan test
 docker compose exec backend composer test
+docker compose exec backend php artisan db:seed --force
 docker compose exec backend php artisan migrate:fresh --seed
 docker compose exec frontend npm run build
 ```
@@ -121,6 +122,7 @@ Database: lifely
 ## Notes
 
 - Laravel environment values for Docker are injected from `docker-compose.yml`.
+- The API container enables `LIFELY_RUN_MIGRATIONS=true` and `LIFELY_RUN_SEEDERS=true`, so fresh Docker databases are login-ready after startup.
 - The backend code is bind-mounted for local development, while `vendor/` is kept in a Docker named volume.
 - Laravel's Docker config cache is kept in a Docker named volume, so local `.env` values do not leak into the container.
 - The frontend code is bind-mounted for local development, while `node_modules/` is kept in a Docker named volume.
