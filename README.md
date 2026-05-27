@@ -11,6 +11,7 @@ lifely/
 |-- docker/
 |-- docker-compose.yml
 |-- .env.example
+|-- Makefile
 |-- README.md
 `-- docs/
 ```
@@ -19,6 +20,7 @@ lifely/
 
 - Docker
 - Docker Compose
+- Optional: Make, for shorter container command aliases
 
 You do not need local PHP, Composer, Node.js, MySQL, or Redis for the Docker workflow.
 
@@ -76,6 +78,18 @@ Password: password
 - `redis`: Redis queue/cache service
 
 ## Useful Commands
+
+The Makefile forwards common commands into the Docker containers:
+
+```bash
+make artisan test
+make artisan db:seed -- --force
+make artisan migrate:fresh -- --seed
+make composer test
+make npm run build
+```
+
+Raw Docker equivalents:
 
 ```bash
 docker compose up --build
