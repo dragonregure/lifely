@@ -7,6 +7,7 @@ Lifely backend is a Laravel API for the real estate CRM frontend. It provides te
 - PHP 8.4+
 - Laravel 13
 - Laravel Sanctum
+- Nginx and PHP-FPM for Docker
 - MySQL
 - PHPUnit
 - Swagger/OpenAPI documentation
@@ -163,10 +164,10 @@ LIFELY_RUN_MIGRATIONS=true
 LIFELY_RUN_SEEDERS=true
 ```
 
-The API service enables both flags in `docker-compose.yml`, then serves the API with:
+The API service enables both flags in `docker-compose.yml`, then serves the API through Nginx on port `8000` with PHP-FPM handling Laravel requests.
 
-```bash
-php artisan serve --host=0.0.0.0 --port=8000
+```text
+Host request -> Nginx :8000 -> PHP-FPM :9000 -> Laravel
 ```
 
 Then open:

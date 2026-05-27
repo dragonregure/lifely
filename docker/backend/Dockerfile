@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.4-fpm
 
 WORKDIR /var/www/html
 
@@ -6,6 +6,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         default-mysql-client \
         git \
+        nginx \
+        supervisor \
         libzip-dev \
         unzip \
         zip \
@@ -21,6 +23,8 @@ RUN composer install --no-interaction --prefer-dist --no-scripts
 
 COPY backend-laravel ./
 COPY docker/backend/entrypoint.sh /usr/local/bin/lifely-backend-entrypoint
+COPY docker/backend/nginx.conf /etc/nginx/sites-available/default
+COPY docker/backend/supervisord.conf /etc/supervisor/conf.d/lifely.conf
 
 RUN chmod +x /usr/local/bin/lifely-backend-entrypoint \
     && mkdir -p storage bootstrap/cache \
@@ -30,4 +34,4 @@ RUN chmod +x /usr/local/bin/lifely-backend-entrypoint \
 EXPOSE 8000
 
 ENTRYPOINT ["lifely-backend-entrypoint"]
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/lifely.conf"]
