@@ -12,7 +12,7 @@ RUN apt-get update \
         unzip \
         zip \
     && docker-php-ext-install pdo_mysql pcntl zip \
-    && pecl install redis \
+    && pecl install redis xdebug \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
 

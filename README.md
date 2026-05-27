@@ -137,6 +137,7 @@ Database: lifely
 
 - Laravel environment values for Docker are injected from `docker-compose.yml`.
 - The backend Docker image runs Nginx on port `8000` and forwards PHP requests to PHP-FPM.
+- Xdebug is installed in the backend image, and its settings are mounted from `docker/backend/xdebug.ini`.
 - The API container enables `LIFELY_RUN_MIGRATIONS=true` and `LIFELY_RUN_SEEDERS=true`, so fresh Docker databases are login-ready after startup.
 - The backend code is bind-mounted for local development, while `vendor/` is kept in a Docker named volume.
 - Laravel's Docker config cache is kept in a Docker named volume, so local `.env` values do not leak into the container.

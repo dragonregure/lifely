@@ -56,6 +56,7 @@ services:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend-laravel:/var/www/html
+      - ./docker/backend/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
       - lifely_backend_vendor:/var/www/html/vendor
       - lifely_backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
@@ -97,6 +98,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./backend-laravel:/var/www/html
+      - ./docker/backend/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
       - lifely_backend_vendor:/var/www/html/vendor
       - lifely_backend_bootstrap_cache:/var/www/html/bootstrap/cache
     environment:
