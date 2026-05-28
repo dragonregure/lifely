@@ -5,7 +5,7 @@ use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Illuminate\Session\Middleware\StartSession;
 
-Route::redirect('/', '/docs/index.html')->withoutMiddleware([
+Route::redirect('/', '/api/documentation')->withoutMiddleware([
     StartSession::class,
     ShareErrorsFromSession::class,
     PreventRequestForgery::class,

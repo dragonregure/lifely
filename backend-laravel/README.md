@@ -10,7 +10,7 @@ Lifely backend is a Laravel API for the real estate CRM frontend. It provides te
 - Nginx and PHP-FPM for Docker
 - MySQL
 - PHPUnit
-- Swagger/OpenAPI documentation
+- L5-Swagger and OpenAPI documentation
 - Composer
 
 ## Requirements
@@ -109,7 +109,9 @@ Password: password
 
 ## API Documentation
 
-Swagger UI is served from `public/docs/index.html` and reads the OpenAPI spec from `public/docs/openapi.yaml`.
+L5-Swagger serves Swagger UI and reads the OpenAPI spec from `public/docs/openapi.yaml`.
+
+The OpenAPI server URL is relative (`/api/v1`) so it automatically follows the current `APP_URL` host in local, Docker, Railway, or custom-domain environments.
 
 After starting `php artisan serve`, open:
 
@@ -117,10 +119,10 @@ After starting `php artisan serve`, open:
 http://localhost:8000/api/documentation
 ```
 
-You can also open the static docs page directly:
+The OpenAPI YAML document is available through L5-Swagger at:
 
 ```text
-http://localhost:8000/docs/index.html
+http://localhost:8000/api/docs
 ```
 
 ## Useful Commands

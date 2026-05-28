@@ -11,8 +11,6 @@ use App\Http\Controllers\Api\V1\PipelineController;
 use App\Http\Controllers\Api\V1\TenantController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('documentation', '/docs/index.html');
-
 Route::prefix('v1')->group(function (): void {
     Route::get('health', HealthController::class);
 
