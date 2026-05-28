@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +45,7 @@ export function DetailDialog({
   onOpenChange,
   onSave,
 }: DetailDialogProps) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const firstTab = tabs?.[0]?.value ?? "";
   const [activeTab, setActiveTab] = useState(firstTab);
   const [isEditing, setIsEditing] = useState(false);
@@ -84,25 +85,36 @@ export function DetailDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="max-w-3xl">
+      <DialogContent
+        ref={contentRef}
+        className="max-w-3xl"
+        tabIndex={-1}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          requestAnimationFrame(() => contentRef.current?.focus());
+        }}
+      >
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <DialogTitle>{title}</DialogTitle>
+              {description && <DialogDescription>{description}</DialogDescription>}
+            </div>
+            {canEdit && (
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={() => setIsEditing((value) => !value)}
+                aria-label={isEditing ? "Stop editing" : "Edit data"}
+                title={isEditing ? "Stop editing" : "Edit data"}
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </DialogHeader>
 
         <form className="grid gap-4" onSubmit={handleSubmit}>
-          {canEdit && (
-            <button
-              type="button"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
-              onClick={() => setIsEditing((value) => !value)}
-              aria-label={isEditing ? "Stop editing" : "Edit data"}
-              title={isEditing ? "Stop editing" : "Edit data"}
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-          )}
-
           {tabs ? (
             <Tabs value={activeTab} onValueChange={handleTabChange}>
               <TabsList className="flex h-auto flex-wrap justify-start">
