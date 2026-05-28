@@ -86,7 +86,10 @@ make artisan test
 make artisan db:seed -- --force
 make artisan migrate:fresh -- --seed
 make composer test
+make composer analyse
+make composer lint
 make npm run build
+make npm run lint
 ```
 
 Raw Docker equivalents:
@@ -99,9 +102,12 @@ docker compose down -v
 docker compose logs -f backend
 docker compose exec backend php artisan test
 docker compose exec backend composer test
+docker compose exec backend composer analyse
+docker compose exec backend composer lint
 docker compose exec backend php artisan db:seed --force
 docker compose exec backend php artisan migrate:fresh --seed
 docker compose exec frontend npm run build
+docker compose exec frontend npm run lint
 ```
 
 ## Ports

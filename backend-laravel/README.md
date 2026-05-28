@@ -10,6 +10,8 @@ Lifely backend is a Laravel API for the real estate CRM frontend. It provides te
 - Nginx and PHP-FPM for Docker
 - MySQL
 - PHPUnit
+- PHPStan with Larastan
+- PHP_CodeSniffer
 - L5-Swagger and OpenAPI documentation
 - Composer
 
@@ -134,6 +136,9 @@ php artisan db:seed
 php artisan migrate:fresh --seed
 php artisan test
 composer test
+composer analyse
+composer lint
+composer lint:php:fix
 ```
 
 ## Auth Notes

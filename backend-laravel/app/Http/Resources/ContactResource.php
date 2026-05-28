@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \App\Models\Contact */
 class ContactResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -20,7 +22,9 @@ class ContactResource extends JsonResource
             'status' => $this->status,
             'budget' => $this->budget === null ? null : (float) $this->budget,
             'source' => $this->source,
-            'last_contacted_at' => $this->last_contacted_at?->toISOString(),
+            'last_contacted_at' => $this->last_contacted_at instanceof CarbonInterface
+                ? $this->last_contacted_at->toISOString()
+                : $this->last_contacted_at,
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

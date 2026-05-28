@@ -12,6 +12,7 @@ Lifely frontend is a React CRM single-page app for real estate offices. It talks
 - React Router
 - Lucide React icons
 - Recharts
+- ESLint
 - Inter font
 
 ## Requirements

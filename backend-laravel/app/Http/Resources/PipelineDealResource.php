@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin \App\Models\PipelineDeal */
 class PipelineDealResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -18,7 +20,9 @@ class PipelineDealResource extends JsonResource
             'stage' => $this->stage,
             'value' => (float) $this->value,
             'next_task' => $this->next_task,
-            'due_at' => $this->due_at?->toISOString(),
+            'due_at' => $this->due_at instanceof CarbonInterface
+                ? $this->due_at->toISOString()
+                : $this->due_at,
             'contact' => new ContactResource($this->whenLoaded('contact')),
             'listing' => new ListingResource($this->whenLoaded('listing')),
             'created_at' => $this->created_at?->toISOString(),
