@@ -3,7 +3,7 @@ import { CalendarPlus, Plus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,10 +55,17 @@ export function PipelinePage() {
                   <Label htmlFor="task-note">Notes</Label>
                   <Textarea id="task-note" placeholder="Buyer wants waterfront options below $900k." />
                 </div>
-                <Button type="button">
-                  <CalendarPlus className="h-4 w-4" />
-                  Create dummy task
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">
+                      Cancel
+                    </Button>
+                  </DialogClose>
+                  <Button type="button">
+                    <CalendarPlus className="h-4 w-4" />
+                    Create dummy task
+                  </Button>
+                </div>
               </div>
             </DialogContent>
           </Dialog>
