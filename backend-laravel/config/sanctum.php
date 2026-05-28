@@ -37,7 +37,7 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    'guard' => array_values(array_filter(explode(',', env('SANCTUM_GUARD', '')))),
 
     /*
     |--------------------------------------------------------------------------

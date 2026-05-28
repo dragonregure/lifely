@@ -157,6 +157,8 @@ Make sure the deployed service root is `backend-laravel/`, then provide the requ
 
 The `composer.json` file also requires `ext-pdo_mysql` so Railway installs the MySQL PDO extension during build.
 
+This API uses Sanctum bearer tokens rather than Sanctum's cookie/session SPA mode. Leave `SANCTUM_GUARD` unset, or set it to an empty value, so `auth:sanctum` authenticates personal access tokens without requiring Laravel sessions on API requests.
+
 ## Docker Setup
 
 From the repository root, the backend is included in the full local stack:
