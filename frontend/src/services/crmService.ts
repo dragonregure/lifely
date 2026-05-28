@@ -7,23 +7,31 @@ import type {
   BackendListing,
   BackendTenant,
   BackendUser,
+  BackendUserAccess,
 } from "@/services/backendTypes";
 import { apiRequest } from "@/services/httpClient";
-import { mapActivity, mapCampaign, mapContact, mapDeal, mapListing, mapTenant, mapUser } from "@/services/mappers";
+import { mapActivity, mapCampaign, mapContact, mapDeal, mapListing, mapTenant, mapUser, mapUserAccess } from "@/services/mappers";
 
 export async function getSession() {
-  const [me, members] = await Promise.all([
+  const [me, members, access] = await Promise.all([
     apiRequest<ApiEnvelope<{ user: BackendUser }>>("/auth/me"),
     apiRequest<ApiEnvelope<BackendUser[]>>("/members"),
+    apiRequest<ApiEnvelope<BackendUserAccess>>("/me/permissions"),
   ]);
 
   const tenant = me.data.user.tenant
     ? me.data.user.tenant
     : (await apiRequest<ApiEnvelope<BackendTenant>>("/tenant")).data;
+  const userAccess = mapUserAccess(access.data);
 
   return {
     tenant: mapTenant(tenant),
-    user: mapUser(me.data.user),
+    user: {
+      ...mapUser(me.data.user),
+      roles: userAccess.roles,
+      directPermissions: userAccess.directPermissions,
+      permissions: userAccess.permissions,
+    },
     members: members.data.map(mapUser),
   };
 }

@@ -12,6 +12,9 @@ export type BackendUser = {
   id: string;
   tenant_id: string;
   role: Role;
+  roles?: Role[];
+  direct_permissions?: string[];
+  permissions?: string[];
   name: string;
   email: string;
   tenant?: BackendTenant;
@@ -93,4 +96,24 @@ export type BackendDashboard = {
   win_rate: number;
   lead_health: Array<{ label: ContactStatus; value: number }>;
   pipeline_by_stage: Array<{ stage: string; deals: number; value: number }>;
+};
+
+export type BackendPermission = {
+  id: number;
+  name: string;
+  guard_name: string;
+};
+
+export type BackendRole = {
+  id: number;
+  name: Role;
+  guard_name: string;
+  permissions?: BackendPermission[];
+};
+
+export type BackendUserAccess = {
+  user_id: string;
+  roles: Role[];
+  direct_permissions: string[];
+  permissions: string[];
 };

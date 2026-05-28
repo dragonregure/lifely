@@ -9,3 +9,16 @@ export {
   sendBulkEmailDraft,
 } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
+export {
+  createPermission,
+  createRole,
+  deletePermission,
+  deleteRole,
+  getMyPermissions,
+  getPermissions,
+  getRoles,
+  syncUserPermissions,
+  syncUserRoles,
+  updatePermission,
+  updateRole,
+} from "@/services/rbacService";

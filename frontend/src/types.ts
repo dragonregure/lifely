@@ -1,4 +1,33 @@
-export type Role = "Office Admin" | "Senior Agent" | "Simple Agent";
+export type Role =
+  | "Office Admin"
+  | "Master"
+  | "Sales"
+  | "Property Manager"
+  | "Senior Agent"
+  | "Simple Agent"
+  | "Marketing Coordinator"
+  | "Transaction Coordinator"
+  | string;
+
+export type Permission = {
+  id: number;
+  name: string;
+  guardName: string;
+};
+
+export type AccessRole = {
+  id: number;
+  name: Role;
+  guardName: string;
+  permissions: Permission[];
+};
+
+export type UserAccess = {
+  userId: string;
+  roles: Role[];
+  directPermissions: string[];
+  permissions: string[];
+};
 
 export type ContactStatus = "New" | "Qualified" | "Viewing" | "Negotiating" | "Closed" | "Dormant";
 
@@ -17,6 +46,9 @@ export type User = {
   id: string;
   tenantId: string;
   role: Role;
+  roles: Role[];
+  directPermissions: string[];
+  permissions: string[];
   name: string;
   email: string;
   avatarInitials: string;
