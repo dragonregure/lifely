@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Support\Rbac;
+
+final class Permissions
+{
+    public const ROLES_VIEW = 'roles.view';
+    public const ROLES_CREATE = 'roles.create';
+    public const ROLES_UPDATE = 'roles.update';
+    public const ROLES_DELETE = 'roles.delete';
+
+    public const PERMISSIONS_VIEW = 'permissions.view';
+    public const PERMISSIONS_CREATE = 'permissions.create';
+    public const PERMISSIONS_UPDATE = 'permissions.update';
+    public const PERMISSIONS_DELETE = 'permissions.delete';
+
+    public const USERS_VIEW = 'users.view';
+    public const USERS_ASSIGN_ROLES = 'users.assign_roles';
+    public const USERS_ASSIGN_PERMISSIONS = 'users.assign_permissions';
+
+    public const CONTACTS_VIEW = 'contacts.view';
+    public const CONTACTS_CREATE = 'contacts.create';
+    public const CONTACTS_UPDATE = 'contacts.update';
+
+    public const LISTINGS_VIEW = 'listings.view';
+    public const LISTINGS_CREATE = 'listings.create';
+
+    public const PIPELINE_VIEW = 'pipeline.view';
+    public const PIPELINE_CREATE = 'pipeline.create';
+    public const PIPELINE_UPDATE = 'pipeline.update';
+
+    public const EMAIL_CAMPAIGNS_VIEW = 'email_campaigns.view';
+    public const EMAIL_CAMPAIGNS_CREATE = 'email_campaigns.create';
+
+    public const ACTIVITY_LOGS_VIEW = 'activity_logs.view';
+    public const REPORTS_VIEW = 'reports.view';
+    public const TENANT_VIEW = 'tenant.view';
+
+    /**
+     * @return array<int, string>
+     */
+    public static function all(): array
+    {
+        return [
+            self::ROLES_VIEW,
+            self::ROLES_CREATE,
+            self::ROLES_UPDATE,
+            self::ROLES_DELETE,
+            self::PERMISSIONS_VIEW,
+            self::PERMISSIONS_CREATE,
+            self::PERMISSIONS_UPDATE,
+            self::PERMISSIONS_DELETE,
+            self::USERS_VIEW,
+            self::USERS_ASSIGN_ROLES,
+            self::USERS_ASSIGN_PERMISSIONS,
+            self::CONTACTS_VIEW,
+            self::CONTACTS_CREATE,
+            self::CONTACTS_UPDATE,
+            self::LISTINGS_VIEW,
+            self::LISTINGS_CREATE,
+            self::PIPELINE_VIEW,
+            self::PIPELINE_CREATE,
+            self::PIPELINE_UPDATE,
+            self::EMAIL_CAMPAIGNS_VIEW,
+            self::EMAIL_CAMPAIGNS_CREATE,
+            self::ACTIVITY_LOGS_VIEW,
+            self::REPORTS_VIEW,
+            self::TENANT_VIEW,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function protected(): array
+    {
+        return [
+            self::ROLES_VIEW,
+            self::ROLES_CREATE,
+            self::ROLES_UPDATE,
+            self::ROLES_DELETE,
+            self::PERMISSIONS_VIEW,
+            self::PERMISSIONS_CREATE,
+            self::PERMISSIONS_UPDATE,
+            self::PERMISSIONS_DELETE,
+            self::USERS_VIEW,
+            self::USERS_ASSIGN_ROLES,
+            self::USERS_ASSIGN_PERMISSIONS,
+        ];
+    }
+}

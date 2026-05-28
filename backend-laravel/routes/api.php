@@ -7,8 +7,11 @@ use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EmailCampaignController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\ListingController;
+use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PipelineController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\TenantController;
+use App\Http\Controllers\Api\V1\UserAccessController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -30,6 +33,11 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware(['auth:sanctum', 'access.token'])->group(function (): void {
         Route::get('tenant', [TenantController::class, 'show']);
         Route::get('members', [TenantController::class, 'members']);
+        Route::get('me/permissions', [UserAccessController::class, 'mePermissions']);
+        Route::apiResource('roles', RoleController::class);
+        Route::apiResource('permissions', PermissionController::class);
+        Route::put('users/{user}/roles', [UserAccessController::class, 'syncRoles']);
+        Route::put('users/{user}/permissions', [UserAccessController::class, 'syncPermissions']);
         Route::get('dashboard', DashboardController::class);
         Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'show', 'update']);
         Route::apiResource('listings', ListingController::class)->only(['index', 'store']);

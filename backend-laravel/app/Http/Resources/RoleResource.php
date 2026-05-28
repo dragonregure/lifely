@@ -4,21 +4,20 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Spatie\Permission\Models\Role;
 
-/** @mixin \App\Models\User */
-class MemberResource extends JsonResource
+/** @mixin Role */
+class RoleResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
-            'tenant_id' => $this->tenant_id,
-            'role' => $this->role,
-            'roles' => $this->getRoleNames()->values(),
-            'direct_permissions' => $this->getDirectPermissions()->pluck('name')->values(),
             'name' => $this->name,
-            'email' => $this->email,
+            'guard_name' => $this->guard_name,
+            'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),
             'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
         ];
     }
 }

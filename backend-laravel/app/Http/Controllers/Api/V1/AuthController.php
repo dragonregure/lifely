@@ -11,11 +11,13 @@ use App\Http\Requests\Auth\UpdatePasswordRequest;
 use App\Http\Resources\AuthUserResource;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Rbac\Roles;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
@@ -29,11 +31,14 @@ class AuthController extends Controller
 
             $user = User::query()->create([
                 'tenant_id' => $tenant->id,
-                'role' => 'Office Admin',
+                'role' => Roles::OFFICE_ADMIN,
                 'name' => $request->validated('name'),
                 'email' => $request->validated('email'),
                 'password' => Hash::make($request->validated('password')),
             ])->load('tenant');
+
+            Role::findOrCreate(Roles::OFFICE_ADMIN, 'web');
+            $user->assignRole(Roles::OFFICE_ADMIN);
 
             return $this->tokenPayload($user, $request->validated('device_name', 'api'));
         });

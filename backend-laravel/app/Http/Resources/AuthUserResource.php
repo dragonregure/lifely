@@ -14,6 +14,8 @@ class AuthUserResource extends JsonResource
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
             'role' => $this->role,
+            'roles' => $this->getRoleNames()->values(),
+            'permissions' => $this->getAllPermissions()->pluck('name')->unique()->values(),
             'name' => $this->name,
             'email' => $this->email,
             'tenant' => new TenantResource($this->whenLoaded('tenant')),

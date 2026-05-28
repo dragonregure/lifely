@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\PipelineDeal;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Rbac\Roles;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -17,6 +18,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(RbacSeeder::class);
+
         $tenant = Tenant::query()->firstOrCreate(
             ['id' => '0197066f-2aa2-73f8-93d1-56a73ad14220'],
             ['name' => 'Skyline Realty Office']
@@ -26,10 +29,12 @@ class DatabaseSeeder extends Seeder
             'email' => 'maya@skyline.example',
         ], [
             'tenant_id' => $tenant->id,
-            'role' => 'Office Admin',
+            'role' => Roles::OFFICE_ADMIN,
             'name' => 'Maya Hart',
             'password' => Hash::make('password'),
         ]);
+
+        $admin->assignRole(Roles::OFFICE_ADMIN);
 
         $contact = Contact::query()->firstOrCreate([
             'tenant_id' => $tenant->id,

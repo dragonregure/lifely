@@ -9,6 +9,10 @@ use App\Contracts\ListingRepositoryInterface;
 use App\Contracts\PipelineRepositoryInterface;
 use App\Contracts\ReportingServiceInterface;
 use App\Contracts\TenantRepositoryInterface;
+use App\Models\User;
+use App\Policies\PermissionPolicy;
+use App\Policies\RolePolicy;
+use App\Policies\UserPolicy;
 use App\Repositories\ActivityRepository;
 use App\Repositories\ContactRepository;
 use App\Repositories\EmailCampaignRepository;
@@ -16,7 +20,11 @@ use App\Repositories\ListingRepository;
 use App\Repositories\PipelineRepository;
 use App\Repositories\TenantRepository;
 use App\Services\ReportingService;
+use App\Support\Rbac\Permissions;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -39,6 +47,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(Permission::class, PermissionPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
+
+        Gate::define('manage-rbac', fn (User $user): bool => $user->can(Permissions::ROLES_VIEW) || $user->can(Permissions::PERMISSIONS_VIEW));
+        Gate::define('assign-user-roles', fn (User $user, User $model): bool => $user->can(Permissions::USERS_ASSIGN_ROLES));
+        Gate::define('assign-user-permissions', fn (User $user, User $model): bool => $user->can(Permissions::USERS_ASSIGN_PERMISSIONS));
     }
 }

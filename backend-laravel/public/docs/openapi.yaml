@@ -71,6 +71,75 @@ components:
         subject: { type: string }
         recipient_count: { type: integer }
         status: { type: string, enum: [Queued, Sent] }
+    Permission:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string, example: roles.view }
+        guard_name: { type: string, example: web }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    Role:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string, example: Sales }
+        guard_name: { type: string, example: web }
+        permissions:
+          type: array
+          items: { $ref: "#/components/schemas/Permission" }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
+    UserPermissions:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+        roles:
+          type: array
+          items: { type: string }
+          example: [Office Admin]
+        direct_permissions:
+          type: array
+          items: { type: string }
+          example: [contacts.view]
+        permissions:
+          type: array
+          items: { type: string }
+          example: [roles.view, roles.create, users.assign_roles]
+    RolePayload:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, example: Sales Manager }
+        guard_name: { type: string, default: web }
+        permissions:
+          type: array
+          items: { type: string }
+          example: [contacts.view, contacts.create, pipeline.view]
+    PermissionPayload:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, example: reports.export }
+        guard_name: { type: string, default: web }
+    UserRoleSyncPayload:
+      type: object
+      required: [roles]
+      properties:
+        roles:
+          type: array
+          items: { type: string }
+          example: [Sales, Property Manager]
+        guard_name: { type: string, default: web }
+    UserPermissionSyncPayload:
+      type: object
+      required: [permissions]
+      properties:
+        permissions:
+          type: array
+          items: { type: string }
+          example: [contacts.view, reports.view]
+        guard_name: { type: string, default: web }
 paths:
   /health:
     get:
@@ -97,7 +166,7 @@ paths:
                 password_confirmation: { type: string, format: password }
                 device_name: { type: string }
       responses:
-        "201": { description: User, access token, and refresh token created. }
+        "201": { description: "User, access token, and refresh token created." }
   /auth/login:
     post:
       security: []
@@ -121,7 +190,7 @@ paths:
                 password: { type: string, format: password }
                 device_name: { type: string }
       responses:
-        "200": { description: User, access token, and refresh token. }
+        "200": { description: "User, access token, and refresh token." }
   /auth/refresh:
     post:
       security: []
@@ -174,6 +243,256 @@ paths:
         - TenantHeader: []
       responses:
         "200": { description: Members for the current tenant. }
+  /me/permissions:
+    get:
+      summary: Current authenticated user's roles and permissions
+      description: Returns role names, direct permissions, and all effective permissions for SPA authorization hints. Backend authorization remains authoritative.
+      responses:
+        "200":
+          description: Current user's effective access profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/UserPermissions" }
+  /roles:
+    get:
+      summary: List roles
+      description: Requires `roles.view`.
+      responses:
+        "200":
+          description: Roles with assigned permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Role" }
+    post:
+      summary: Create role
+      description: Requires `roles.create`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RolePayload" }
+            examples:
+              salesManager:
+                summary: Sales manager role
+                value:
+                  name: Sales Manager
+                  guard_name: web
+                  permissions: [contacts.view, contacts.create, pipeline.view]
+      responses:
+        "201": { description: Role created. }
+        "403": { description: Missing `roles.create` permission. }
+        "422": { description: Validation failed. }
+  /roles/{role}:
+    get:
+      summary: Show role
+      description: Requires `roles.view`.
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Role details. }
+    put:
+      summary: Update role
+      description: Requires `roles.update`. Office Admin cannot be renamed.
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RolePayload" }
+      responses:
+        "200": { description: Role updated. }
+        "403": { description: Missing `roles.update` permission. }
+        "422": { description: Validation or protected-role rule failed. }
+    patch:
+      summary: Partially update role
+      description: Requires `roles.update`. Accepts the same fields as role update.
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RolePayload" }
+      responses:
+        "200": { description: Role updated. }
+        "403": { description: Missing `roles.update` permission. }
+        "422": { description: Validation or protected-role rule failed. }
+    delete:
+      summary: Delete role
+      description: Requires `roles.delete`. Office Admin cannot be deleted.
+      parameters:
+        - in: path
+          name: role
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Role deleted. }
+        "403": { description: Missing `roles.delete` permission. }
+        "422": { description: Protected role cannot be deleted. }
+  /permissions:
+    get:
+      summary: List permissions
+      description: Requires `permissions.view`.
+      responses:
+        "200":
+          description: Permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Permission" }
+    post:
+      summary: Create permission
+      description: Requires `permissions.create`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PermissionPayload" }
+            examples:
+              exportReports:
+                summary: Custom permission
+                value:
+                  name: reports.export
+                  guard_name: web
+      responses:
+        "201": { description: Permission created. }
+        "403": { description: Missing `permissions.create` permission. }
+        "422": { description: Validation failed. }
+  /permissions/{permission}:
+    get:
+      summary: Show permission
+      description: Requires `permissions.view`.
+      parameters:
+        - in: path
+          name: permission
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Permission details. }
+    put:
+      summary: Update permission
+      description: Requires `permissions.update`. Protected administrative permissions cannot be renamed.
+      parameters:
+        - in: path
+          name: permission
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PermissionPayload" }
+      responses:
+        "200": { description: Permission updated. }
+        "403": { description: Missing `permissions.update` permission. }
+        "422": { description: Validation or protected-permission rule failed. }
+    patch:
+      summary: Partially update permission
+      description: Requires `permissions.update`. Accepts the same fields as permission update.
+      parameters:
+        - in: path
+          name: permission
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PermissionPayload" }
+      responses:
+        "200": { description: Permission updated. }
+        "403": { description: Missing `permissions.update` permission. }
+        "422": { description: Validation or protected-permission rule failed. }
+    delete:
+      summary: Delete permission
+      description: Requires `permissions.delete`. Protected/admin-critical permissions cannot be deleted.
+      parameters:
+        - in: path
+          name: permission
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Permission deleted. }
+        "403": { description: Missing `permissions.delete` permission. }
+        "422": { description: Protected permission cannot be deleted. }
+  /users/{user}/roles:
+    put:
+      summary: Sync roles to user
+      description: Requires `users.assign_roles`. Prevents removing the last Office Admin.
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      parameters:
+        - in: path
+          name: user
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserRoleSyncPayload" }
+            examples:
+              salesUser:
+                summary: Assign Sales role
+                value:
+                  roles: [Sales]
+                  guard_name: web
+      responses:
+        "200": { description: User roles synced. }
+        "403": { description: Missing `users.assign_roles` permission. }
+        "404": { description: User is outside current tenant or not found. }
+        "422": { description: Validation failed or last Office Admin protection triggered. }
+  /users/{user}/permissions:
+    put:
+      summary: Sync direct permissions to user
+      description: Requires `users.assign_permissions`.
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      parameters:
+        - in: path
+          name: user
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserPermissionSyncPayload" }
+            examples:
+              reportAccess:
+                summary: Grant report access
+                value:
+                  permissions: [reports.view]
+                  guard_name: web
+      responses:
+        "200": { description: User direct permissions synced. }
+        "403": { description: Missing `users.assign_permissions` permission. }
+        "404": { description: User is outside current tenant or not found. }
+        "422": { description: Validation failed. }
   /dashboard:
     get:
       summary: Dashboard summary
