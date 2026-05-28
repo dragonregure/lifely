@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Mail, Send } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { getContacts, getEmailCampaigns, sendBulkEmailDraft } from "@/services/api";
+import { PERMISSIONS } from "@/rbac/permissions";
+import { useAuthorization } from "@/rbac/useAuthorization";
 import type { Contact, EmailCampaign } from "@/types";
 
 export function BulkEmailPage() {
@@ -19,6 +22,8 @@ export function BulkEmailPage() {
   const [body, setBody] = useState("Hi, we found a few properties that match what you have been looking for.");
   const [queued, setQueued] = useState<EmailCampaign | null>(null);
   const [sending, setSending] = useState(false);
+  const { can } = useAuthorization();
+  const canCreateCampaigns = can(PERMISSIONS.emailCampaigns.create);
 
   useEffect(() => {
     Promise.all([getContacts(), getEmailCampaigns()]).then(([leadData, campaignData]) => {
@@ -35,6 +40,8 @@ export function BulkEmailPage() {
   };
 
   const handleQueue = async () => {
+    if (!canCreateCampaigns) return;
+
     setSending(true);
     const campaign = await sendBulkEmailDraft({ contactIds: selected, subject, body });
     setQueued(campaign);
@@ -85,6 +92,7 @@ export function BulkEmailPage() {
                         type="checkbox"
                         className="h-4 w-4 rounded border-slate-300 accent-sky-500"
                         checked={selected.includes(contact.id)}
+                        disabled={!canCreateCampaigns}
                         onChange={() => toggleContact(contact.id)}
                       />
                     </TableCell>
@@ -111,16 +119,26 @@ export function BulkEmailPage() {
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="subject">Subject</Label>
-                <Input id="subject" value={subject} onChange={(event) => setSubject(event.target.value)} />
+                <Input id="subject" value={subject} disabled={!canCreateCampaigns} onChange={(event) => setSubject(event.target.value)} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="body">Message</Label>
-                <Textarea id="body" value={body} onChange={(event) => setBody(event.target.value)} />
+                <Textarea id="body" value={body} disabled={!canCreateCampaigns} onChange={(event) => setBody(event.target.value)} />
               </div>
-              <Button disabled={!selected.length || sending} onClick={handleQueue}>
-                {sending ? <Mail className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
-                {sending ? "Queueing" : "Queue email"}
-              </Button>
+              <PermissionGate
+                permission={PERMISSIONS.emailCampaigns.create}
+                fallback={
+                  <Button disabled>
+                    <Send className="h-4 w-4" />
+                    Queue email
+                  </Button>
+                }
+              >
+                <Button disabled={!selected.length || sending} onClick={handleQueue}>
+                  {sending ? <Mail className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
+                  {sending ? "Queueing" : "Queue email"}
+                </Button>
+              </PermissionGate>
             </CardContent>
           </Card>
 

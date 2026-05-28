@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Bath, BedDouble, Home, Plus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getListings } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
+import { PERMISSIONS } from "@/rbac/permissions";
 import type { Listing } from "@/types";
 
 export function ListingsPage() {
@@ -22,10 +24,12 @@ export function ListingsPage() {
         title="Listings"
         description="A streamlined office database for properties available to match with leads."
         actions={
-          <Button>
-            <Plus className="h-4 w-4" />
-            Add listing
-          </Button>
+          <PermissionGate permission={PERMISSIONS.listings.create}>
+            <Button>
+              <Plus className="h-4 w-4" />
+              Add listing
+            </Button>
+          </PermissionGate>
         }
       />
 

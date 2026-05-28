@@ -1,7 +1,9 @@
 import { UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PERMISSIONS } from "@/rbac/permissions";
 import { AccessSettings } from "./settings/AccessSettings";
 import { MemberSettings } from "./settings/MemberSettings";
 import { OverviewSettings } from "./settings/OverviewSettings";
@@ -11,6 +13,8 @@ import { useRbacSettings } from "./settings/useRbacSettings";
 
 export function SettingsPage() {
   const settings = useRbacSettings();
+  const canOpenMemberSettings = settings.canAssignRoles || settings.canAssignPermissions;
+  const canOpenAccessSettings = settings.canViewRoles || settings.canViewPermissions;
 
   return (
     <div>
@@ -30,13 +34,15 @@ export function SettingsPage() {
               onChange={(event) => settings.setActiveView(event.target.value as SettingsView)}
             >
               <option value="overview">Overview</option>
-              <option value="members">Member Setting</option>
-              <option value="access">Role & Permission Setting</option>
+              {canOpenMemberSettings && <option value="members">Member Setting</option>}
+              {canOpenAccessSettings && <option value="access">Role & Permission Setting</option>}
             </select>
-            <Button variant="outline">
-              <UserPlus className="h-4 w-4" />
-              Invite member
-            </Button>
+            <PermissionGate permission={PERMISSIONS.users.view}>
+              <Button variant="outline">
+                <UserPlus className="h-4 w-4" />
+                Invite member
+              </Button>
+            </PermissionGate>
           </div>
         }
       />

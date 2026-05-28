@@ -1,32 +1,12 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import {
-  Activity,
-  BarChart3,
-  Building2,
-  ContactRound,
-  LayoutDashboard,
-  Mail,
-  Menu,
-  Settings,
-  UsersRound,
-  LogOut,
-} from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-
-const navigation = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Contacts", href: "/contacts", icon: ContactRound },
-  { label: "Pipeline", href: "/pipeline", icon: BarChart3 },
-  { label: "Listings", href: "/listings", icon: Building2 },
-  { label: "Bulk Email", href: "/email", icon: Mail },
-  { label: "Activity", href: "/activity", icon: Activity },
-  { label: "Reports", href: "/reports", icon: UsersRound },
-  { label: "Settings", href: "/settings", icon: Settings },
-];
+import { NAVIGATION_ITEMS } from "@/rbac/accessMatrix";
+import { useAuthorization } from "@/rbac/useAuthorization";
 
 function Brand() {
   return (
@@ -41,9 +21,12 @@ function Brand() {
 }
 
 function NavigationLinks({ onSelect }: { onSelect?: () => void }) {
+  const { canAny } = useAuthorization();
+  const visibleNavigation = NAVIGATION_ITEMS.filter((item) => !item.anyOf || canAny(item.anyOf));
+
   return (
     <nav className="grid gap-1">
-      {navigation.map((item) => (
+      {visibleNavigation.map((item) => (
         <NavLink
           key={item.href}
           to={item.href}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarPlus, Plus } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -9,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getPipelineDeals } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
+import { PERMISSIONS } from "@/rbac/permissions";
 import type { PipelineDeal, PipelineStage } from "@/types";
 
 const stages: PipelineStage[] = ["New lead", "Contacted", "Viewing", "Offer", "Closing"];
@@ -34,41 +36,43 @@ export function PipelinePage() {
         title="Pipeline"
         description="Move deals through the sales process and create the follow-up tasks that keep momentum visible."
         actions={
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4" />
-                New deal
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create pipeline task</DialogTitle>
-                <DialogDescription>The first-try win links a lead, listing, and follow-up task.</DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="task-title">Task</Label>
-                  <Input id="task-title" placeholder="Follow up after Saturday viewing" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="task-note">Notes</Label>
-                  <Textarea id="task-note" placeholder="Buyer wants waterfront options below $900k." />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline">
-                      Cancel
+          <PermissionGate permission={PERMISSIONS.pipeline.create}>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  New deal
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create pipeline task</DialogTitle>
+                  <DialogDescription>The first-try win links a lead, listing, and follow-up task.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="task-title">Task</Label>
+                    <Input id="task-title" placeholder="Follow up after Saturday viewing" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="task-note">Notes</Label>
+                    <Textarea id="task-note" placeholder="Buyer wants waterfront options below $900k." />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button type="button">
+                      <CalendarPlus className="h-4 w-4" />
+                      Create dummy task
                     </Button>
-                  </DialogClose>
-                  <Button type="button">
-                    <CalendarPlus className="h-4 w-4" />
-                    Create dummy task
-                  </Button>
+                  </div>
                 </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </PermissionGate>
         }
       />
 

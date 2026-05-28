@@ -13,6 +13,7 @@ import {
   updatePermission,
   updateRole,
 } from "@/services/api";
+import { PERMISSIONS } from "@/rbac/permissions";
 import type { AccessRole, Permission, UserAccess } from "@/types";
 import type { PermissionDraft, RoleDraft, SettingsView } from "./settingsTypes";
 import { can, groupPermissionNames, permissionGroup } from "./settingsUtils";
@@ -68,8 +69,8 @@ export function useRbacSettings() {
   const reloadRbac = useCallback(async () => {
     const nextAccess = await getMyPermissions();
     const [nextRoles, nextPermissions] = await Promise.all([
-      nextAccess.permissions.includes("roles.view") ? getRoles() : Promise.resolve([]),
-      nextAccess.permissions.includes("permissions.view") ? getPermissions() : Promise.resolve([]),
+      nextAccess.permissions.includes(PERMISSIONS.roles.view) ? getRoles() : Promise.resolve([]),
+      nextAccess.permissions.includes(PERMISSIONS.permissions.view) ? getPermissions() : Promise.resolve([]),
     ]);
     applyAccessState(nextAccess, nextRoles, nextPermissions);
   }, [applyAccessState]);
@@ -210,16 +211,16 @@ export function useRbacSettings() {
   return {
     access,
     activeView,
-    canAssignPermissions: can(access, "users.assign_permissions"),
-    canAssignRoles: can(access, "users.assign_roles"),
-    canCreatePermissions: can(access, "permissions.create"),
-    canCreateRoles: can(access, "roles.create"),
-    canDeletePermissions: can(access, "permissions.delete"),
-    canDeleteRoles: can(access, "roles.delete"),
-    canUpdatePermissions: can(access, "permissions.update"),
-    canUpdateRoles: can(access, "roles.update"),
-    canViewPermissions: can(access, "permissions.view"),
-    canViewRoles: can(access, "roles.view"),
+    canAssignPermissions: can(access, PERMISSIONS.users.assignPermissions),
+    canAssignRoles: can(access, PERMISSIONS.users.assignRoles),
+    canCreatePermissions: can(access, PERMISSIONS.permissions.create),
+    canCreateRoles: can(access, PERMISSIONS.roles.create),
+    canDeletePermissions: can(access, PERMISSIONS.permissions.delete),
+    canDeleteRoles: can(access, PERMISSIONS.roles.delete),
+    canUpdatePermissions: can(access, PERMISSIONS.permissions.update),
+    canUpdateRoles: can(access, PERMISSIONS.roles.update),
+    canViewPermissions: can(access, PERMISSIONS.permissions.view),
+    canViewRoles: can(access, PERMISSIONS.roles.view),
     error,
     groupedEffectivePermissions,
     groupedPermissions,

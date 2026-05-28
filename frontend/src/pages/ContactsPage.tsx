@@ -4,6 +4,7 @@ import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
 import { PageHeader } from "@/components/PageHeader";
+import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { getContacts } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
+import { PERMISSIONS } from "@/rbac/permissions";
+import { useAuthorization } from "@/rbac/useAuthorization";
 import type { Contact, ContactStatus } from "@/types";
 
 const statuses: Array<ContactStatus | "All"> = ["All", "New", "Qualified", "Viewing", "Negotiating", "Closed", "Dormant"];
@@ -98,6 +101,8 @@ export function ContactsPage() {
   const [assignmentDraft, setAssignmentDraft] = useState<ContactDraft>(() => blankDraft());
   const [pendingAction, setPendingAction] = useState<PendingContactAction | null>(null);
   const { members } = useAuth();
+  const { can } = useAuthorization();
+  const canUpdateContacts = can(PERMISSIONS.contacts.update);
 
   useEffect(() => {
     getContacts().then(setContacts);
@@ -133,6 +138,7 @@ export function ContactsPage() {
 
   const handleCreateContact = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!can(PERMISSIONS.contacts.create)) return;
 
     const ownerId = createDraft.ownerId || members[0]?.id || "";
     const contact: Contact = {
@@ -160,7 +166,7 @@ export function ContactsPage() {
   };
 
   const saveProfile = () => {
-    if (!selectedContact) return;
+    if (!selectedContact || !canUpdateContacts) return;
 
     setContacts((current) =>
       current.map((contact) =>
@@ -181,7 +187,7 @@ export function ContactsPage() {
   };
 
   const saveAssignment = () => {
-    if (!selectedContact) return;
+    if (!selectedContact || !canUpdateContacts) return;
 
     setContacts((current) =>
       current.map((contact) =>
@@ -197,7 +203,7 @@ export function ContactsPage() {
   };
 
   const handleConfirmAction = () => {
-    if (!pendingAction) return;
+    if (!pendingAction || !canUpdateContacts) return;
 
     if (pendingAction.type === "delete") {
       setContacts((current) => current.filter((contact) => contact.id !== pendingAction.contact.id));
@@ -466,21 +472,23 @@ export function ContactsPage() {
         title="Contacts"
         description="Track buyer and seller leads with ownership, source, budget, and current status."
         actions={
-          <CreateDialog
-            title="Add lead"
-            description="Capture profile, ownership, and source details for a new lead."
-            submitLabel="Save lead"
-            open={createOpen}
-            onOpenChange={setCreateOpen}
-            onSubmit={handleCreateContact}
-            tabs={createTabs}
-            trigger={
-              <Button>
-                <Plus className="h-4 w-4" />
-                Add lead
-              </Button>
-            }
-          />
+          <PermissionGate permission={PERMISSIONS.contacts.create}>
+            <CreateDialog
+              title="Add lead"
+              description="Capture profile, ownership, and source details for a new lead."
+              submitLabel="Save lead"
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              onSubmit={handleCreateContact}
+              tabs={createTabs}
+              trigger={
+                <Button>
+                  <Plus className="h-4 w-4" />
+                  Add lead
+                </Button>
+              }
+            />
+          </PermissionGate>
         }
       />
 
@@ -535,24 +543,26 @@ export function ContactsPage() {
                       <Button variant="outline" size="icon" title="View contact details" aria-label="View contact details" onClick={() => openDetails(contact)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        title={isDormant ? "Activate contact" : "Archive contact"}
-                        aria-label={isDormant ? "Activate contact" : "Archive contact"}
-                        onClick={() => setPendingAction({ type: isDormant ? "activate" : "archive", contact })}
-                      >
-                        {isDormant ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        title="Delete contact"
-                        aria-label="Delete contact"
-                        onClick={() => setPendingAction({ type: "delete", contact })}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <PermissionGate permission={PERMISSIONS.contacts.update}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title={isDormant ? "Activate contact" : "Archive contact"}
+                          aria-label={isDormant ? "Activate contact" : "Archive contact"}
+                          onClick={() => setPendingAction({ type: isDormant ? "activate" : "archive", contact })}
+                        >
+                          {isDormant ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Delete contact"
+                          aria-label="Delete contact"
+                          onClick={() => setPendingAction({ type: "delete", contact })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </PermissionGate>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -567,6 +577,7 @@ export function ContactsPage() {
           title={contactName(selectedContact)}
           description="Profile, ownership, and recent contact context."
           open={detailOpen}
+          editable={canUpdateContacts}
           onOpenChange={(open) => {
             setDetailOpen(open);
             if (!open) setSelectedContactId(null);

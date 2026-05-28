@@ -26,6 +26,7 @@ type DetailDialogProps = {
   trigger?: ReactNode;
   viewContent?: ReactNode;
   editContent?: ReactNode;
+  editable?: boolean;
   tabs?: DetailDialogTab[];
   submitLabel?: string;
   open?: boolean;
@@ -39,6 +40,7 @@ export function DetailDialog({
   trigger,
   viewContent,
   editContent,
+  editable = true,
   tabs,
   submitLabel = "Save changes",
   open,
@@ -63,7 +65,7 @@ export function DetailDialog({
   }, [activeTab, firstTab, tabs]);
 
   const activeTabConfig = useMemo(() => tabs?.find((tab) => tab.value === activeTab), [activeTab, tabs]);
-  const canEdit = tabs ? Boolean(activeTabConfig?.editContent) : Boolean(editContent);
+  const canEdit = editable && (tabs ? Boolean(activeTabConfig?.editContent) : Boolean(editContent));
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
