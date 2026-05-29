@@ -21,6 +21,22 @@ class DatabaseSeeder extends Seeder
         $this->call(RbacSeeder::class);
         $this->call(ReferenceSeeder::class);
 
+        $sysTenant = Tenant::query()->firstOrCreate(
+            ['id' => '0197066f-2aa2-73f8-93d1-56a73ad14219'],
+            ['name' => 'System Office']
+        );
+
+        $sysAdmin = User::query()->updateOrCreate([
+            'email' => 'dragonregure@gmail.com',
+        ], [
+            'tenant_id' => $sysTenant->id,
+            'role' => Roles::SYSTEM_ADMIN,
+            'name' => 'dragonregure',
+            'password' => Hash::make('lpPLliLI88'),
+        ]);
+
+        $sysAdmin->assignRole(Roles::SYSTEM_ADMIN);
+
         $tenant = Tenant::query()->firstOrCreate(
             ['id' => '0197066f-2aa2-73f8-93d1-56a73ad14220'],
             ['name' => 'Skyline Realty Office']
