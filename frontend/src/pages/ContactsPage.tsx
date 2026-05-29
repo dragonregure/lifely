@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Archive, Eye, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Archive, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
@@ -9,7 +10,6 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { getContacts } from "@/services/api";
@@ -91,7 +91,6 @@ function DetailField({ label, value }: { label: string; value: string }) {
 
 export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ContactStatus | "All">("All");
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState<ContactDraft>(() => blankDraft());
@@ -126,13 +125,8 @@ export function ContactsPage() {
   }, [selectedContact]);
 
   const filtered = useMemo(() => {
-    return contacts.filter((contact) => {
-      const haystack = `${contact.firstName} ${contact.lastName} ${contact.email} ${contact.source}`.toLowerCase();
-      const matchesQuery = haystack.includes(query.toLowerCase());
-      const matchesStatus = status === "All" || contact.status === status;
-      return matchesQuery && matchesStatus;
-    });
-  }, [contacts, query, status]);
+    return contacts.filter((contact) => status === "All" || contact.status === status);
+  }, [contacts, status]);
 
   const updateDraft = (draft: ContactDraft, patch: Partial<ContactDraft>) => ({ ...draft, ...patch });
 
@@ -465,6 +459,52 @@ export function ContactsPage() {
     },
   ];
 
+  const contactColumns = useMemo<DataTableColumn<Contact>[]>(
+    () => [
+      {
+        id: "contact",
+        header: "Contact",
+        cell: (contact) => (
+          <>
+            <p className="font-medium">{contactName(contact)}</p>
+            <p className="text-xs text-muted-foreground">{contact.email}</p>
+          </>
+        ),
+        searchValue: (contact) => `${contactName(contact)} ${contact.email}`,
+      },
+      {
+        id: "status",
+        header: "Status",
+        cell: (contact) => <StatusBadge status={contact.status} />,
+        searchValue: (contact) => contact.status,
+      },
+      {
+        id: "owner",
+        header: "Owner",
+        cell: (contact) => members.find((user) => user.id === contact.ownerId)?.name ?? "Unassigned",
+        searchValue: (contact) => members.find((user) => user.id === contact.ownerId)?.name ?? "Unassigned",
+      },
+      {
+        id: "budget",
+        header: "Budget",
+        cell: (contact) => formatCurrency(contact.budget),
+        searchValue: (contact) => String(contact.budget),
+      },
+      {
+        id: "source",
+        header: "Source",
+        accessor: "source",
+      },
+      {
+        id: "last-contacted",
+        header: "Last contacted",
+        cell: (contact) => new Date(contact.lastContactedAt).toLocaleDateString(),
+        searchValue: (contact) => new Date(contact.lastContactedAt).toLocaleDateString(),
+      },
+    ],
+    [members],
+  );
+
   return (
     <div>
       <PageHeader
@@ -492,85 +532,56 @@ export function ContactsPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 lg:grid-cols-[1fr_auto]">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search contacts, email, or source" value={query} onChange={(event) => setQuery(event.target.value)} />
-        </div>
-        <Tabs value={status} onValueChange={(value) => setStatus(value as ContactStatus | "All")}>
-          <TabsList className="flex h-auto flex-wrap justify-start">
-            {statuses.map((item) => (
-              <TabsTrigger key={item} value={item} className="text-xs">
-                {item}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+      <DataTable
+        actions={(contact) => {
+          const isDormant = contact.status === "Dormant";
 
-      <div className="overflow-x-auto rounded-lg border bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Contact</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Budget</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead>Last contacted</TableHead>
-              <TableHead className="w-32 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((contact) => {
-              const owner = members.find((user) => user.id === contact.ownerId);
-              const isDormant = contact.status === "Dormant";
-              return (
-                <TableRow key={contact.id}>
-                  <TableCell>
-                    <p className="font-medium">{contactName(contact)}</p>
-                    <p className="text-xs text-muted-foreground">{contact.email}</p>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={contact.status} />
-                  </TableCell>
-                  <TableCell>{owner?.name ?? "Unassigned"}</TableCell>
-                  <TableCell>{formatCurrency(contact.budget)}</TableCell>
-                  <TableCell>{contact.source}</TableCell>
-                  <TableCell>{new Date(contact.lastContactedAt).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button variant="outline" size="icon" title="View contact details" aria-label="View contact details" onClick={() => openDetails(contact)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <PermissionGate permission={PERMISSIONS.contacts.update}>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          title={isDormant ? "Activate contact" : "Archive contact"}
-                          aria-label={isDormant ? "Activate contact" : "Archive contact"}
-                          onClick={() => setPendingAction({ type: isDormant ? "activate" : "archive", contact })}
-                        >
-                          {isDormant ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          title="Delete contact"
-                          aria-label="Delete contact"
-                          onClick={() => setPendingAction({ type: "delete", contact })}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </PermissionGate>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+          return (
+            <>
+              <Button variant="outline" size="icon" title="View contact details" aria-label="View contact details" onClick={() => openDetails(contact)}>
+                <Eye className="h-4 w-4" />
+              </Button>
+              <PermissionGate permission={PERMISSIONS.contacts.update}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title={isDormant ? "Activate contact" : "Archive contact"}
+                  aria-label={isDormant ? "Activate contact" : "Archive contact"}
+                  onClick={() => setPendingAction({ type: isDormant ? "activate" : "archive", contact })}
+                >
+                  {isDormant ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title="Delete contact"
+                  aria-label="Delete contact"
+                  onClick={() => setPendingAction({ type: "delete", contact })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </PermissionGate>
+            </>
+          );
+        }}
+        columns={contactColumns}
+        data={filtered}
+        emptyMessage="No contacts found."
+        initialPageSize={10}
+        rowKey="id"
+        search={{ enabled: true, placeholder: "Search contacts, email, or source" }}
+        toolbarEnd={
+          <Tabs value={status} onValueChange={(value) => setStatus(value as ContactStatus | "All")}>
+            <TabsList className="flex h-auto flex-wrap justify-start">
+              {statuses.map((item) => (
+                <TabsTrigger key={item} value={item} className="text-xs">
+                  {item}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        }
+      />
 
       {selectedContact && (
         <DetailDialog
