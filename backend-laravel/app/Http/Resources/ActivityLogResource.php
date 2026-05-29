@@ -16,6 +16,7 @@ class ActivityLogResource extends JsonResource
             'user_id' => $this->user_id,
             'action_type' => $this->action_type,
             'description' => $this->description,
+            'properties' => $this->properties,
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

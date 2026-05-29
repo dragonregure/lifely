@@ -10,8 +10,16 @@ use App\Contracts\PipelineRepositoryInterface;
 use App\Contracts\ReferenceRepositoryInterface;
 use App\Contracts\ReportingServiceInterface;
 use App\Contracts\TenantRepositoryInterface;
+use App\Models\Contact;
+use App\Models\EmailCampaign;
+use App\Models\Listing;
+use App\Models\PipelineDeal;
 use App\Models\Reference;
 use App\Models\User;
+use App\Observers\ContactActivityObserver;
+use App\Observers\EmailCampaignActivityObserver;
+use App\Observers\ListingActivityObserver;
+use App\Observers\PipelineDealActivityObserver;
 use App\Policies\PermissionPolicy;
 use App\Policies\ReferencePolicy;
 use App\Policies\RolePolicy;
@@ -52,6 +60,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Contact::observe(ContactActivityObserver::class);
+        EmailCampaign::observe(EmailCampaignActivityObserver::class);
+        Listing::observe(ListingActivityObserver::class);
+        PipelineDeal::observe(PipelineDealActivityObserver::class);
+
         Gate::before(fn (User $user): ?bool => $user->hasSystemBypass() ? true : null);
 
         Gate::policy(Role::class, RolePolicy::class);

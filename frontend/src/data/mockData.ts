@@ -245,6 +245,7 @@ export const activityLogs: ActivityLog[] = [
     userId: "user-1",
     actionType: "contact.created",
     description: "Maya added Ethan Miller from the Harbor open house.",
+    properties: null,
     createdAt: "2026-05-27T03:20:00Z",
   },
   {
@@ -253,6 +254,7 @@ export const activityLogs: ActivityLog[] = [
     userId: "user-2",
     actionType: "email.queued",
     description: "Jon queued a bulk email to 18 qualified buyers.",
+    properties: null,
     createdAt: "2026-05-26T20:12:00Z",
   },
   {
@@ -261,6 +263,13 @@ export const activityLogs: ActivityLog[] = [
     userId: "user-1",
     actionType: "pipeline.updated",
     description: "Isabella Nguyen moved to Offer for Cedar Row Townhome.",
+    properties: {
+      subject_type: "pipeline",
+      subject_id: "deal-4",
+      changes: {
+        stage: { old: "Viewing", new: "Offer" },
+      },
+    },
     createdAt: "2026-05-26T18:04:00Z",
   },
   {
@@ -269,6 +278,13 @@ export const activityLogs: ActivityLog[] = [
     userId: "user-3",
     actionType: "listing.updated",
     description: "Nadia marked Atlas Park Condo as Reserved.",
+    properties: {
+      subject_type: "listing",
+      subject_id: "listing-2",
+      changes: {
+        status: { old: "Available", new: "Reserved" },
+      },
+    },
     createdAt: "2026-05-25T16:45:00Z",
   },
   {
@@ -277,6 +293,7 @@ export const activityLogs: ActivityLog[] = [
     userId: "user-1",
     actionType: "member.invited",
     description: "Maya invited a new agent to Skyline Realty Office.",
+    properties: null,
     createdAt: "2026-05-24T08:30:00Z",
   },
 ];

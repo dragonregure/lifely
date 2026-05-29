@@ -2,21 +2,15 @@
 
 namespace App\Repositories;
 
-use App\Contracts\ActivityRepositoryInterface;
 use App\Contracts\ContactRepositoryInterface;
 use App\Models\Contact;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class ContactRepository implements ContactRepositoryInterface
 {
-    public function __construct(private readonly ActivityRepositoryInterface $activity)
-    {
-    }
-
     public function all(string $tenantId, array $filters = []): Collection
     {
         return Contact::query()
@@ -57,16 +51,7 @@ class ContactRepository implements ContactRepositoryInterface
 
     public function create(string $tenantId, array $data): Contact
     {
-        $contact = Contact::query()->create($data + ['tenant_id' => $tenantId]);
-
-        $this->activity->record(
-            $tenantId,
-            $data['owner_id'] ?? null,
-            'contact.created',
-            "Created contact {$contact->first_name} {$contact->last_name}."
-        );
-
-        return $contact;
+        return Contact::query()->create($data + ['tenant_id' => $tenantId]);
     }
 
     public function update(string $tenantId, string $contactId, array $data): ?Contact
@@ -78,7 +63,6 @@ class ContactRepository implements ContactRepositoryInterface
         }
 
         $contact->update($data);
-        $this->activity->record($tenantId, $contact->owner_id, 'contact.updated', "Updated contact {$contact->first_name} {$contact->last_name}.");
 
         return $contact->refresh();
     }
@@ -91,11 +75,7 @@ class ContactRepository implements ContactRepositoryInterface
             return false;
         }
 
-        return DB::transaction(function () use ($tenantId, $contact): bool {
-            $this->activity->record($tenantId, $contact->owner_id, 'contact.deleted', "Deleted contact {$contact->first_name} {$contact->last_name}.");
-
-            return (bool) $contact->delete();
-        });
+        return (bool) $contact->delete();
     }
 
     public function countByStatus(string $tenantId): Collection

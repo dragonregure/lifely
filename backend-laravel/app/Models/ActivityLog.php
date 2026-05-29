@@ -16,7 +16,15 @@ class ActivityLog extends Model
         'user_id',
         'action_type',
         'description',
+        'properties',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'properties' => 'array',
+        ];
+    }
 
     public function user(): BelongsTo
     {

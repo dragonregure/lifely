@@ -8,6 +8,7 @@ import type {
   ReferenceValue,
   ReferenceStatus,
   ReferenceValueType,
+  ActivityLogProperties,
   Role,
 } from "@/types";
 
@@ -99,6 +100,7 @@ export type BackendActivity = {
   user_id?: string | null;
   action_type: ActivityLog["actionType"];
   description: string;
+  properties?: ActivityLogProperties | null;
   created_at?: string | null;
 };
 

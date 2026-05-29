@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\ContactRepositoryInterface;
+use App\Models\ActivityLog;
 use App\Models\Contact;
 use App\Models\Tenant;
 use App\Models\User;
@@ -152,6 +153,21 @@ class ContactApiTest extends TestCase
             'user_id' => $owner->id,
             'action_type' => 'contact.updated',
         ]);
+
+        $activity = ActivityLog::query()
+            ->where('tenant_id', $tenant->id)
+            ->where('action_type', 'contact.updated')
+            ->latest()
+            ->firstOrFail();
+
+        $properties = $activity->properties;
+        $this->assertIsArray($properties);
+
+        /** @var array{changes: array<string, array{old: mixed, new: mixed}>} $properties */
+        $this->assertSame('New', $properties['changes']['status']['old']);
+        $this->assertSame('Qualified', $properties['changes']['status']['new']);
+        $this->assertSame('Website', $properties['changes']['source']['old']);
+        $this->assertSame('Open house', $properties['changes']['source']['new']);
     }
 
     public function test_authorized_user_can_delete_contact(): void

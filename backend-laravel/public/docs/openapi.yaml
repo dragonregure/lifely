@@ -259,6 +259,18 @@ components:
         user_id: { type: string, format: uuid, nullable: true }
         action_type: { type: string, example: contact.created }
         description: { type: string }
+        properties:
+          type: object
+          nullable: true
+          description: Structured activity metadata. Update activities include a `changes` object keyed by updated field.
+          additionalProperties: true
+          example:
+            subject_type: contact
+            subject_id: 0197066f-2aa2-73f8-93d1-56a73ad14220
+            changes:
+              status:
+                old: New
+                new: Qualified
         created_at: { type: string, format: date-time, nullable: true }
     EmailCampaign:
       type: object

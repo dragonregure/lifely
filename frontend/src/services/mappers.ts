@@ -152,6 +152,7 @@ export function mapActivity(log: BackendActivity): ActivityLog {
     userId: log.user_id ?? "",
     actionType: log.action_type,
     description: log.description,
+    properties: log.properties ?? null,
     createdAt: log.created_at ?? new Date().toISOString(),
   };
 }

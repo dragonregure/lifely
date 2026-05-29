@@ -36,13 +36,14 @@ class ActivityRepository implements ActivityRepositoryInterface
         );
     }
 
-    public function record(string $tenantId, ?string $userId, string $actionType, string $description): ActivityLog
+    public function record(string $tenantId, ?string $userId, string $actionType, string $description, array $properties = []): ActivityLog
     {
         return ActivityLog::query()->create([
             'tenant_id' => $tenantId,
             'user_id' => $userId,
             'action_type' => $actionType,
             'description' => $description,
+            'properties' => $properties === [] ? null : $properties,
         ]);
     }
 }

@@ -115,12 +115,20 @@ export type PipelineDeal = {
   listing?: Listing | null;
 };
 
+export type ActivityLogProperties = {
+  subject_type?: string;
+  subject_id?: string;
+  attributes?: Record<string, unknown>;
+  changes?: Record<string, { old: unknown; new: unknown }>;
+} & Record<string, unknown>;
+
 export type ActivityLog = {
   id: string;
   tenantId: string;
   userId: string;
   actionType: string;
   description: string;
+  properties: ActivityLogProperties | null;
   createdAt: string;
 };
 

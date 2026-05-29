@@ -7,6 +7,39 @@ import { getActivityLogsPage } from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
 import type { ActivityLog } from "@/types";
 
+function formatChangeValue(value: unknown) {
+  if (value === null || value === undefined || value === "") {
+    return "empty";
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function ActivityChanges({ log }: { log: ActivityLog }) {
+  const changes = log.properties?.changes;
+  const entries = changes ? Object.entries(changes) : [];
+
+  if (entries.length === 0) {
+    return <span className="text-muted-foreground">-</span>;
+  }
+
+  return (
+    <div className="grid gap-1 text-xs">
+      {entries.map(([field, change]) => (
+        <div key={field} className="rounded-md bg-slate-50 px-2 py-1">
+          <span className="font-medium text-slate-800">{field}</span>
+          <span className="text-muted-foreground">: {formatChangeValue(change.old)} {"->"} </span>
+          <span className="text-slate-900">{formatChangeValue(change.new)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const activityColumns: DataTableColumn<ActivityLog>[] = [
   {
     id: "action",
@@ -18,6 +51,12 @@ const activityColumns: DataTableColumn<ActivityLog>[] = [
     id: "description",
     header: "Description",
     accessor: "description",
+    className: "min-w-72",
+  },
+  {
+    id: "changes",
+    header: "Changes",
+    cell: (log) => <ActivityChanges log={log} />,
     className: "min-w-72",
   },
   {

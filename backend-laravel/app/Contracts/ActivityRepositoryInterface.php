@@ -13,5 +13,5 @@ interface ActivityRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
-    public function record(string $tenantId, ?string $userId, string $actionType, string $description): ActivityLog;
+    public function record(string $tenantId, ?string $userId, string $actionType, string $description, array $properties = []): ActivityLog;
 }
