@@ -1,0 +1,109 @@
+import { useEffect, useMemo, useState } from "react";
+import { ALL_FILTER_VALUE, DEFAULT_PAGE_SIZES } from "./constants";
+import type { DataTableActions, DataTableProps, DataTableSearch } from "./types";
+import { clampPageSize, getAccessorValue, toSearchText } from "./utils";
+
+type UseDataTableProps<TData extends object> = Pick<
+  DataTableProps<TData>,
+  "actions" | "actionsHeader" | "columns" | "data" | "filters" | "initialPageSize" | "pageSizeOptions" | "search" | "toolbarEnd"
+>;
+
+export function useDataTable<TData extends object>({
+  actions,
+  actionsHeader,
+  columns,
+  data,
+  filters = [],
+  initialPageSize = 10,
+  pageSizeOptions = DEFAULT_PAGE_SIZES,
+  search = false,
+  toolbarEnd,
+}: UseDataTableProps<TData>) {
+  const normalizedPageSizeOptions = useMemo(() => {
+    return Array.from(new Set([...pageSizeOptions, initialPageSize].map(clampPageSize))).sort((a, b) => a - b);
+  }, [initialPageSize, pageSizeOptions]);
+
+  const [pageSize, setPageSize] = useState(clampPageSize(initialPageSize));
+  const [page, setPage] = useState(1);
+  const [query, setQuery] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+
+  const searchConfig: DataTableSearch<TData> = useMemo(() => (typeof search === "boolean" ? { enabled: search } : search), [search]);
+  const searchEnabled = Boolean(searchConfig.enabled);
+  const actionConfig: DataTableActions<TData> | null = useMemo(() => {
+    if (!actions) return null;
+    return typeof actions === "function" ? { cell: actions, header: actionsHeader } : actions;
+  }, [actions, actionsHeader]);
+
+  useEffect(() => {
+    setFilterValues((current) => {
+      const next = Object.fromEntries(filters.map((filter) => [filter.id, current[filter.id] ?? filter.defaultValue ?? ALL_FILTER_VALUE]));
+      const currentKeys = Object.keys(current);
+      const nextKeys = Object.keys(next);
+      const changed = currentKeys.length !== nextKeys.length || nextKeys.some((key) => current[key] !== next[key]);
+      return changed ? next : current;
+    });
+  }, [filters]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [data, filterValues, pageSize, query]);
+
+  const filteredData = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return data.filter((row) => {
+      const matchesSearch =
+        !searchEnabled ||
+        normalizedQuery.length === 0 ||
+        (searchConfig.searchValue
+          ? searchConfig.searchValue(row)
+          : columns.map((column) => column.searchValue?.(row) ?? toSearchText(getAccessorValue(row, column.accessor))).join(" "))
+          .toLowerCase()
+          .includes(normalizedQuery);
+
+      const matchesFilters = filters.every((filter) => {
+        const selectedValue = filterValues[filter.id] ?? filter.defaultValue ?? ALL_FILTER_VALUE;
+        return selectedValue === ALL_FILTER_VALUE || filter.predicate(row, selectedValue);
+      });
+
+      return matchesSearch && matchesFilters;
+    });
+  }, [columns, data, filterValues, filters, query, searchConfig, searchEnabled]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+
+  useEffect(() => {
+    if (page > pageCount) {
+      setPage(pageCount);
+    }
+  }, [page, pageCount]);
+
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [currentPage, filteredData, pageSize]);
+
+  return {
+    actionConfig,
+    currentPage,
+    filterValues,
+    filteredData,
+    hasPagination: filteredData.length > pageSize,
+    hasToolbar: searchEnabled || filters.length > 0 || Boolean(toolbarEnd),
+    normalizedPageSizeOptions,
+    pageCount,
+    pageSize,
+    paginatedData,
+    query,
+    rangeEnd: Math.min(currentPage * pageSize, filteredData.length),
+    rangeStart: filteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1,
+    searchConfig,
+    searchEnabled,
+    setFilterValues,
+    setPage,
+    setPageSize,
+    setQuery,
+  };
+}
