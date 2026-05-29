@@ -2,9 +2,37 @@ openapi: 3.0.3
 info:
   title: Lifely API
   version: 1.0.0
-  description: API-first Laravel backend for the Lifely multi-tenant real estate CRM.
+  description: >
+    API-first Laravel backend for the Lifely multi-tenant real estate CRM.
+    Protected endpoints use Sanctum bearer tokens. Tenant context is resolved from
+    the authenticated user by default; `X-Tenant-Id` and `tenant_id` are still
+    accepted by the backend as compatibility overrides, but they are not an
+    authentication mechanism and are not required for normal SPA/API clients.
 servers:
   - url: /api/v1
+tags:
+  - name: System
+    description: Health and operational endpoints.
+  - name: Auth
+    description: Registration, login, token rotation, and account session actions.
+  - name: Tenant
+    description: Current office tenant and member context.
+  - name: Access Control
+    description: Roles, permissions, and user access assignment.
+  - name: Dashboard
+    description: CRM summary and reporting data.
+  - name: Contacts
+    description: Tenant-scoped CRM contacts and leads.
+  - name: Listings
+    description: Tenant-scoped property inventory.
+  - name: Pipeline
+    description: Tenant-scoped deal pipeline.
+  - name: References
+    description: System and tenant reference values.
+  - name: Activity Logs
+    description: Tenant-scoped audit activity.
+  - name: Email Campaigns
+    description: Bulk email campaign queueing and history.
 security:
   - BearerAuth: []
 components:
@@ -13,99 +41,138 @@ components:
       type: http
       scheme: bearer
       bearerFormat: Sanctum token
-    TenantHeader:
-      type: apiKey
-      in: header
-      name: X-Tenant-Id
   parameters:
-    DataTablePage:
+    Page:
       in: query
       name: page
       schema: { type: integer, minimum: 1, default: 1 }
-      description: Server-side table page number.
-    DataTablePerPage:
+      description: Page number for server-side pagination.
+    PerPage:
       in: query
       name: per_page
       schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
-      description: Number of records per page, capped at 100.
-    DataTableSearch:
+      description: Records per page. Values above 100 are capped at 100.
+    Search:
       in: query
       name: search
       schema: { type: string }
-      description: Server-side search term.
-    DataTableSort:
-      in: query
-      name: sort
-      schema: { type: string }
-      description: Whitelisted sort key for the current endpoint.
-    DataTableDirection:
+      description: Server-side search term. Empty values are ignored.
+    Direction:
       in: query
       name: direction
       schema: { type: string, enum: [asc, desc], default: desc }
-      description: Sort direction.
-    DataTableFilters:
-      in: query
-      name: filter
-      style: deepObject
-      explode: true
-      schema:
-        type: object
-        additionalProperties: { type: string }
-      description: Endpoint-specific filters, for example `filter[status]=ACTIVE`.
+      description: Sort direction. Invalid values fall back to `desc`.
+    ContactId:
+      in: path
+      name: contact
+      required: true
+      schema: { type: string, format: uuid }
+      description: Tenant-scoped contact UUID.
+    ListingId:
+      in: path
+      name: listing
+      required: true
+      schema: { type: string, format: uuid }
+      description: Tenant-scoped listing UUID.
+    PipelineId:
+      in: path
+      name: pipeline
+      required: true
+      schema: { type: string, format: uuid }
+      description: Tenant-scoped pipeline deal UUID.
+    ReferenceId:
+      in: path
+      name: reference
+      required: true
+      schema: { type: string, format: uuid }
+      description: System or tenant-visible reference UUID.
+    RoleId:
+      in: path
+      name: role
+      required: true
+      schema: { type: integer }
+      description: Spatie role ID.
+    PermissionId:
+      in: path
+      name: permission
+      required: true
+      schema: { type: integer }
+      description: Spatie permission ID.
+    UserId:
+      in: path
+      name: user
+      required: true
+      schema: { type: string, format: uuid }
+      description: User UUID. The user must belong to the current tenant context.
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: array
+            items: { type: string }
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string }
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        from: { type: integer, nullable: true }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        to: { type: integer, nullable: true }
+        total: { type: integer }
     Tenant:
       type: object
       properties:
         id: { type: string, format: uuid }
-        name: { type: string }
+        name: { type: string, example: Skyline Realty Office }
         created_at: { type: string, format: date-time, nullable: true }
-    Contact:
+    AuthUser:
       type: object
       properties:
         id: { type: string, format: uuid }
         tenant_id: { type: string, format: uuid }
-        owner_id: { type: string, format: uuid, nullable: true }
-        first_name: { type: string }
-        last_name: { type: string }
+        role: { type: string, example: Office Admin }
+        roles:
+          type: array
+          items: { type: string }
+        permissions:
+          type: array
+          items: { type: string }
+        name: { type: string, example: Maya Hart }
+        email: { type: string, format: email, example: maya@skyline.example }
+        tenant: { $ref: "#/components/schemas/Tenant" }
+    AuthTokenPayload:
+      type: object
+      properties:
+        token_type: { type: string, example: Bearer }
+        access_token: { type: string }
+        access_expires_at: { type: string, format: date-time, nullable: true }
+        refresh_token: { type: string }
+        refresh_expires_at: { type: string, format: date-time, nullable: true }
+        user: { $ref: "#/components/schemas/AuthUser" }
+    Member:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        role: { type: string, example: Sales }
+        roles:
+          type: array
+          items: { type: string }
+        direct_permissions:
+          type: array
+          items: { type: string }
+        name: { type: string }
         email: { type: string, format: email }
-        phone: { type: string, nullable: true }
-        status: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
-        budget: { type: number, nullable: true }
-        source: { type: string, nullable: true }
-        last_contacted_at: { type: string, format: date-time, nullable: true }
-    Listing:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        tenant_id: { type: string, format: uuid }
-        title: { type: string }
-        address: { type: string }
-        price: { type: number }
-        status: { type: string, enum: [Available, Reserved, Under Contract, Sold] }
-        bedrooms: { type: integer }
-        bathrooms: { type: integer }
-        property_type: { type: string, enum: [House, Condo, Townhome, Land] }
-    PipelineDeal:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        tenant_id: { type: string, format: uuid }
-        contact_id: { type: string, format: uuid }
-        listing_id: { type: string, format: uuid }
-        user_id: { type: string, format: uuid }
-        stage: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
-        value: { type: number }
-        next_task: { type: string, nullable: true }
-        due_at: { type: string, format: date-time, nullable: true }
-    EmailCampaign:
-      type: object
-      properties:
-        id: { type: string, format: uuid }
-        tenant_id: { type: string, format: uuid }
-        user_id: { type: string, format: uuid, nullable: true }
-        subject: { type: string }
-        recipient_count: { type: integer }
-        status: { type: string, enum: [Queued, Sent] }
+        created_at: { type: string, format: date-time, nullable: true }
     Permission:
       type: object
       properties:
@@ -141,6 +208,68 @@ components:
           type: array
           items: { type: string }
           example: [roles.view, roles.create, users.assign_roles]
+    Contact:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid, nullable: true }
+        first_name: { type: string }
+        last_name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        status: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        budget: { type: number, nullable: true }
+        source: { type: string, nullable: true }
+        last_contacted_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time, nullable: true }
+    Listing:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        title: { type: string }
+        address: { type: string }
+        price: { type: number }
+        status: { type: string, enum: [Available, Reserved, Under Contract, Sold] }
+        bedrooms: { type: integer, nullable: true }
+        bathrooms: { type: integer, nullable: true }
+        property_type: { type: string, enum: [House, Condo, Townhome, Land] }
+        created_at: { type: string, format: date-time, nullable: true }
+    PipelineDeal:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        contact_id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        stage: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
+        value: { type: number }
+        next_task: { type: string, nullable: true }
+        due_at: { type: string, format: date-time, nullable: true }
+        contact: { $ref: "#/components/schemas/Contact" }
+        listing: { $ref: "#/components/schemas/Listing" }
+        created_at: { type: string, format: date-time, nullable: true }
+    ActivityLog:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        action_type: { type: string, example: contact.created }
+        description: { type: string }
+        created_at: { type: string, format: date-time, nullable: true }
+    EmailCampaign:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid, nullable: true }
+        subject: { type: string }
+        recipient_count: { type: integer }
+        status: { type: string, enum: [Queued, Sent] }
+        created_at: { type: string, format: date-time, nullable: true }
     Reference:
       type: object
       properties:
@@ -152,28 +281,116 @@ components:
         value:
           nullable: true
           description: Value cast according to `type`.
-          example: Avenue
-        type: { type: string, example: string }
+          oneOf:
+            - type: string
+            - type: integer
+            - type: number
+            - type: boolean
+            - type: array
+              items: {}
+            - type: object
+        type: { type: string, enum: [string, int, float, double, bool, array, object, "null"] }
         meta: { type: object, nullable: true }
         status: { type: string, enum: [ACTIVE, INACTIVE] }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
-    RolePayload:
+    ReferenceOption:
+      type: object
+      properties:
+        label: { type: string, example: Street Type }
+        value: { type: string, example: street_type }
+    DashboardSummary:
+      type: object
+      properties:
+        new_leads: { type: integer }
+        pending_tasks: { type: integer }
+        pipeline_value: { type: number }
+        win_rate: { type: number }
+        pipeline_performance:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string, example: Jan }
+              value: { type: number }
+        lead_health:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string, example: Qualified }
+              value: { type: integer }
+    RegisterPayload:
+      type: object
+      required: [tenant_name, name, email, password, password_confirmation]
+      properties:
+        tenant_name: { type: string, maxLength: 180, example: Skyline Realty Office }
+        name: { type: string, maxLength: 120, example: Maya Hart }
+        email: { type: string, format: email, maxLength: 255, example: maya@skyline.example }
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: Must contain mixed case letters and numbers.
+        password_confirmation: { type: string, format: password }
+        device_name: { type: string, nullable: true, maxLength: 120, example: swagger-demo }
+    LoginPayload:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, example: maya@skyline.example }
+        password: { type: string, format: password, example: password }
+        device_name: { type: string, nullable: true, maxLength: 120, example: swagger-demo }
+    RefreshTokenPayload:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+        device_name: { type: string, nullable: true, maxLength: 120, example: lifely-frontend }
+    LogoutPayload:
+      type: object
+      properties:
+        refresh_token: { type: string, nullable: true }
+    UpdatePasswordPayload:
+      type: object
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password: { type: string, format: password }
+        password:
+          type: string
+          format: password
+          minLength: 12
+          description: Must contain mixed case letters and numbers.
+        password_confirmation: { type: string, format: password }
+    RoleStorePayload:
       type: object
       required: [name]
       properties:
-        name: { type: string, example: Sales Manager }
-        guard_name: { type: string, default: web }
+        name: { type: string, maxLength: 125, example: Sales Manager }
+        guard_name: { type: string, maxLength: 125, default: web }
         permissions:
           type: array
           items: { type: string }
           example: [contacts.view, contacts.create, pipeline.view]
-    PermissionPayload:
+    RoleUpdatePayload:
+      type: object
+      properties:
+        name: { type: string, maxLength: 125, example: Sales Manager }
+        guard_name: { type: string, maxLength: 125, default: web }
+        permissions:
+          type: array
+          items: { type: string }
+    PermissionStorePayload:
       type: object
       required: [name]
       properties:
-        name: { type: string, example: reports.export }
-        guard_name: { type: string, default: web }
+        name: { type: string, maxLength: 125, example: reports.export }
+        guard_name: { type: string, maxLength: 125, default: web }
+    PermissionUpdatePayload:
+      type: object
+      properties:
+        name: { type: string, maxLength: 125, example: reports.export }
+        guard_name: { type: string, maxLength: 125, default: web }
     UserRoleSyncPayload:
       type: object
       required: [roles]
@@ -182,7 +399,7 @@ components:
           type: array
           items: { type: string }
           example: [Sales, Property Manager]
-        guard_name: { type: string, default: web }
+        guard_name: { type: string, maxLength: 125, default: web }
     UserPermissionSyncPayload:
       type: object
       required: [permissions]
@@ -191,8 +408,60 @@ components:
           type: array
           items: { type: string }
           example: [contacts.view, reports.view]
-        guard_name: { type: string, default: web }
-    ReferencePayload:
+        guard_name: { type: string, maxLength: 125, default: web }
+    ContactStorePayload:
+      type: object
+      required: [first_name, last_name, email]
+      properties:
+        owner_id: { type: string, format: uuid, nullable: true }
+        first_name: { type: string, maxLength: 120 }
+        last_name: { type: string, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: string, nullable: true, maxLength: 40 }
+        status: { type: string, nullable: true, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        budget: { type: number, nullable: true, minimum: 0 }
+        source: { type: string, nullable: true, maxLength: 120 }
+        last_contacted_at: { type: string, format: date-time, nullable: true }
+    ContactUpdatePayload:
+      type: object
+      properties:
+        owner_id: { type: string, format: uuid, nullable: true }
+        first_name: { type: string, maxLength: 120 }
+        last_name: { type: string, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: string, nullable: true, maxLength: 40 }
+        status: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        budget: { type: number, nullable: true, minimum: 0 }
+        source: { type: string, nullable: true, maxLength: 120 }
+        last_contacted_at: { type: string, format: date-time, nullable: true }
+    ListingStorePayload:
+      type: object
+      required: [title, address, price]
+      properties:
+        title: { type: string, maxLength: 180 }
+        address: { type: string }
+        price: { type: number, minimum: 0 }
+        status: { type: string, nullable: true, enum: [Available, Reserved, Under Contract, Sold] }
+        bedrooms: { type: integer, nullable: true, minimum: 0, maximum: 20 }
+        bathrooms: { type: integer, nullable: true, minimum: 0, maximum: 20 }
+        property_type: { type: string, nullable: true, enum: [House, Condo, Townhome, Land] }
+    PipelineStorePayload:
+      type: object
+      required: [contact_id, listing_id, user_id, value]
+      properties:
+        contact_id: { type: string, format: uuid }
+        listing_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        stage: { type: string, nullable: true, enum: [New lead, Contacted, Viewing, Offer, Closing] }
+        value: { type: number, minimum: 0 }
+        next_task: { type: string, nullable: true, maxLength: 255 }
+        due_at: { type: string, format: date-time, nullable: true }
+    PipelineStagePayload:
+      type: object
+      required: [stage]
+      properties:
+        stage: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
+    ReferenceStorePayload:
       type: object
       required: [group, key]
       properties:
@@ -200,52 +469,77 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: Omit to create a tenant reference. Only users with `references.manage_system` can send null to create or convert a system reference.
-        group: { type: string, example: street_type }
-        key: { type: string, example: ave }
-        value:
-          type: string
-          nullable: true
-          description: Stored value. API responses cast this value according to `type`.
-          example: Avenue
-        type: { type: string, default: string, enum: [string, int, float, double, bool, array, object, "null"] }
+          description: Omit to create a tenant reference. Send null only with `references.manage_system` to create a system reference.
+        group: { type: string, maxLength: 120, example: street_type }
+        key: { type: string, maxLength: 120, example: ave }
+        value: { type: string, nullable: true, maxLength: 255, example: Avenue }
+        type: { type: string, enum: [string, int, float, double, bool, array, object, "null"], default: string }
         meta: { type: object, nullable: true }
         status: { type: string, enum: [ACTIVE, INACTIVE], default: ACTIVE }
+    ReferenceUpdatePayload:
+      type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Send null only with `references.manage_system` to convert to a system reference.
+        group: { type: string, maxLength: 120 }
+        key: { type: string, maxLength: 120 }
+        value: { type: string, nullable: true, maxLength: 255 }
+        type: { type: string, enum: [string, int, float, double, bool, array, object, "null"] }
+        meta: { type: object, nullable: true }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+    BulkEmailPayload:
+      type: object
+      required: [contact_ids, subject, body]
+      properties:
+        user_id: { type: string, format: uuid, nullable: true }
+        contact_ids:
+          type: array
+          minItems: 1
+          items: { type: string, format: uuid }
+        subject: { type: string, maxLength: 180 }
+        body: { type: string, maxLength: 10000 }
 paths:
   /health:
     get:
+      tags: [System]
       security: []
       summary: Health check
       responses:
-        "200": { description: Service is healthy. }
+        "200":
+          description: Service is healthy.
   /auth/register:
     post:
+      tags: [Auth]
       security: []
       summary: Register an office admin and tenant
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [tenant_name, name, email, password, password_confirmation]
-              properties:
-                tenant_name: { type: string }
-                name: { type: string }
-                email: { type: string, format: email }
-                password: { type: string, format: password }
-                password_confirmation: { type: string, format: password }
-                device_name: { type: string }
+            schema: { $ref: "#/components/schemas/RegisterPayload" }
       responses:
-        "201": { description: "User, access token, and refresh token created." }
+        "201":
+          description: User, access token, and refresh token created.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/AuthTokenPayload" }
+        "422": { description: Validation failed. }
   /auth/login:
     post:
+      tags: [Auth]
       security: []
       summary: Login and issue Sanctum access and refresh tokens
       requestBody:
         required: true
         content:
           application/json:
+            schema: { $ref: "#/components/schemas/LoginPayload" }
             examples:
               demo:
                 summary: Demo login
@@ -253,69 +547,105 @@ paths:
                   email: maya@skyline.example
                   password: password
                   device_name: swagger-demo
-            schema:
-              type: object
-              required: [email, password]
-              properties:
-                email: { type: string, format: email }
-                password: { type: string, format: password }
-                device_name: { type: string }
       responses:
-        "200": { description: "User, access token, and refresh token." }
+        "200":
+          description: User, access token, and refresh token.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/AuthTokenPayload" }
+        "401": { description: Invalid credentials. }
+        "422": { description: Validation failed. }
   /auth/refresh:
     post:
+      tags: [Auth]
       security: []
       summary: Rotate refresh token and issue a new access token
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [refresh_token]
-              properties:
-                refresh_token: { type: string }
-                device_name: { type: string }
+            schema: { $ref: "#/components/schemas/RefreshTokenPayload" }
       responses:
         "200": { description: New access and refresh token pair. }
+        "401": { description: Invalid refresh token. }
+        "422": { description: Validation failed. }
   /auth/me:
     get:
+      tags: [Auth]
       summary: Current authenticated user
       responses:
         "200": { description: Current user profile and tenant. }
+        "401": { description: Unauthenticated. }
   /auth/logout:
     post:
+      tags: [Auth]
       summary: Revoke the current access token
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LogoutPayload" }
       responses:
-        "200": { description: Current token revoked. }
+        "200": { description: Current access token revoked. }
+        "401": { description: Unauthenticated. }
   /auth/revoke-all:
     post:
+      tags: [Auth]
       summary: Revoke all tokens for the current user
       responses:
         "200": { description: All user tokens revoked. }
+        "401": { description: Unauthenticated. }
   /auth/password:
     put:
+      tags: [Auth]
       summary: Update password and revoke all tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdatePasswordPayload" }
       responses:
-        "200": { description: Password updated. }
+        "200": { description: Password updated. User must sign in again. }
+        "422": { description: Validation failed or current password is incorrect. }
   /tenant:
     get:
+      tags: [Tenant]
       summary: Current tenant
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
+      description: Requires `tenant.view`.
       responses:
-        "200": { description: Tenant profile. }
+        "200":
+          description: Tenant profile.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/Tenant" }
+        "403": { description: Missing `tenant.view` permission. }
+        "404": { description: Tenant not found. }
   /members:
     get:
+      tags: [Tenant]
       summary: Office members
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
+      description: Requires `users.view`.
       responses:
-        "200": { description: Members for the current tenant. }
+        "200":
+          description: Members for the current tenant.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Member" }
+        "403": { description: Missing `users.view` permission. }
   /me/permissions:
     get:
+      tags: [Access Control]
       summary: Current authenticated user's roles and permissions
       description: Returns role names, direct permissions, and all effective permissions for SPA authorization hints. Backend authorization remains authoritative.
       responses:
@@ -329,6 +659,7 @@ paths:
                   data: { $ref: "#/components/schemas/UserPermissions" }
   /roles:
     get:
+      tags: [Access Control]
       summary: List roles
       description: Requires `roles.view`.
       responses:
@@ -342,84 +673,74 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/Role" }
+        "403": { description: Missing `roles.view` permission. }
     post:
+      tags: [Access Control]
       summary: Create role
       description: Requires `roles.create`.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/RolePayload" }
-            examples:
-              salesManager:
-                summary: Sales manager role
-                value:
-                  name: Sales Manager
-                  guard_name: web
-                  permissions: [contacts.view, contacts.create, pipeline.view]
+            schema: { $ref: "#/components/schemas/RoleStorePayload" }
       responses:
         "201": { description: Role created. }
         "403": { description: Missing `roles.create` permission. }
         "422": { description: Validation failed. }
   /roles/{role}:
     get:
+      tags: [Access Control]
       summary: Show role
       description: Requires `roles.view`.
       parameters:
-        - in: path
-          name: role
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/RoleId" }
       responses:
         "200": { description: Role details. }
+        "403": { description: Missing `roles.view` permission. }
+        "404": { description: Role not found. }
     put:
+      tags: [Access Control]
       summary: Update role
-      description: Requires `roles.update`. Office Admin cannot be renamed.
+      description: Requires `roles.update`. Protected roles such as Office Admin cannot be renamed or deleted by unsafe operations.
       parameters:
-        - in: path
-          name: role
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/RoleId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/RolePayload" }
+            schema: { $ref: "#/components/schemas/RoleUpdatePayload" }
       responses:
         "200": { description: Role updated. }
         "403": { description: Missing `roles.update` permission. }
         "422": { description: Validation or protected-role rule failed. }
     patch:
+      tags: [Access Control]
       summary: Partially update role
       description: Requires `roles.update`. Accepts the same fields as role update.
       parameters:
-        - in: path
-          name: role
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/RoleId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/RolePayload" }
+            schema: { $ref: "#/components/schemas/RoleUpdatePayload" }
       responses:
         "200": { description: Role updated. }
         "403": { description: Missing `roles.update` permission. }
         "422": { description: Validation or protected-role rule failed. }
     delete:
+      tags: [Access Control]
       summary: Delete role
       description: Requires `roles.delete`. Office Admin cannot be deleted.
       parameters:
-        - in: path
-          name: role
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/RoleId" }
       responses:
         "204": { description: Role deleted. }
         "403": { description: Missing `roles.delete` permission. }
         "422": { description: Protected role cannot be deleted. }
   /permissions:
     get:
+      tags: [Access Control]
       summary: List permissions
       description: Requires `permissions.view`.
       responses:
@@ -433,104 +754,83 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/Permission" }
+        "403": { description: Missing `permissions.view` permission. }
     post:
+      tags: [Access Control]
       summary: Create permission
       description: Requires `permissions.create`.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PermissionPayload" }
-            examples:
-              exportReports:
-                summary: Custom permission
-                value:
-                  name: reports.export
-                  guard_name: web
+            schema: { $ref: "#/components/schemas/PermissionStorePayload" }
       responses:
         "201": { description: Permission created. }
         "403": { description: Missing `permissions.create` permission. }
         "422": { description: Validation failed. }
   /permissions/{permission}:
     get:
+      tags: [Access Control]
       summary: Show permission
       description: Requires `permissions.view`.
       parameters:
-        - in: path
-          name: permission
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/PermissionId" }
       responses:
         "200": { description: Permission details. }
+        "403": { description: Missing `permissions.view` permission. }
+        "404": { description: Permission not found. }
     put:
+      tags: [Access Control]
       summary: Update permission
       description: Requires `permissions.update`. Protected administrative permissions cannot be renamed.
       parameters:
-        - in: path
-          name: permission
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/PermissionId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PermissionPayload" }
+            schema: { $ref: "#/components/schemas/PermissionUpdatePayload" }
       responses:
         "200": { description: Permission updated. }
         "403": { description: Missing `permissions.update` permission. }
         "422": { description: Validation or protected-permission rule failed. }
     patch:
+      tags: [Access Control]
       summary: Partially update permission
       description: Requires `permissions.update`. Accepts the same fields as permission update.
       parameters:
-        - in: path
-          name: permission
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/PermissionId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PermissionPayload" }
+            schema: { $ref: "#/components/schemas/PermissionUpdatePayload" }
       responses:
         "200": { description: Permission updated. }
         "403": { description: Missing `permissions.update` permission. }
         "422": { description: Validation or protected-permission rule failed. }
     delete:
+      tags: [Access Control]
       summary: Delete permission
       description: Requires `permissions.delete`. Protected/admin-critical permissions cannot be deleted.
       parameters:
-        - in: path
-          name: permission
-          required: true
-          schema: { type: integer }
+        - { $ref: "#/components/parameters/PermissionId" }
       responses:
         "204": { description: Permission deleted. }
         "403": { description: Missing `permissions.delete` permission. }
         "422": { description: Protected permission cannot be deleted. }
   /users/{user}/roles:
     put:
+      tags: [Access Control]
       summary: Sync roles to user
       description: Requires `users.assign_roles`. Prevents removing the last Office Admin.
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
       parameters:
-        - in: path
-          name: user
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/UserId" }
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/UserRoleSyncPayload" }
-            examples:
-              salesUser:
-                summary: Assign Sales role
-                value:
-                  roles: [Sales]
-                  guard_name: web
       responses:
         "200": { description: User roles synced. }
         "403": { description: Missing `users.assign_roles` permission. }
@@ -538,27 +838,16 @@ paths:
         "422": { description: Validation failed or last Office Admin protection triggered. }
   /users/{user}/permissions:
     put:
+      tags: [Access Control]
       summary: Sync direct permissions to user
       description: Requires `users.assign_permissions`.
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
       parameters:
-        - in: path
-          name: user
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/UserId" }
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: "#/components/schemas/UserPermissionSyncPayload" }
-            examples:
-              reportAccess:
-                summary: Grant report access
-                value:
-                  permissions: [reports.view]
-                  guard_name: web
       responses:
         "200": { description: User direct permissions synced. }
         "403": { description: Missing `users.assign_permissions` permission. }
@@ -566,241 +855,334 @@ paths:
         "422": { description: Validation failed. }
   /dashboard:
     get:
+      tags: [Dashboard]
       summary: Dashboard summary
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
+      description: Requires `reports.view`.
       responses:
-        "200": { description: Dashboard KPIs and pipeline reporting. }
+        "200":
+          description: Dashboard KPIs and reporting data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/DashboardSummary" }
+        "403": { description: Missing `reports.view` permission. }
   /contacts:
     get:
+      tags: [Contacts]
       summary: List contacts
-      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `status`, `source`, and `owner_id`.
+      description: Requires `contacts.view`. Supports server-side pagination, search, filters, and sorting.
       parameters:
-        - { $ref: "#/components/parameters/DataTablePage" }
-        - { $ref: "#/components/parameters/DataTablePerPage" }
-        - { $ref: "#/components/parameters/DataTableSearch" }
-        - { $ref: "#/components/parameters/DataTableSort" }
-        - { $ref: "#/components/parameters/DataTableDirection" }
-        - { $ref: "#/components/parameters/DataTableFilters" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [contact, first_name, last_name, email, status, owner, budget, source, last-contacted, created_at] }
+          description: Whitelisted sort key. Unknown values fall back to `created_at`.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[status]
+          schema: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+          description: Filter by contact status. Top-level `status` is also accepted.
+        - in: query
+          name: filter[source]
+          schema: { type: string }
+          description: Filter by source. Top-level `source` is also accepted.
+        - in: query
+          name: filter[owner_id]
+          schema: { type: string, format: uuid }
+          description: Filter by owner user UUID. Top-level `owner_id` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped contacts. }
+        "403": { description: Missing `contacts.view` permission. }
     post:
+      tags: [Contacts]
       summary: Create contact
+      description: Requires `contacts.create`.
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [first_name, last_name, email]
-              properties:
-                owner_id: { type: string, format: uuid, nullable: true }
-                first_name: { type: string }
-                last_name: { type: string }
-                email: { type: string, format: email }
-                phone: { type: string }
-                status: { type: string }
-                budget: { type: number }
-                source: { type: string }
+            schema: { $ref: "#/components/schemas/ContactStorePayload" }
       responses:
         "201": { description: Contact created. }
+        "403": { description: Missing `contacts.create` permission. }
+        "422": { description: Validation failed. }
   /contacts/{contact}:
     get:
+      tags: [Contacts]
       summary: Show contact
+      description: Requires `contacts.view`.
       parameters:
-        - in: path
-          name: contact
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/ContactId" }
       responses:
         "200": { description: Contact details. }
+        "403": { description: Missing `contacts.view` permission. }
+        "404": { description: Contact is outside current tenant scope or not found. }
     put:
+      tags: [Contacts]
       summary: Update contact
+      description: Requires `contacts.update`.
       parameters:
-        - in: path
-          name: contact
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/ContactId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactUpdatePayload" }
       responses:
         "200": { description: Contact updated. }
+        "403": { description: Missing `contacts.update` permission. }
+        "404": { description: Contact is outside current tenant scope or not found. }
+        "422": { description: Validation failed. }
+    patch:
+      tags: [Contacts]
+      summary: Partially update contact
+      description: Requires `contacts.update`. Accepts the same fields as update.
+      parameters:
+        - { $ref: "#/components/parameters/ContactId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactUpdatePayload" }
+      responses:
+        "200": { description: Contact updated. }
+        "403": { description: Missing `contacts.update` permission. }
+        "404": { description: Contact is outside current tenant scope or not found. }
+        "422": { description: Validation failed. }
   /listings:
     get:
+      tags: [Listings]
       summary: List listings
-      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `status` and `property_type`.
+      description: Requires `listings.view`. Supports server-side pagination, search, filters, and sorting.
       parameters:
-        - { $ref: "#/components/parameters/DataTablePage" }
-        - { $ref: "#/components/parameters/DataTablePerPage" }
-        - { $ref: "#/components/parameters/DataTableSearch" }
-        - { $ref: "#/components/parameters/DataTableSort" }
-        - { $ref: "#/components/parameters/DataTableDirection" }
-        - { $ref: "#/components/parameters/DataTableFilters" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [title, address, price, status, bedrooms, bathrooms, type, property_type, created_at] }
+          description: Whitelisted sort key. Unknown values fall back to `created_at`.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[status]
+          schema: { type: string, enum: [Available, Reserved, Under Contract, Sold] }
+          description: Filter by listing status. Top-level `status` is also accepted.
+        - in: query
+          name: filter[property_type]
+          schema: { type: string, enum: [House, Condo, Townhome, Land] }
+          description: Filter by property type. Top-level `property_type` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped listings. }
+        "403": { description: Missing `listings.view` permission. }
     post:
+      tags: [Listings]
       summary: Create listing
+      description: Requires `listings.create`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingStorePayload" }
       responses:
         "201": { description: Listing created. }
+        "403": { description: Missing `listings.create` permission. }
+        "422": { description: Validation failed. }
   /pipeline:
     get:
+      tags: [Pipeline]
       summary: List pipeline deals
-      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `stage`, `user_id`, `contact_id`, and `listing_id`.
+      description: Requires `pipeline.view`. Supports server-side pagination, search, filters, and sorting.
       parameters:
-        - { $ref: "#/components/parameters/DataTablePage" }
-        - { $ref: "#/components/parameters/DataTablePerPage" }
-        - { $ref: "#/components/parameters/DataTableSearch" }
-        - { $ref: "#/components/parameters/DataTableSort" }
-        - { $ref: "#/components/parameters/DataTableDirection" }
-        - { $ref: "#/components/parameters/DataTableFilters" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [stage, value, next_task, due_at, created_at] }
+          description: Whitelisted sort key. Unknown values fall back to `created_at`.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[stage]
+          schema: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
+          description: Filter by stage. Top-level `stage` is also accepted.
+        - in: query
+          name: filter[user_id]
+          schema: { type: string, format: uuid }
+          description: Filter by assigned user UUID. Top-level `user_id` is also accepted.
+        - in: query
+          name: filter[contact_id]
+          schema: { type: string, format: uuid }
+          description: Filter by contact UUID. Top-level `contact_id` is also accepted.
+        - in: query
+          name: filter[listing_id]
+          schema: { type: string, format: uuid }
+          description: Filter by listing UUID. Top-level `listing_id` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped pipeline deals. }
+        "403": { description: Missing `pipeline.view` permission. }
     post:
+      tags: [Pipeline]
       summary: Create pipeline deal
+      description: Requires `pipeline.create`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PipelineStorePayload" }
       responses:
         "201": { description: Deal created. }
+        "403": { description: Missing `pipeline.create` permission. }
+        "422": { description: Validation failed. }
   /pipeline/{pipeline}/stage:
     patch:
+      tags: [Pipeline]
       summary: Move pipeline deal to a new stage
+      description: Requires `pipeline.update`.
       parameters:
-        - in: path
-          name: pipeline
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/PipelineId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PipelineStagePayload" }
       responses:
         "200": { description: Deal stage updated. }
+        "403": { description: Missing `pipeline.update` permission. }
+        "404": { description: Pipeline deal is outside current tenant scope or not found. }
+        "422": { description: Validation failed. }
   /references:
     get:
+      tags: [References]
       summary: List references
       description: Requires `references.view`. Returns system references plus references owned by the current tenant.
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
       parameters:
-        - { $ref: "#/components/parameters/DataTablePage" }
-        - { $ref: "#/components/parameters/DataTablePerPage" }
-        - { $ref: "#/components/parameters/DataTableSearch" }
-        - { $ref: "#/components/parameters/DataTableSort" }
-        - { $ref: "#/components/parameters/DataTableDirection" }
-        - { $ref: "#/components/parameters/DataTableFilters" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
         - in: query
-          name: group
+          name: sort
+          schema: { type: string, enum: [reference, key, group, value, type, status, updated, updated_at, created_at] }
+          description: Whitelisted sort key. Unknown values fall back to `group`.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[group]
           schema: { type: string }
-          example: street_type
+          description: Filter by reference group. Top-level `group` is also accepted.
         - in: query
-          name: type
-          schema: { type: string }
-          example: string
+          name: filter[type]
+          schema: { type: string, enum: [string, int, float, double, bool, array, object, "null"] }
+          description: Filter by value type. Top-level `type` is also accepted.
         - in: query
-          name: status
+          name: filter[status]
           schema: { type: string, enum: [ACTIVE, INACTIVE] }
+          description: Filter by status. Top-level `status` is also accepted.
+        - in: query
+          name: filter[scope]
+          schema: { type: string, enum: [system, tenant] }
+          description: Filter system references (`tenant_id` null) or current tenant references. Top-level `scope` is also accepted.
       responses:
         "200": { description: Paginated system and tenant-visible references. }
         "403": { description: Missing `references.view` permission. }
     post:
+      tags: [References]
       summary: Create reference
-      description: "Requires `references.create`. Omitting `tenant_id` creates a tenant reference; only users with `references.manage_system` can send `tenant_id: null` to create a system reference."
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
+      description: Requires `references.create`. System references require `references.manage_system`.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ReferencePayload" }
-            examples:
-              streetType:
-                summary: Tenant street type
-                value:
-                  group: street_type
-                  key: mews
-                  value: Mews
-              systemReference:
-                summary: System reference
-                value:
-                  tenant_id: null
-                  group: street_type
-                  key: trl
-                  value: Trail
+            schema: { $ref: "#/components/schemas/ReferenceStorePayload" }
       responses:
         "201": { description: Reference created. }
-        "403": { description: Missing `references.create` permission or cross-tenant reference write. }
-        "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
+        "403": { description: Missing permission or cross-tenant reference write. }
+        "422": { description: Validation failed or system reference write denied. }
   /references/types:
     get:
-      summary: List reference type options
+      tags: [References]
+      summary: List reference value type options
       description: Requires `references.view`. Returns PHP value type options from the `reference_type` reference group.
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
       responses:
-        "200": { description: Reference value type options. }
+        "200":
+          description: Reference value type options.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/ReferenceOption" }
         "403": { description: Missing `references.view` permission. }
   /references/groups:
     get:
+      tags: [References]
       summary: List reference group options
-      description: Requires `references.view`. Returns stable reference group filter options independent from the current paginated table result.
-      security:
-        - BearerAuth: []
-        - TenantHeader: []
+      description: Requires `references.view`. Returns reference group filter options independent from the current paginated table result.
       responses:
-        "200": { description: Reference group options for filters. }
+        "200":
+          description: Reference group options for filters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/ReferenceOption" }
         "403": { description: Missing `references.view` permission. }
   /references/{reference}:
     get:
+      tags: [References]
       summary: Show reference
       description: Requires `references.view`.
       parameters:
-        - in: path
-          name: reference
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/ReferenceId" }
       responses:
         "200": { description: Reference details. }
+        "403": { description: Missing `references.view` permission. }
         "404": { description: Reference is outside current tenant scope or not found. }
     put:
+      tags: [References]
       summary: Update reference
       description: "Requires `references.update`. Existing system references and `tenant_id: null` updates require `references.manage_system`."
       parameters:
-        - in: path
-          name: reference
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/ReferenceId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ReferencePayload" }
+            schema: { $ref: "#/components/schemas/ReferenceUpdatePayload" }
       responses:
         "200": { description: Reference updated. }
-        "403": { description: Missing `references.update` permission or cross-tenant reference write. }
+        "403": { description: Missing permission or cross-tenant reference write. }
         "404": { description: Reference is outside current tenant scope or not found. }
-        "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
+        "422": { description: Validation failed or system reference write denied. }
     patch:
+      tags: [References]
       summary: Partially update reference
-      description: "Requires `references.update`. Accepts the same fields as reference update. Existing system references and `tenant_id: null` updates require `references.manage_system`."
+      description: Requires `references.update`. Accepts the same fields as reference update.
       parameters:
-        - in: path
-          name: reference
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/ReferenceId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/ReferencePayload" }
+            schema: { $ref: "#/components/schemas/ReferenceUpdatePayload" }
       responses:
         "200": { description: Reference updated. }
-        "403": { description: Missing `references.update` permission or cross-tenant reference write. }
+        "403": { description: Missing permission or cross-tenant reference write. }
         "404": { description: Reference is outside current tenant scope or not found. }
-        "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
+        "422": { description: Validation failed or system reference write denied. }
     delete:
+      tags: [References]
       summary: Delete reference
       description: Requires `references.delete`. Deleting system references requires `references.manage_system`.
       parameters:
-        - in: path
-          name: reference
-          required: true
-          schema: { type: string, format: uuid }
+        - { $ref: "#/components/parameters/ReferenceId" }
       responses:
         "204": { description: Reference deleted. }
         "403": { description: Missing `references.delete` permission. }
@@ -808,46 +1190,65 @@ paths:
         "422": { description: Protected reference cannot be deleted. }
   /activity-logs:
     get:
+      tags: [Activity Logs]
       summary: List activity logs
-      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `action_type` and `user_id`.
+      description: Requires `activity_logs.view`. Supports server-side pagination, search, filters, and sorting.
       parameters:
-        - { $ref: "#/components/parameters/DataTablePage" }
-        - { $ref: "#/components/parameters/DataTablePerPage" }
-        - { $ref: "#/components/parameters/DataTableSearch" }
-        - { $ref: "#/components/parameters/DataTableSort" }
-        - { $ref: "#/components/parameters/DataTableDirection" }
-        - { $ref: "#/components/parameters/DataTableFilters" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [action, description, user, time, created_at] }
+          description: Whitelisted sort key. Unknown values fall back to `created_at`.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[action_type]
+          schema: { type: string }
+          description: Filter by action type. Top-level `action_type` is also accepted.
+        - in: query
+          name: filter[user_id]
+          schema: { type: string, format: uuid }
+          description: Filter by user UUID. Top-level `user_id` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped audit trail. }
+        "403": { description: Missing `activity_logs.view` permission. }
   /email-campaigns:
     get:
+      tags: [Email Campaigns]
       summary: List email campaigns
-      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `status` and `user_id`.
+      description: Requires `email_campaigns.view`. Supports server-side pagination, search, filters, and sorting.
       parameters:
-        - { $ref: "#/components/parameters/DataTablePage" }
-        - { $ref: "#/components/parameters/DataTablePerPage" }
-        - { $ref: "#/components/parameters/DataTableSearch" }
-        - { $ref: "#/components/parameters/DataTableSort" }
-        - { $ref: "#/components/parameters/DataTableDirection" }
-        - { $ref: "#/components/parameters/DataTableFilters" }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [subject, recipient_count, status, created_at] }
+          description: Whitelisted sort key. Unknown values fall back to `created_at`.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[status]
+          schema: { type: string, enum: [Queued, Sent] }
+          description: Filter by campaign status. Top-level `status` is also accepted.
+        - in: query
+          name: filter[user_id]
+          schema: { type: string, format: uuid }
+          description: Filter by campaign user UUID. Top-level `user_id` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped campaigns. }
+        "403": { description: Missing `email_campaigns.view` permission. }
   /bulk-emails:
     post:
+      tags: [Email Campaigns]
       summary: Queue bulk email
+      description: Requires `email_campaigns.create`. Creates a queued campaign and dispatches the send job.
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [contact_ids, subject, body]
-              properties:
-                user_id: { type: string, format: uuid, nullable: true }
-                contact_ids:
-                  type: array
-                  items: { type: string, format: uuid }
-                subject: { type: string }
-                body: { type: string }
+            schema: { $ref: "#/components/schemas/BulkEmailPayload" }
       responses:
         "202": { description: Campaign accepted and queued. }
+        "403": { description: Missing `email_campaigns.create` permission. }
+        "422": { description: Validation failed. }
