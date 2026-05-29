@@ -7,19 +7,31 @@ use App\Models\Contact;
 use App\Models\EmailCampaign;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Rbac\Permissions;
+use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class BulkEmailApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->seed(RbacSeeder::class);
+    }
+
     public function test_it_accepts_a_bulk_email_for_queueing(): void
     {
         $tenant = Tenant::factory()->create();
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
         Sanctum::actingAs($user, ['access']);
 
         $firstContact = Contact::query()->create([

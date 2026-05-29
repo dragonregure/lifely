@@ -12,7 +12,11 @@ class UpdateReferenceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        if ($this->isSystemReferenceWrite()) {
+            return $this->user()?->can(Permissions::REFERENCES_MANAGE_SYSTEM) ?? false;
+        }
+
+        return $this->user()?->can(Permissions::REFERENCES_UPDATE) ?? false;
     }
 
     public function rules(): array

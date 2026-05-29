@@ -4,16 +4,29 @@ namespace Tests\Feature;
 
 use App\Contracts\ContactRepositoryInterface;
 use App\Models\Contact;
+use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Rbac\Permissions;
+use Database\Seeders\RbacSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Laravel\Sanctum\Sanctum;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 class ContactApiTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_it_lists_contacts_for_the_current_tenant(): void
     {
-        Sanctum::actingAs(new User(['tenant_id' => 'tenant-1']), ['access']);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $this->seed(RbacSeeder::class);
+
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->givePermissionTo(Permissions::CONTACTS_VIEW);
+        Sanctum::actingAs($user, ['access']);
 
         $this->app->bind(ContactRepositoryInterface::class, fn () => new class implements ContactRepositoryInterface {
             public function all(string $tenantId, array $filters = []): Collection
@@ -50,10 +63,10 @@ class ContactApiTest extends TestCase
             }
         });
 
-        $this->withHeader('X-Tenant-Id', 'tenant-1')
+        $this->withHeader('X-Tenant-Id', $tenant->id)
             ->getJson('/api/v1/contacts')
             ->assertOk()
             ->assertJsonPath('data.0.first_name', 'Ethan')
-            ->assertJsonPath('data.0.tenant_id', 'tenant-1');
+            ->assertJsonPath('data.0.tenant_id', $tenant->id);
     }
 }

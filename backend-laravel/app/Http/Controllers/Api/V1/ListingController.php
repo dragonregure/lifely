@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Contracts\ListingRepositoryInterface;
 use App\Http\Requests\StoreListingRequest;
 use App\Http\Resources\ListingResource;
+use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -18,11 +19,15 @@ class ListingController extends BaseApiController
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize(Permissions::LISTINGS_VIEW);
+
         return ListingResource::collection($this->listings->all($this->tenantId($request)));
     }
 
     public function store(StoreListingRequest $request): JsonResponse
     {
+        $this->authorize(Permissions::LISTINGS_CREATE);
+
         return (new ListingResource($this->listings->create($this->tenantId($request), $request->validated())))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);

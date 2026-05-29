@@ -187,8 +187,7 @@ class ReferenceApiTest extends TestCase
             ->patchJson("/api/v1/references/{$reference->id}", [
                 'value' => 'Updated system',
             ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('tenant_id');
+            ->assertForbidden();
     }
 
     public function test_unauthorized_user_cannot_manage_references(): void

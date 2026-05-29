@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\ResolvesTenantForValidation;
+use App\Support\Rbac\Permissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,7 @@ class UpdateContactRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can(Permissions::CONTACTS_UPDATE) ?? false;
     }
 
     public function rules(): array

@@ -12,7 +12,7 @@ class StoreReferenceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can(Permissions::REFERENCES_CREATE) ?? false;
     }
 
     public function rules(): array
