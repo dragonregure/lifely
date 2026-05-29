@@ -11,6 +11,7 @@ export function DataTable<TData extends object>({
   data,
   emptyMessage = "No records found.",
   filters = [],
+  initialSort,
   initialPageSize = 10,
   pageSizeOptions,
   rowKey,
@@ -24,6 +25,7 @@ export function DataTable<TData extends object>({
     data,
     filters,
     initialPageSize,
+    initialSort,
     pageSizeOptions,
     search,
     toolbarEnd,
@@ -49,8 +51,10 @@ export function DataTable<TData extends object>({
         actionsHeader={actionsHeader}
         columns={columns}
         emptyMessage={emptyMessage}
+        onSort={table.handleSort}
         paginatedData={table.paginatedData}
         rowKey={rowKey}
+        sortState={table.sortState}
       />
 
       <DataTablePagination

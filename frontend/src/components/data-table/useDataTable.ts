@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { ALL_FILTER_VALUE, DEFAULT_PAGE_SIZES } from "./constants";
-import type { DataTableActions, DataTableProps, DataTableSearch } from "./types";
-import { clampPageSize, getAccessorValue, toSearchText } from "./utils";
+import type { DataTableActions, DataTableColumn, DataTableProps, DataTableSearch, DataTableSortState } from "./types";
+import { clampPageSize, compareSortValues, getAccessorValue, getColumnSortValue, isColumnSortable, toSearchText } from "./utils";
 
 type UseDataTableProps<TData extends object> = Pick<
   DataTableProps<TData>,
-  "actions" | "actionsHeader" | "columns" | "data" | "filters" | "initialPageSize" | "pageSizeOptions" | "search" | "toolbarEnd"
+  | "actions"
+  | "actionsHeader"
+  | "columns"
+  | "data"
+  | "filters"
+  | "initialPageSize"
+  | "initialSort"
+  | "pageSizeOptions"
+  | "search"
+  | "toolbarEnd"
 >;
 
 export function useDataTable<TData extends object>({
@@ -14,6 +23,7 @@ export function useDataTable<TData extends object>({
   columns,
   data,
   filters = [],
+  initialSort,
   initialPageSize = 10,
   pageSizeOptions = DEFAULT_PAGE_SIZES,
   search = false,
@@ -27,6 +37,7 @@ export function useDataTable<TData extends object>({
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [sortState, setSortState] = useState<DataTableSortState | null>(initialSort ?? null);
 
   const searchConfig: DataTableSearch<TData> = useMemo(() => (typeof search === "boolean" ? { enabled: search } : search), [search]);
   const searchEnabled = Boolean(searchConfig.enabled);
@@ -47,7 +58,7 @@ export function useDataTable<TData extends object>({
 
   useEffect(() => {
     setPage(1);
-  }, [data, filterValues, pageSize, query]);
+  }, [data, filterValues, pageSize, query, sortState]);
 
   const filteredData = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -71,7 +82,39 @@ export function useDataTable<TData extends object>({
     });
   }, [columns, data, filterValues, filters, query, searchConfig, searchEnabled]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const sortedData = useMemo(() => {
+    if (!sortState) {
+      return filteredData;
+    }
+
+    const column = columns.find((item) => item.id === sortState.columnId);
+
+    if (!column || !isColumnSortable(column)) {
+      return filteredData;
+    }
+
+    return [...filteredData].sort((a, b) =>
+      compareSortValues(getColumnSortValue(a, column), getColumnSortValue(b, column), sortState.direction),
+    );
+  }, [columns, filteredData, sortState]);
+
+  const handleSort = (column: DataTableColumn<TData>) => {
+    if (!isColumnSortable(column)) return;
+
+    setSortState((current) => {
+      if (current?.columnId !== column.id) {
+        return { columnId: column.id, direction: "asc" };
+      }
+
+      if (current.direction === "asc") {
+        return { columnId: column.id, direction: "desc" };
+      }
+
+      return null;
+    });
+  };
+
+  const pageCount = Math.max(1, Math.ceil(sortedData.length / pageSize));
   const currentPage = Math.min(page, pageCount);
 
   useEffect(() => {
@@ -82,15 +125,16 @@ export function useDataTable<TData extends object>({
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredData.slice(start, start + pageSize);
-  }, [currentPage, filteredData, pageSize]);
+    return sortedData.slice(start, start + pageSize);
+  }, [currentPage, sortedData, pageSize]);
 
   return {
     actionConfig,
     currentPage,
     filterValues,
     filteredData,
-    hasPagination: filteredData.length > pageSize,
+    handleSort,
+    hasPagination: sortedData.length > pageSize,
     hasToolbar: searchEnabled || filters.length > 0 || Boolean(toolbarEnd),
     normalizedPageSizeOptions,
     pageCount,
@@ -105,5 +149,6 @@ export function useDataTable<TData extends object>({
     setPage,
     setPageSize,
     setQuery,
+    sortState,
   };
 }

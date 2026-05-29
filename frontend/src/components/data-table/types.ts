@@ -1,5 +1,14 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
+export type DataTableSortDirection = "asc" | "desc";
+
+export type DataTableSortValue = string | number | boolean | Date | null | undefined;
+
+export type DataTableSortState = {
+  columnId: string;
+  direction: DataTableSortDirection;
+};
+
 export type DataTableColumn<TData extends object> = {
   id: string;
   header: ReactNode;
@@ -8,6 +17,8 @@ export type DataTableColumn<TData extends object> = {
   className?: string;
   headerClassName?: string;
   searchValue?: (row: TData) => string;
+  sortable?: boolean;
+  sortValue?: keyof TData | ((row: TData) => DataTableSortValue);
 };
 
 export type DataTableFilterOption = {
@@ -44,6 +55,7 @@ export type DataTableProps<TData extends object> = {
   data: TData[];
   emptyMessage?: string;
   filters?: DataTableFilter<TData>[];
+  initialSort?: DataTableSortState;
   initialPageSize?: number;
   pageSizeOptions?: number[];
   rowKey?: keyof TData | ((row: TData, index: number) => string | number);

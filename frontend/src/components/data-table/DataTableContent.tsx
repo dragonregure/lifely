@@ -1,16 +1,19 @@
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { DEFAULT_ACTION_COLUMN_CLASS } from "./constants";
-import type { DataTableActions, DataTableColumn, DataTableProps } from "./types";
-import { getAccessorValue, getRowKey } from "./utils";
+import type { DataTableActions, DataTableColumn, DataTableProps, DataTableSortState } from "./types";
+import { getAccessorValue, getRowKey, isColumnSortable, toSearchText } from "./utils";
 
 type DataTableContentProps<TData extends object> = {
   actionConfig: DataTableActions<TData> | null;
   actionsHeader: DataTableProps<TData>["actionsHeader"];
   columns: DataTableColumn<TData>[];
   emptyMessage: string;
+  onSort: (column: DataTableColumn<TData>) => void;
   paginatedData: TData[];
   rowKey: DataTableProps<TData>["rowKey"];
+  sortState: DataTableSortState | null;
 };
 
 export function DataTableContent<TData extends object>({
@@ -18,8 +21,10 @@ export function DataTableContent<TData extends object>({
   actionsHeader,
   columns,
   emptyMessage,
+  onSort,
   paginatedData,
   rowKey,
+  sortState,
 }: DataTableContentProps<TData>) {
   return (
     <div className="overflow-hidden rounded-lg border bg-white">
@@ -27,8 +32,34 @@ export function DataTableContent<TData extends object>({
         <TableHeader>
           <TableRow>
             {columns.map((column) => (
-              <TableHead key={column.id} className={column.headerClassName}>
-                {column.header}
+              <TableHead
+                key={column.id}
+                aria-sort={
+                  sortState?.columnId === column.id ? (sortState.direction === "asc" ? "ascending" : "descending") : undefined
+                }
+                className={column.headerClassName}
+              >
+                {isColumnSortable(column) ? (
+                  <button
+                    type="button"
+                    className="-mx-2 inline-flex h-8 max-w-full items-center gap-1.5 rounded-md px-2 text-left transition-colors hover:bg-secondary hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
+                    onClick={() => onSort(column)}
+                    aria-label={`Sort by ${toSearchText(column.header) || column.id}`}
+                  >
+                    <span className="truncate">{column.header}</span>
+                    {sortState?.columnId === column.id ? (
+                      sortState.direction === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 shrink-0" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    )}
+                  </button>
+                ) : (
+                  column.header
+                )}
               </TableHead>
             ))}
             {actionConfig && (
