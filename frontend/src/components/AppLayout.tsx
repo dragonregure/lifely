@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LogOut, Menu } from "lucide-react";
+import { LoadingInline } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -65,7 +66,7 @@ export function AppLayout() {
           <NavigationLinks />
           <div className="mt-auto rounded-lg border bg-slate-50 p-4">
             <p className="text-xs font-medium uppercase text-muted-foreground">Tenant</p>
-            <p className="mt-1 truncate text-sm font-semibold">{tenant?.name ?? "Loading office"}</p>
+            <p className="mt-1 truncate text-sm font-semibold">{tenant?.name ?? <LoadingInline label="Loading office" />}</p>
             <p className="mt-1 text-xs text-muted-foreground">{tenant?.plan ?? "Growth"} plan</p>
           </div>
         </div>

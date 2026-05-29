@@ -28,6 +28,7 @@ type DetailDialogProps = {
   editContent?: ReactNode;
   editable?: boolean;
   tabs?: DetailDialogTab[];
+  isSubmitting?: boolean;
   submitLabel?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -42,6 +43,7 @@ export function DetailDialog({
   editContent,
   editable = true,
   tabs,
+  isSubmitting = false,
   submitLabel = "Save changes",
   open,
   onOpenChange,
@@ -142,7 +144,7 @@ export function DetailDialog({
                 <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">{submitLabel}</Button>
+                <Button type="submit" isLoading={isSubmitting} loadingLabel={submitLabel}>{submitLabel}</Button>
               </>
             ) : (
               <DialogClose asChild>

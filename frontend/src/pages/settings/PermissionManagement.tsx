@@ -1,5 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { KeyRound, Save, Trash2 } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,8 +63,8 @@ export function PermissionManagement({
                 onChange={(event) => setNewPermission(event.target.value)}
               />
             </div>
-            <Button className="w-fit" disabled={!canCreatePermissions || isSaving || !newPermission.trim()}>
-              <KeyRound className="h-4 w-4" />
+            <Button className="w-fit" disabled={!canCreatePermissions || !newPermission.trim()} isLoading={isSaving} loadingLabel="Saving permission">
+              {!isSaving && <KeyRound className="h-4 w-4" />}
               Create permission
             </Button>
           </form>
@@ -78,6 +79,8 @@ export function PermissionManagement({
         <CardContent>
           {!canViewPermissions && !isLoading ? (
             <p className="rounded-md border bg-slate-50 p-4 text-sm text-muted-foreground">You do not have permission to view permissions.</p>
+          ) : isLoading ? (
+            <LoadingState label="Loading permissions" />
           ) : (
             <div className="overflow-x-auto rounded-md border">
               <Table>
@@ -110,11 +113,11 @@ export function PermissionManagement({
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end gap-2">
-                            <Button size="icon" variant="outline" disabled={!canUpdatePermissions || isSaving} onClick={() => handleUpdatePermission(permission)} title="Update permission">
-                              <Save className="h-4 w-4" />
+                            <Button size="icon" variant="outline" disabled={!canUpdatePermissions} isLoading={isSaving} onClick={() => handleUpdatePermission(permission)} title="Update permission">
+                              {!isSaving && <Save className="h-4 w-4" />}
                             </Button>
-                            <Button size="icon" variant="outline" disabled={!canDeletePermissions || isSaving} onClick={() => handleDeletePermission(permission)} title="Delete permission">
-                              <Trash2 className="h-4 w-4" />
+                            <Button size="icon" variant="outline" disabled={!canDeletePermissions} isLoading={isSaving} onClick={() => handleDeletePermission(permission)} title="Delete permission">
+                              {!isSaving && <Trash2 className="h-4 w-4" />}
                             </Button>
                           </div>
                         </TableCell>

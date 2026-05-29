@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { LoadingState } from "@/components/Loading";
 import { useAuth } from "@/context/AuthContext";
 
 export function ProtectedRoute() {
@@ -6,7 +7,7 @@ export function ProtectedRoute() {
   const location = useLocation();
 
   if (isLoading) {
-    return <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">Loading workspace...</div>;
+    return <LoadingState className="min-h-screen bg-background" label="Loading workspace" />;
   }
 
   if (!isAuthenticated) {

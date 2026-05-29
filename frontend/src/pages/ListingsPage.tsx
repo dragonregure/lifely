@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bath, BedDouble, Home, Plus } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -12,9 +13,12 @@ import type { Listing } from "@/types";
 
 export function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getListings().then(setListings);
+    getListings()
+      .then(setListings)
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -34,7 +38,11 @@ export function ListingsPage() {
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {listings.map((listing) => (
+        {isLoading ? (
+          <div className="md:col-span-2 xl:col-span-4">
+            <LoadingState className="border bg-white" label="Loading listings" />
+          </div>
+        ) : listings.map((listing) => (
           <Card key={listing.id}>
             <CardHeader>
               <div className="flex items-start justify-between gap-2">

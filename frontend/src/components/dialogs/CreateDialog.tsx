@@ -23,6 +23,7 @@ type CreateDialogProps = {
   trigger?: ReactNode;
   children?: ReactNode;
   tabs?: CreateDialogTab[];
+  isSubmitting?: boolean;
   submitLabel?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -35,6 +36,7 @@ export function CreateDialog({
   trigger,
   children,
   tabs,
+  isSubmitting = false,
   submitLabel = "Create",
   open,
   onOpenChange,
@@ -82,7 +84,7 @@ export function CreateDialog({
                 Cancel
               </Button>
             </DialogClose>
-            <Button type="submit">{submitLabel}</Button>
+            <Button type="submit" isLoading={isSubmitting} loadingLabel={submitLabel}>{submitLabel}</Button>
           </div>
         </form>
       </DialogContent>

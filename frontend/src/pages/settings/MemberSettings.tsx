@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Save, UserCog } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ type MemberSettingsProps = {
   groupedPermissions: Record<string, Permission[]>;
   handleSyncPermissions: () => void;
   handleSyncRoles: () => void;
+  isLoading: boolean;
   isSaving: boolean;
   members: User[];
   roles: AccessRole[];
@@ -31,6 +33,7 @@ export function MemberSettings({
   groupedPermissions,
   handleSyncPermissions,
   handleSyncRoles,
+  isLoading,
   isSaving,
   members,
   roles,
@@ -55,7 +58,7 @@ export function MemberSettings({
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="member-select">Member</Label>
-            <select id="member-select" className={inputClass} value={selectedMemberId} onChange={(event) => setSelectedMemberId(event.target.value)}>
+            <select id="member-select" className={inputClass} value={selectedMemberId} disabled={isLoading} onChange={(event) => setSelectedMemberId(event.target.value)}>
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name} - {member.email}
@@ -88,15 +91,15 @@ export function MemberSettings({
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              {roles.map((role) => (
+              {isLoading ? <LoadingState label="Loading roles" /> : roles.map((role) => (
                 <label key={role.id} className="flex items-center gap-2 rounded-md border p-3 text-sm">
                   <input type="checkbox" checked={selectedRoles.includes(role.name)} disabled={!canAssignRoles} onChange={() => setSelectedRoles(toggleValue(selectedRoles, role.name))} />
                   <span className="font-medium">{role.name}</span>
                 </label>
               ))}
             </div>
-            <Button className="w-fit" disabled={!canAssignRoles || isSaving || !selectedMember} onClick={handleSyncRoles}>
-              <Save className="h-4 w-4" />
+            <Button className="w-fit" disabled={!canAssignRoles || !selectedMember} isLoading={isSaving} loadingLabel="Syncing roles" onClick={handleSyncRoles}>
+              {!isSaving && <Save className="h-4 w-4" />}
               Sync roles
             </Button>
           </CardContent>
@@ -109,7 +112,7 @@ export function MemberSettings({
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid max-h-[28rem] gap-4 overflow-auto pr-1">
-              {Object.entries(groupedPermissions).map(([group, groupPermissions]) => (
+              {isLoading ? <LoadingState label="Loading permissions" /> : Object.entries(groupedPermissions).map(([group, groupPermissions]) => (
                 <div key={group} className="rounded-md border p-3">
                   <p className="mb-2 text-sm font-semibold capitalize">{group}</p>
                   <div className="grid gap-2">
@@ -128,8 +131,8 @@ export function MemberSettings({
                 </div>
               ))}
             </div>
-            <Button className="w-fit" disabled={!canAssignPermissions || isSaving || !selectedMember} onClick={handleSyncPermissions}>
-              <Save className="h-4 w-4" />
+            <Button className="w-fit" disabled={!canAssignPermissions || !selectedMember} isLoading={isSaving} loadingLabel="Syncing permissions" onClick={handleSyncPermissions}>
+              {!isSaving && <Save className="h-4 w-4" />}
               Sync permissions
             </Button>
           </CardContent>

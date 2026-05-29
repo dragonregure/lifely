@@ -16,6 +16,7 @@ type ConfirmationDialogProps = {
   description: string;
   trigger?: ReactNode;
   confirmLabel?: string;
+  isSubmitting?: boolean;
   variant?: "default" | "destructive";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -27,6 +28,7 @@ export function ConfirmationDialog({
   description,
   trigger,
   confirmLabel = "Confirm",
+  isSubmitting = false,
   variant = "default",
   open,
   onOpenChange,
@@ -58,7 +60,7 @@ export function ConfirmationDialog({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" variant={variant === "destructive" ? "destructive" : "default"} onClick={handleConfirm}>
+          <Button type="button" variant={variant === "destructive" ? "destructive" : "default"} isLoading={isSubmitting} loadingLabel={confirmLabel} onClick={handleConfirm}>
             {confirmLabel}
           </Button>
         </div>

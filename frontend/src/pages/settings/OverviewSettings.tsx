@@ -1,4 +1,5 @@
 import { RotateCcw } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import type { Tenant, User, UserAccess } from "@/types";
 type OverviewSettingsProps = {
   access: UserAccess | null;
   groupedEffectivePermissions: Record<string, string[]>;
+  isLoading: boolean;
   isSaving: boolean;
   members: User[];
   reloadRbac: () => Promise<void>;
@@ -18,6 +20,7 @@ type OverviewSettingsProps = {
 export function OverviewSettings({
   access,
   groupedEffectivePermissions,
+  isLoading,
   isSaving,
   members,
   reloadRbac,
@@ -29,17 +32,17 @@ export function OverviewSettings({
       <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
           <CardHeader>
-            <CardTitle>{tenant?.name ?? "Loading office"}</CardTitle>
-            <CardDescription>Tenant ID: {tenant?.id ?? "Loading"}</CardDescription>
+            <CardTitle>{tenant?.name ?? "Office"}</CardTitle>
+            <CardDescription>Tenant ID: {tenant?.id ?? "Pending"}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <div className="rounded-lg border bg-slate-50 p-4">
               <p className="text-sm text-muted-foreground">Plan</p>
-              <p className="mt-1 font-semibold">{tenant?.plan ?? "Growth"}</p>
+              <p className="mt-1 font-semibold">{isLoading ? "Loading" : tenant?.plan ?? "Growth"}</p>
             </div>
             <div className="rounded-lg border bg-slate-50 p-4">
               <p className="text-sm text-muted-foreground">Created</p>
-              <p className="mt-1 font-semibold">{tenant?.createdAt ? new Date(tenant.createdAt).toLocaleDateString() : "Unknown"}</p>
+              <p className="mt-1 font-semibold">{isLoading ? "Loading" : tenant?.createdAt ? new Date(tenant.createdAt).toLocaleDateString() : "Unknown"}</p>
             </div>
           </CardContent>
         </Card>
@@ -52,7 +55,7 @@ export function OverviewSettings({
           <CardContent className="grid gap-4">
             <div>
               <p className="text-sm text-muted-foreground">User</p>
-              <p className="mt-1 font-semibold">{user?.name ?? "Loading"}</p>
+              <p className="mt-1 font-semibold">{isLoading ? "Loading" : user?.name ?? "Unknown"}</p>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
             <div>
@@ -65,8 +68,8 @@ export function OverviewSettings({
                 ))}
               </div>
             </div>
-            <Button variant="outline" className="w-fit" onClick={() => void reloadRbac()} disabled={isSaving}>
-              <RotateCcw className="h-4 w-4" />
+            <Button variant="outline" className="w-fit" onClick={() => void reloadRbac()} isLoading={isSaving} loadingLabel="Refreshing access">
+              {!isSaving && <RotateCcw className="h-4 w-4" />}
               Refresh access
             </Button>
           </CardContent>
@@ -80,7 +83,7 @@ export function OverviewSettings({
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border">
-            <Table>
+              {isLoading ? <LoadingState label="Loading members" /> : <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -105,7 +108,7 @@ export function OverviewSettings({
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+              </Table>}
           </div>
         </CardContent>
       </Card>
@@ -117,7 +120,7 @@ export function OverviewSettings({
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {Object.entries(groupedEffectivePermissions).map(([group, names]) => (
+            {isLoading ? <LoadingState label="Loading permissions" /> : Object.entries(groupedEffectivePermissions).map(([group, names]) => (
               <div key={group} className="rounded-md border bg-slate-50 p-3">
                 <p className="mb-2 text-sm font-semibold capitalize">{group}</p>
                 <div className="flex flex-wrap gap-1">

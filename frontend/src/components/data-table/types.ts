@@ -69,6 +69,7 @@ export type DataTableProps<TData extends object> = {
   emptyMessage?: string;
   filters?: DataTableFilter<TData>[];
   initialSort?: DataTableSortState;
+  isLoading?: boolean;
   initialPageSize?: number;
   pageSizeOptions?: number[];
   rowKey?: keyof TData | ((row: TData, index: number) => string | number);

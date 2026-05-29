@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Mail, Send } from "lucide-react";
+import { CheckCircle2, Send } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -21,16 +22,19 @@ export function BulkEmailPage() {
   const [subject, setSubject] = useState("New listings matched to your search");
   const [body, setBody] = useState("Hi, we found a few properties that match what you have been looking for.");
   const [queued, setQueued] = useState<EmailCampaign | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const { can } = useAuthorization();
   const canCreateCampaigns = can(PERMISSIONS.emailCampaigns.create);
 
   useEffect(() => {
-    Promise.all([getContacts(), getEmailCampaigns()]).then(([leadData, campaignData]) => {
-      setContacts(leadData.filter((contact) => contact.status !== "Dormant"));
-      setCampaigns(campaignData);
-      setSelected(leadData.filter((contact) => contact.status === "Qualified" || contact.status === "Viewing").map((contact) => contact.id));
-    });
+    Promise.all([getContacts(), getEmailCampaigns()])
+      .then(([leadData, campaignData]) => {
+        setContacts(leadData.filter((contact) => contact.status !== "Dormant"));
+        setCampaigns(campaignData);
+        setSelected(leadData.filter((contact) => contact.status === "Qualified" || contact.status === "Viewing").map((contact) => contact.id));
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const selectedContacts = useMemo(() => contacts.filter((contact) => selected.includes(contact.id)), [contacts, selected]);
@@ -74,6 +78,9 @@ export function BulkEmailPage() {
             <CardDescription>{selectedContacts.length} active leads selected for this campaign.</CardDescription>
           </CardHeader>
           <CardContent>
+            {isLoading ? (
+              <LoadingState label="Loading recipients" />
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -107,6 +114,7 @@ export function BulkEmailPage() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
 
@@ -134,8 +142,8 @@ export function BulkEmailPage() {
                   </Button>
                 }
               >
-                <Button disabled={!selected.length || sending} onClick={handleQueue}>
-                  {sending ? <Mail className="h-4 w-4 animate-pulse" /> : <Send className="h-4 w-4" />}
+                <Button disabled={!selected.length} isLoading={sending} loadingLabel="Queueing email" onClick={handleQueue}>
+                  {!sending && <Send className="h-4 w-4" />}
                   {sending ? "Queueing" : "Queue email"}
                 </Button>
               </PermissionGate>
@@ -148,7 +156,7 @@ export function BulkEmailPage() {
               <CardDescription>Recent mock email activity.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {campaigns.map((campaign) => (
+              {isLoading ? <LoadingState label="Loading campaigns" /> : campaigns.map((campaign) => (
                 <div key={campaign.id} className="rounded-lg border bg-slate-50 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-medium">{campaign.subject}</p>

@@ -1,4 +1,5 @@
 import { UserPlus } from "lucide-react";
+import { LoadingInline } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ export function SettingsPage() {
               id="settings-view"
               className={`${inputClass} min-w-56`}
               value={settings.activeView}
+              disabled={settings.isLoading}
               onChange={(event) => settings.setActiveView(event.target.value as SettingsView)}
             >
               <option value="overview">Overview</option>
@@ -41,11 +43,12 @@ export function SettingsPage() {
               {canOpenReferenceSettings && <option value="references">Reference Setting</option>}
             </select>
             <PermissionGate permission={PERMISSIONS.users.view}>
-              <Button variant="outline">
-                <UserPlus className="h-4 w-4" />
+              <Button variant="outline" isLoading={settings.isLoading} loadingLabel="Loading settings">
+                {!settings.isLoading && <UserPlus className="h-4 w-4" />}
                 Invite member
               </Button>
             </PermissionGate>
+            {settings.isLoading && <LoadingInline label="Loading settings" />}
           </div>
         }
       />
@@ -60,6 +63,7 @@ export function SettingsPage() {
         <OverviewSettings
           access={settings.access}
           groupedEffectivePermissions={settings.groupedEffectivePermissions}
+          isLoading={settings.isLoading}
           isSaving={settings.isSaving}
           members={settings.members}
           reloadRbac={settings.reloadRbac}
@@ -75,6 +79,7 @@ export function SettingsPage() {
           groupedPermissions={settings.groupedPermissions}
           handleSyncPermissions={settings.handleSyncPermissions}
           handleSyncRoles={settings.handleSyncRoles}
+          isLoading={settings.isLoading}
           isSaving={settings.isSaving}
           members={settings.members}
           roles={settings.roles}

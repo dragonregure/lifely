@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { DataTable, type DataTableColumn, type DataTableQueryContext, type DataTableQueryState } from "@/components/data-table";
+import { LoadingInline } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { getActivityLogsPage } from "@/services/api";
@@ -79,13 +80,14 @@ export function ActivityPage() {
         data={logs}
         emptyMessage="No activity logs found."
         initialPageSize={10}
+        isLoading={isLoading}
         onQueryChange={handleQueryChange}
         rowKey="id"
         search={{ enabled: true, placeholder: "Search action, description, user, or time" }}
         serverPageCount={pageCount}
         serverSide
         serverTotalRows={totalRows}
-        toolbarEnd={isLoading ? <span className="text-sm text-muted-foreground">Loading...</span> : null}
+        toolbarEnd={isLoading ? <LoadingInline label="Loading" /> : null}
       />
     </div>
   );

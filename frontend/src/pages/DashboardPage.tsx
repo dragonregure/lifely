@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { CheckCircle2, Clock3, DollarSign, UsersRound } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
@@ -18,11 +19,13 @@ export function DashboardPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadDashboard() {
+      setIsLoading(true);
       const dashboard = await getDashboardSummary().catch(() => null);
 
       if (isMounted && dashboard) {
@@ -40,6 +43,8 @@ export function DashboardPage() {
 
       const listingData = await getListings().catch(() => []);
       if (isMounted) setListings(listingData);
+
+      if (isMounted) setIsLoading(false);
     }
 
     loadDashboard();
@@ -61,19 +66,20 @@ export function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <PermissionGate permission={PERMISSIONS.contacts.view}>
-          <MetricCard label="New leads" value={`${summary?.newLeads ?? 0}`} note="Fresh contacts this week" icon={UsersRound} />
+          <MetricCard label="New leads" value={`${summary?.newLeads ?? 0}`} note="Fresh contacts this week" icon={UsersRound} isLoading={isLoading} />
         </PermissionGate>
         <PermissionGate permission={PERMISSIONS.pipeline.view}>
-          <MetricCard label="Pending tasks" value={`${summary?.pendingTasks ?? 0}`} note="Due across active deals" icon={Clock3} />
+          <MetricCard label="Pending tasks" value={`${summary?.pendingTasks ?? 0}`} note="Due across active deals" icon={Clock3} isLoading={isLoading} />
           <MetricCard
             label="Pipeline value"
             value={formatCurrency(summary?.pipelineValue ?? 0)}
             note="Weighted active opportunities"
             icon={DollarSign}
+            isLoading={isLoading}
           />
         </PermissionGate>
         <PermissionGate permission={PERMISSIONS.reports.view}>
-          <MetricCard label="Win rate" value={`${summary?.winRate ?? 0}%`} note="Rolling 90-day close rate" icon={CheckCircle2} />
+          <MetricCard label="Win rate" value={`${summary?.winRate ?? 0}%`} note="Rolling 90-day close rate" icon={CheckCircle2} isLoading={isLoading} />
         </PermissionGate>
       </div>
 
@@ -86,21 +92,25 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={summary?.pipelinePerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="pipelineFill" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.22} />
-                        <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000}k`} />
-                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                    <Area type="monotone" dataKey="value" stroke="#0EA5E9" strokeWidth={2} fill="url(#pipelineFill)" />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {isLoading ? (
+                  <LoadingState className="h-full" label="Loading chart" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={summary?.pipelinePerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="pipelineFill" x1="0" x2="0" y1="0" y2="1">
+                          <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.22} />
+                          <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                      <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000}k`} />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Area type="monotone" dataKey="value" stroke="#0EA5E9" strokeWidth={2} fill="url(#pipelineFill)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -113,7 +123,7 @@ export function DashboardPage() {
               <CardDescription>Status distribution for active contacts.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              {(summary?.leadHealth ?? []).map((item) => (
+              {isLoading ? <LoadingState label="Loading lead health" /> : (summary?.leadHealth ?? []).map((item) => (
                 <div key={item.label}>
                   <div className="mb-2 flex items-center justify-between gap-3 text-sm">
                     <span className="font-medium">{item.label}</span>
@@ -135,7 +145,7 @@ export function DashboardPage() {
               <CardDescription>Deals with near-term tasks and high office impact.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {topDeals.map((deal) => {
+              {isLoading ? <LoadingState label="Loading deals" /> : topDeals.map((deal) => {
                 const contact = deal.contact ?? contacts.find((item) => item.id === deal.contactId);
                 const listing = deal.listing ?? listings.find((item) => item.id === deal.listingId);
                 return (
@@ -167,7 +177,7 @@ export function DashboardPage() {
               <CardDescription>Audit trail highlights from the office workspace.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {logs.slice(0, 5).map((log) => (
+              {isLoading ? <LoadingState label="Loading activity" /> : logs.slice(0, 5).map((log) => (
                 <div key={log.id} className="flex gap-3 rounded-lg border bg-white p-3">
                   <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />
                   <div className="min-w-0">

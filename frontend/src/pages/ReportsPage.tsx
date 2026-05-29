@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { DollarSign, Target, TrendingUp, UsersRound } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { MetricCard } from "@/components/MetricCard";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,9 +13,12 @@ const colors = ["#0EA5E9", "#10B981", "#F59E0B", "#6366F1", "#14B8A6", "#94A3B8"
 
 export function ReportsPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getDashboardSummary().then(setSummary);
+    getDashboardSummary()
+      .then(setSummary)
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -26,10 +30,10 @@ export function ReportsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Forecast" value={formatCurrency(summary?.pipelineValue ?? 0)} note="Open pipeline value" icon={DollarSign} />
-        <MetricCard label="Lead intake" value={`${summary?.newLeads ?? 0}`} note="New leads this week" icon={UsersRound} />
-        <MetricCard label="Conversion" value={`${summary?.winRate ?? 0}%`} note="Rolling close rate" icon={Target} />
-        <MetricCard label="Velocity" value="18 days" note="Average stage duration" icon={TrendingUp} />
+        <MetricCard label="Forecast" value={formatCurrency(summary?.pipelineValue ?? 0)} note="Open pipeline value" icon={DollarSign} isLoading={isLoading} />
+        <MetricCard label="Lead intake" value={`${summary?.newLeads ?? 0}`} note="New leads this week" icon={UsersRound} isLoading={isLoading} />
+        <MetricCard label="Conversion" value={`${summary?.winRate ?? 0}%`} note="Rolling close rate" icon={Target} isLoading={isLoading} />
+        <MetricCard label="Velocity" value="18 days" note="Average stage duration" icon={TrendingUp} isLoading={isLoading} />
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
@@ -40,15 +44,19 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={summary?.pipelinePerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000}k`} />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                  <Bar dataKey="value" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <LoadingState className="h-full" label="Loading chart" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={summary?.pipelinePerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} />
+                    <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000}k`} />
+                    <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                    <Bar dataKey="value" fill="#0EA5E9" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -60,16 +68,20 @@ export function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={summary?.leadHealth ?? []} dataKey="value" nameKey="label" innerRadius={64} outerRadius={105} paddingAngle={3}>
-                    {(summary?.leadHealth ?? []).map((entry, index) => (
-                      <Cell key={entry.label} fill={colors[index % colors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              {isLoading ? (
+                <LoadingState className="h-full" label="Loading chart" />
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={summary?.leadHealth ?? []} dataKey="value" nameKey="label" innerRadius={64} outerRadius={105} paddingAngle={3}>
+                      {(summary?.leadHealth ?? []).map((entry, index) => (
+                        <Cell key={entry.label} fill={colors[index % colors.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {(summary?.leadHealth ?? []).map((item, index) => (

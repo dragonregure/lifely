@@ -608,6 +608,7 @@ export function ReferenceSettings() {
         emptyMessage={isLoading ? "Loading references..." : "No references found."}
         filters={filters}
         initialPageSize={10}
+        isLoading={isLoading}
         onQueryChange={handleQueryChange}
         rowKey="id"
         search={{ enabled: true, placeholder: "Search references, keys, or values" }}
@@ -616,15 +617,16 @@ export function ReferenceSettings() {
         serverTotalRows={totalRows}
         toolbarEnd={
           <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => void loadReferences(tableQuery)} disabled={isLoading || isSaving}>
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="outline" size="sm" onClick={() => void loadReferences(tableQuery)} disabled={isSaving} isLoading={isLoading} loadingLabel="Refreshing references">
+              {!isLoading && <RefreshCw className="h-4 w-4" />}
               Refresh
             </Button>
             {canCreate && (
               <CreateDialog
                 title="Create reference"
                 description="Add a tenant reference or, with system permission, a globally available system reference."
-                submitLabel={isSaving ? "Saving..." : "Create reference"}
+                isSubmitting={isSaving}
+                submitLabel="Create reference"
                 open={createOpen}
                 onOpenChange={setCreateOpen}
                 onSubmit={handleCreateReference}
@@ -647,12 +649,13 @@ export function ReferenceSettings() {
           description={`${selectedReference.group} reference`}
           open={detailOpen}
           editable={canUpdate && (!selectedReference.isSystem || canManageSystem)}
+          isSubmitting={isSaving}
           onOpenChange={(open) => {
             setDetailOpen(open);
             if (!open) setSelectedReferenceId(null);
           }}
           tabs={detailTabs}
-          submitLabel={isSaving ? "Saving..." : "Save changes"}
+          submitLabel="Save changes"
         />
       )}
 
@@ -660,7 +663,8 @@ export function ReferenceSettings() {
         <ConfirmationDialog
           title="Delete reference"
           description={`${pendingDelete.key} will be removed from ${pendingDelete.isSystem ? "system" : "tenant"} references.`}
-          confirmLabel={isSaving ? "Deleting..." : "Delete"}
+          confirmLabel="Delete"
+          isSubmitting={isSaving}
           variant="destructive"
           open={Boolean(pendingDelete)}
           onOpenChange={(open) => {

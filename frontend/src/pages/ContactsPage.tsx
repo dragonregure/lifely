@@ -4,6 +4,7 @@ import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQu
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
+import { LoadingInline } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -605,13 +606,14 @@ export function ContactsPage() {
         emptyMessage={isLoading ? "Loading contacts..." : "No contacts found."}
         filters={contactFilters}
         initialPageSize={10}
+        isLoading={isLoading}
         onQueryChange={handleQueryChange}
         rowKey="id"
         search={{ enabled: true, placeholder: "Search contacts, email, or source" }}
         serverPageCount={pageCount}
         serverSide
         serverTotalRows={totalRows}
-        toolbarEnd={isLoading ? <span className="text-sm text-muted-foreground">Loading...</span> : null}
+        toolbarEnd={isLoading ? <LoadingInline label="Loading" /> : null}
       />
 
       {selectedContact && (

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarPlus, Plus } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,12 @@ const stages: PipelineStage[] = ["New lead", "Contacted", "Viewing", "Offer", "C
 
 export function PipelinePage() {
   const [deals, setDeals] = useState<PipelineDeal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getPipelineDeals().then(setDeals);
+    getPipelineDeals()
+      .then(setDeals)
+      .finally(() => setIsLoading(false));
   }, []);
 
   const grouped = useMemo(() => {
@@ -76,6 +80,9 @@ export function PipelinePage() {
         }
       />
 
+      {isLoading ? (
+        <LoadingState className="border bg-white" label="Loading pipeline" />
+      ) : (
       <div className="grid grid-flow-col auto-cols-[12rem] gap-3 overflow-x-auto pb-2 xl:grid-flow-row xl:grid-cols-5">
         {grouped.map((column) => (
           <div key={column.stage} className="min-w-0">
@@ -108,6 +115,7 @@ export function PipelinePage() {
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }

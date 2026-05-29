@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { LoadingState } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { DEFAULT_ACTION_COLUMN_CLASS } from "./constants";
@@ -10,6 +11,7 @@ type DataTableContentProps<TData extends object> = {
   actionsHeader: DataTableProps<TData>["actionsHeader"];
   columns: DataTableColumn<TData>[];
   emptyMessage: string;
+  isLoading: boolean;
   onSort: (column: DataTableColumn<TData>) => void;
   paginatedData: TData[];
   rowKey: DataTableProps<TData>["rowKey"];
@@ -21,6 +23,7 @@ export function DataTableContent<TData extends object>({
   actionsHeader,
   columns,
   emptyMessage,
+  isLoading,
   onSort,
   paginatedData,
   rowKey,
@@ -70,7 +73,13 @@ export function DataTableContent<TData extends object>({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedData.length > 0 ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={columns.length + (actionConfig ? 1 : 0)}>
+                <LoadingState label="Loading data" />
+              </TableCell>
+            </TableRow>
+          ) : paginatedData.length > 0 ? (
             paginatedData.map((row, index) => (
               <TableRow key={getRowKey(row, index, rowKey)} className="group">
                 {columns.map((column) => (
