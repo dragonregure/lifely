@@ -23,6 +23,7 @@ export const PERMISSIONS = {
     view: "contacts.view",
     create: "contacts.create",
     update: "contacts.update",
+    delete: "contacts.delete",
   },
   listings: {
     view: "listings.view",

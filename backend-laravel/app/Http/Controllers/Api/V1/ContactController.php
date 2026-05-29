@@ -10,6 +10,7 @@ use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -63,5 +64,16 @@ class ContactController extends BaseApiController
         }
 
         return new ContactResource($model);
+    }
+
+    public function destroy(Request $request, string $contact): HttpResponse
+    {
+        $this->authorize(Permissions::CONTACTS_DELETE);
+
+        if (! $this->contacts->delete($this->tenantId($request), $contact)) {
+            throw new NotFoundHttpException('Contact not found.');
+        }
+
+        return response()->noContent();
     }
 }

@@ -72,6 +72,7 @@ export type DataTableProps<TData extends object> = {
   isLoading?: boolean;
   initialPageSize?: number;
   pageSizeOptions?: number[];
+  refreshKey?: number;
   rowKey?: keyof TData | ((row: TData, index: number) => string | number);
   search?: boolean | DataTableSearch<TData>;
   serverSide?: boolean;

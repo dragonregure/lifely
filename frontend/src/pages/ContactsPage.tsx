@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { getContactsPage } from "@/services/api";
+import { createContact, deleteContact, getContactsPage, updateContact, type ContactPayload } from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
@@ -50,6 +50,45 @@ function toDateInputValue(value: string) {
 
 function toIsoDate(value: string) {
   return new Date(`${value}T00:00:00`).toISOString();
+}
+
+function nullableText(value: string) {
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+function nullableDate(value: string) {
+  return value ? toIsoDate(value) : null;
+}
+
+function nullableNumber(value: string) {
+  return value.trim() === "" ? null : Number(value);
+}
+
+function payloadFromDraft(draft: ContactDraft): ContactPayload {
+  return {
+    ownerId: draft.ownerId || null,
+    firstName: draft.firstName.trim(),
+    lastName: draft.lastName.trim(),
+    email: draft.email.trim(),
+    phone: nullableText(draft.phone),
+    status: draft.status,
+    budget: nullableNumber(draft.budget),
+    source: nullableText(draft.source),
+    lastContactedAt: nullableDate(draft.lastContactedAt),
+  };
+}
+
+function profilePayloadFromDraft(draft: ContactDraft): ContactPayload {
+  return {
+    firstName: draft.firstName.trim(),
+    lastName: draft.lastName.trim(),
+    email: draft.email.trim(),
+    phone: nullableText(draft.phone),
+    status: draft.status,
+    budget: nullableNumber(draft.budget),
+    source: nullableText(draft.source),
+  };
 }
 
 function blankDraft(ownerId = ""): ContactDraft {
@@ -101,10 +140,13 @@ export function ContactsPage() {
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
+  const [contactsRefreshKey, setContactsRefreshKey] = useState(0);
   const [loadError, setLoadError] = useState("");
   const { members } = useAuth();
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
+  const canDeleteContacts = can(PERMISSIONS.contacts.delete);
 
   const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
     setLoadError("");
@@ -148,29 +190,27 @@ export function ContactsPage() {
   }, [selectedContact]);
 
   const updateDraft = (draft: ContactDraft, patch: Partial<ContactDraft>) => ({ ...draft, ...patch });
+  const refreshContacts = () => setContactsRefreshKey((current) => current + 1);
 
-  const handleCreateContact = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateContact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!can(PERMISSIONS.contacts.create)) return;
 
-    const ownerId = createDraft.ownerId || members[0]?.id || "";
-    const contact: Contact = {
-      id: `local-${Date.now()}`,
-      tenantId: members[0]?.tenantId ?? "local",
-      firstName: createDraft.firstName,
-      lastName: createDraft.lastName,
-      email: createDraft.email,
-      phone: createDraft.phone,
-      status: createDraft.status,
-      budget: Number(createDraft.budget) || 0,
-      source: createDraft.source,
-      ownerId,
-      lastContactedAt: toIsoDate(createDraft.lastContactedAt),
-    };
+    setLoadError("");
+    setIsMutating(true);
 
-    setContacts((current) => [contact, ...current]);
-    setCreateDraft(blankDraft(ownerId));
-    setCreateOpen(false);
+    try {
+      const ownerId = createDraft.ownerId || members[0]?.id || "";
+      await createContact(payloadFromDraft({ ...createDraft, ownerId }));
+
+      setCreateDraft(blankDraft(ownerId));
+      setCreateOpen(false);
+      refreshContacts();
+    } catch (caught) {
+      setLoadError(caught instanceof Error ? caught.message : "Unable to create contact.");
+    } finally {
+      setIsMutating(false);
+    }
   };
 
   const openDetails = (contact: Contact) => {
@@ -178,63 +218,75 @@ export function ContactsPage() {
     setDetailOpen(true);
   };
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!selectedContact || !canUpdateContacts) return;
 
-    setContacts((current) =>
-      current.map((contact) =>
-        contact.id === selectedContact.id
-          ? {
-              ...contact,
-              firstName: profileDraft.firstName,
-              lastName: profileDraft.lastName,
-              email: profileDraft.email,
-              phone: profileDraft.phone,
-              status: profileDraft.status,
-              budget: Number(profileDraft.budget) || 0,
-              source: profileDraft.source,
-            }
-          : contact,
-      ),
-    );
-  };
+    setLoadError("");
+    setIsMutating(true);
 
-  const saveAssignment = () => {
-    if (!selectedContact || !canUpdateContacts) return;
-
-    setContacts((current) =>
-      current.map((contact) =>
-        contact.id === selectedContact.id
-          ? {
-              ...contact,
-              ownerId: assignmentDraft.ownerId,
-              lastContactedAt: toIsoDate(assignmentDraft.lastContactedAt),
-            }
-          : contact,
-      ),
-    );
-  };
-
-  const handleConfirmAction = () => {
-    if (!pendingAction || !canUpdateContacts) return;
-
-    if (pendingAction.type === "delete") {
-      setContacts((current) => current.filter((contact) => contact.id !== pendingAction.contact.id));
-      if (selectedContactId === pendingAction.contact.id) {
-        setDetailOpen(false);
-        setSelectedContactId(null);
-      }
-    } else {
-      setContacts((current) =>
-        current.map((contact) =>
-          contact.id === pendingAction.contact.id
-            ? { ...contact, status: pendingAction.type === "archive" ? "Dormant" : "New" }
-            : contact,
-        ),
-      );
+    try {
+      const contact = await updateContact(selectedContact.id, profilePayloadFromDraft(profileDraft));
+      setContacts((current) => current.map((item) => (item.id === selectedContact.id ? contact : item)));
+      refreshContacts();
+    } catch (caught) {
+      setLoadError(caught instanceof Error ? caught.message : "Unable to update contact.");
+      throw caught;
+    } finally {
+      setIsMutating(false);
     }
+  };
 
-    setPendingAction(null);
+  const saveAssignment = async () => {
+    if (!selectedContact || !canUpdateContacts) return;
+
+    setLoadError("");
+    setIsMutating(true);
+
+    try {
+      const contact = await updateContact(selectedContact.id, {
+        ownerId: assignmentDraft.ownerId || null,
+        lastContactedAt: nullableDate(assignmentDraft.lastContactedAt),
+      });
+      setContacts((current) => current.map((item) => (item.id === selectedContact.id ? contact : item)));
+      refreshContacts();
+    } catch (caught) {
+      setLoadError(caught instanceof Error ? caught.message : "Unable to update contact assignment.");
+      throw caught;
+    } finally {
+      setIsMutating(false);
+    }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+    if (pendingAction.type === "delete" && !canDeleteContacts) return;
+    if (pendingAction.type !== "delete" && !canUpdateContacts) return;
+
+    setLoadError("");
+    setIsMutating(true);
+
+    try {
+      if (pendingAction.type === "delete") {
+        await deleteContact(pendingAction.contact.id);
+        if (selectedContactId === pendingAction.contact.id) {
+          setDetailOpen(false);
+          setSelectedContactId(null);
+        }
+      } else {
+        const contact = await updateContact(pendingAction.contact.id, {
+          status: pendingAction.type === "archive" ? "Dormant" : "New",
+        });
+        setContacts((current) => current.map((item) => (item.id === pendingAction.contact.id ? contact : item)));
+      }
+
+      setPendingAction(null);
+      refreshContacts();
+    } catch (caught) {
+      setLoadError(caught instanceof Error ? caught.message : "Unable to update contact.");
+      throw caught;
+    } finally {
+      setIsMutating(false);
+    }
   };
 
   const selectedOwner = selectedContact ? members.find((user) => user.id === selectedContact.ownerId) : undefined;
@@ -242,7 +294,7 @@ export function ContactsPage() {
     pendingAction?.type === "delete" ? "Delete contact" : pendingAction?.type === "archive" ? "Archive contact" : "Activate contact";
   const actionDescription =
     pendingAction?.type === "delete"
-      ? `${pendingAction.contact.firstName} ${pendingAction.contact.lastName} will be removed from this local contact list.`
+      ? `${pendingAction.contact.firstName} ${pendingAction.contact.lastName} will be deleted from this tenant.`
       : pendingAction?.type === "archive"
         ? `${pendingAction.contact.firstName} ${pendingAction.contact.lastName} will move to Dormant status.`
         : `${pendingAction?.contact.firstName} ${pendingAction?.contact.lastName} will move back to New status.`;
@@ -268,6 +320,7 @@ export function ContactsPage() {
                 <Label htmlFor="profile-first-name">First name</Label>
                 <Input
                   id="profile-first-name"
+                  required
                   value={profileDraft.firstName}
                   onChange={(event) => setProfileDraft(updateDraft(profileDraft, { firstName: event.target.value }))}
                 />
@@ -276,6 +329,7 @@ export function ContactsPage() {
                 <Label htmlFor="profile-last-name">Last name</Label>
                 <Input
                   id="profile-last-name"
+                  required
                   value={profileDraft.lastName}
                   onChange={(event) => setProfileDraft(updateDraft(profileDraft, { lastName: event.target.value }))}
                 />
@@ -285,6 +339,7 @@ export function ContactsPage() {
                 <Input
                   id="profile-email"
                   type="email"
+                  required
                   value={profileDraft.email}
                   onChange={(event) => setProfileDraft(updateDraft(profileDraft, { email: event.target.value }))}
                 />
@@ -388,6 +443,7 @@ export function ContactsPage() {
             <Label htmlFor="create-first-name">First name</Label>
             <Input
               id="create-first-name"
+              required
               value={createDraft.firstName}
               onChange={(event) => setCreateDraft(updateDraft(createDraft, { firstName: event.target.value }))}
             />
@@ -396,6 +452,7 @@ export function ContactsPage() {
             <Label htmlFor="create-last-name">Last name</Label>
             <Input
               id="create-last-name"
+              required
               value={createDraft.lastName}
               onChange={(event) => setCreateDraft(updateDraft(createDraft, { lastName: event.target.value }))}
             />
@@ -405,6 +462,7 @@ export function ContactsPage() {
             <Input
               id="create-email"
               type="email"
+              required
               value={createDraft.email}
               onChange={(event) => setCreateDraft(updateDraft(createDraft, { email: event.target.value }))}
             />
@@ -554,6 +612,7 @@ export function ContactsPage() {
               submitLabel="Save lead"
               open={createOpen}
               onOpenChange={setCreateOpen}
+              isSubmitting={isMutating}
               onSubmit={handleCreateContact}
               tabs={createTabs}
               trigger={
@@ -588,6 +647,8 @@ export function ContactsPage() {
                 >
                   {isDormant ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                 </Button>
+              </PermissionGate>
+              <PermissionGate permission={PERMISSIONS.contacts.delete}>
                 <Button
                   variant="outline"
                   size="icon"
@@ -608,6 +669,7 @@ export function ContactsPage() {
         initialPageSize={10}
         isLoading={isLoading}
         onQueryChange={handleQueryChange}
+        refreshKey={contactsRefreshKey}
         rowKey="id"
         search={{ enabled: true, placeholder: "Search contacts, email, or source" }}
         serverPageCount={pageCount}
@@ -622,6 +684,7 @@ export function ContactsPage() {
           description="Profile, ownership, and recent contact context."
           open={detailOpen}
           editable={canUpdateContacts}
+          isSubmitting={isMutating}
           onOpenChange={(open) => {
             setDetailOpen(open);
             if (!open) setSelectedContactId(null);
@@ -637,6 +700,7 @@ export function ContactsPage() {
           confirmLabel={pendingAction.type === "delete" ? "Delete" : pendingAction.type === "archive" ? "Archive" : "Activate"}
           variant={pendingAction.type === "delete" ? "destructive" : "default"}
           open={Boolean(pendingAction)}
+          isSubmitting={isMutating}
           onOpenChange={(open) => {
             if (!open) setPendingAction(null);
           }}

@@ -19,5 +19,7 @@ interface ContactRepositoryInterface
 
     public function update(string $tenantId, string $contactId, array $data): ?Contact;
 
+    public function delete(string $tenantId, string $contactId): bool;
+
     public function countByStatus(string $tenantId): Collection;
 }

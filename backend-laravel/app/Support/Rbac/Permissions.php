@@ -23,6 +23,7 @@ final class Permissions
     public const CONTACTS_VIEW = 'contacts.view';
     public const CONTACTS_CREATE = 'contacts.create';
     public const CONTACTS_UPDATE = 'contacts.update';
+    public const CONTACTS_DELETE = 'contacts.delete';
 
     public const LISTINGS_VIEW = 'listings.view';
     public const LISTINGS_CREATE = 'listings.create';
@@ -65,6 +66,7 @@ final class Permissions
             self::CONTACTS_VIEW,
             self::CONTACTS_CREATE,
             self::CONTACTS_UPDATE,
+            self::CONTACTS_DELETE,
             self::LISTINGS_VIEW,
             self::LISTINGS_CREATE,
             self::PIPELINE_VIEW,

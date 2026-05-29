@@ -20,7 +20,7 @@ type ConfirmationDialogProps = {
   variant?: "default" | "destructive";
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 };
 
 export function ConfirmationDialog({
@@ -34,9 +34,13 @@ export function ConfirmationDialog({
   onOpenChange,
   onConfirm,
 }: ConfirmationDialogProps) {
-  const handleConfirm = () => {
-    onConfirm();
-    onOpenChange?.(false);
+  const handleConfirm = async () => {
+    try {
+      await onConfirm();
+      onOpenChange?.(false);
+    } catch {
+      // The owning page is responsible for showing the API error.
+    }
   };
 
   return (

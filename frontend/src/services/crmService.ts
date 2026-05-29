@@ -14,6 +14,33 @@ import type { PaginatedResult, ServerDataTableParams } from "@/services/dataTabl
 import { toQueryString } from "@/services/dataTableParams";
 import { apiRequest } from "@/services/httpClient";
 import { mapActivity, mapCampaign, mapContact, mapDeal, mapListing, mapTenant, mapUser, mapUserAccess } from "@/services/mappers";
+import type { ContactStatus } from "@/types";
+
+export type ContactPayload = {
+  ownerId?: string | null;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string | null;
+  status?: ContactStatus;
+  budget?: number | null;
+  source?: string | null;
+  lastContactedAt?: string | null;
+};
+
+function toBackendContactPayload(payload: Partial<ContactPayload>) {
+  return {
+    ...(Object.prototype.hasOwnProperty.call(payload, "ownerId") ? { owner_id: payload.ownerId } : {}),
+    ...(payload.firstName !== undefined ? { first_name: payload.firstName } : {}),
+    ...(payload.lastName !== undefined ? { last_name: payload.lastName } : {}),
+    ...(payload.email !== undefined ? { email: payload.email } : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, "phone") ? { phone: payload.phone } : {}),
+    ...(payload.status !== undefined ? { status: payload.status } : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, "budget") ? { budget: payload.budget } : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, "source") ? { source: payload.source } : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, "lastContactedAt") ? { last_contacted_at: payload.lastContactedAt } : {}),
+  };
+}
 
 export async function getSession() {
   const [me, members, access] = await Promise.all([
@@ -56,6 +83,28 @@ export async function getContactsPage(
     pageCount: response.meta.last_page,
     total: response.meta.total,
   };
+}
+
+export async function createContact(payload: ContactPayload) {
+  const response = await apiRequest<ApiEnvelope<BackendContact>>("/contacts", {
+    method: "POST",
+    body: JSON.stringify(toBackendContactPayload(payload)),
+  });
+
+  return mapContact(response.data);
+}
+
+export async function updateContact(contactId: string, payload: Partial<ContactPayload>) {
+  const response = await apiRequest<ApiEnvelope<BackendContact>>(`/contacts/${contactId}`, {
+    method: "PATCH",
+    body: JSON.stringify(toBackendContactPayload(payload)),
+  });
+
+  return mapContact(response.data);
+}
+
+export async function deleteContact(contactId: string) {
+  await apiRequest<void>(`/contacts/${contactId}`, { method: "DELETE" });
 }
 
 export async function getListings() {

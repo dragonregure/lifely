@@ -9,6 +9,7 @@ use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class ContactRepository implements ContactRepositoryInterface
 {
@@ -80,6 +81,21 @@ class ContactRepository implements ContactRepositoryInterface
         $this->activity->record($tenantId, $contact->owner_id, 'contact.updated', "Updated contact {$contact->first_name} {$contact->last_name}.");
 
         return $contact->refresh();
+    }
+
+    public function delete(string $tenantId, string $contactId): bool
+    {
+        $contact = $this->find($tenantId, $contactId);
+
+        if (! $contact) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($tenantId, $contact): bool {
+            $this->activity->record($tenantId, $contact->owner_id, 'contact.deleted', "Deleted contact {$contact->first_name} {$contact->last_name}.");
+
+            return (bool) $contact->delete();
+        });
     }
 
     public function countByStatus(string $tenantId): Collection

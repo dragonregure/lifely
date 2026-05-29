@@ -953,6 +953,16 @@ paths:
         "403": { description: Missing `contacts.update` permission. }
         "404": { description: Contact is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
+    delete:
+      tags: [Contacts]
+      summary: Delete contact
+      description: Requires `contacts.delete`. Deletes the tenant-scoped contact and related pipeline records through database constraints.
+      parameters:
+        - { $ref: "#/components/parameters/ContactId" }
+      responses:
+        "204": { description: Contact deleted. }
+        "403": { description: Missing `contacts.delete` permission. }
+        "404": { description: Contact is outside current tenant scope or not found. }
   /listings:
     get:
       tags: [Listings]

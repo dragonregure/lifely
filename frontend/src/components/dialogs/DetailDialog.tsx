@@ -17,7 +17,7 @@ export type DetailDialogTab = {
   label: string;
   viewContent: ReactNode;
   editContent?: ReactNode;
-  onSave?: () => void;
+  onSave?: () => void | Promise<void>;
 };
 
 type DetailDialogProps = {
@@ -32,7 +32,7 @@ type DetailDialogProps = {
   submitLabel?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSave?: () => void;
+  onSave?: () => void | Promise<void>;
 };
 
 export function DetailDialog({
@@ -69,16 +69,20 @@ export function DetailDialog({
   const activeTabConfig = useMemo(() => tabs?.find((tab) => tab.value === activeTab), [activeTab, tabs]);
   const canEdit = editable && (tabs ? Boolean(activeTabConfig?.editContent) : Boolean(editContent));
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (tabs) {
-      activeTabConfig?.onSave?.();
-    } else {
-      onSave?.();
-    }
+    try {
+      if (tabs) {
+        await activeTabConfig?.onSave?.();
+      } else {
+        await onSave?.();
+      }
 
-    setIsEditing(false);
+      setIsEditing(false);
+    } catch {
+      // The owning page is responsible for showing the API error.
+    }
   };
 
   const handleTabChange = (value: string) => {

@@ -43,6 +43,11 @@ class ReportingServiceTest extends TestCase
                 return null;
             }
 
+            public function delete(string $tenantId, string $contactId): bool
+            {
+                return false;
+            }
+
             public function countByStatus(string $tenantId): Collection
             {
                 return collect(['New' => 3, 'Closed' => 1]);

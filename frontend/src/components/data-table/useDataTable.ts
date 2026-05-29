@@ -14,6 +14,7 @@ type UseDataTableProps<TData extends object> = Pick<
   | "initialSort"
   | "onQueryChange"
   | "pageSizeOptions"
+  | "refreshKey"
   | "search"
   | "serverPageCount"
   | "serverSide"
@@ -31,6 +32,7 @@ export function useDataTable<TData extends object>({
   onQueryChange,
   initialPageSize = 10,
   pageSizeOptions = DEFAULT_PAGE_SIZES,
+  refreshKey,
   search = false,
   serverPageCount,
   serverSide = false,
@@ -112,7 +114,7 @@ export function useDataTable<TData extends object>({
         requestControllerRef.current = null;
       }
     };
-  }, [debouncedQuery, filterValues, isSearchSettling, onQueryChange, page, pageSize, serverSide, sortState]);
+  }, [debouncedQuery, filterValues, isSearchSettling, onQueryChange, page, pageSize, refreshKey, serverSide, sortState]);
 
   useEffect(() => {
     return () => requestControllerRef.current?.abort();
