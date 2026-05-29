@@ -98,6 +98,7 @@ export type BackendActivity = {
   id: string;
   tenant_id: string;
   user_id?: string | null;
+  user_name?: string | null;
   action_type: ActivityLog["actionType"];
   description: string;
   properties?: ActivityLogProperties | null;

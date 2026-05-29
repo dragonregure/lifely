@@ -126,6 +126,7 @@ export type ActivityLog = {
   id: string;
   tenantId: string;
   userId: string;
+  userName: string;
   actionType: string;
   description: string;
   properties: ActivityLogProperties | null;

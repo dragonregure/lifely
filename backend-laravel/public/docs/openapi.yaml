@@ -257,6 +257,7 @@ components:
         id: { type: string, format: uuid }
         tenant_id: { type: string, format: uuid }
         user_id: { type: string, format: uuid, nullable: true }
+        user_name: { type: string, nullable: true, example: Maya Hart }
         action_type: { type: string, example: contact.created }
         description: { type: string }
         properties:

@@ -15,6 +15,7 @@ class ActivityRepository implements ActivityRepositoryInterface
     {
         return ActivityLog::query()
             ->where('tenant_id', $tenantId)
+            ->with('user')
             ->latest()
             ->get();
     }
@@ -22,7 +23,7 @@ class ActivityRepository implements ActivityRepositoryInterface
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
     {
         return EloquentDataTable::paginate(
-            ActivityLog::query()->where('tenant_id', $tenantId),
+            ActivityLog::query()->where('tenant_id', $tenantId)->with('user'),
             $dataTable,
             ['action_type', 'description', 'user_id'],
             ['action_type' => 'action_type', 'user_id' => 'user_id'],

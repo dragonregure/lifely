@@ -150,6 +150,7 @@ export function mapActivity(log: BackendActivity): ActivityLog {
     id: log.id,
     tenantId: log.tenant_id,
     userId: log.user_id ?? "",
+    userName: log.user_name ?? "",
     actionType: log.action_type,
     description: log.description,
     properties: log.properties ?? null,

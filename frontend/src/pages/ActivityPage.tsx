@@ -62,8 +62,8 @@ const activityColumns: DataTableColumn<ActivityLog>[] = [
   {
     id: "user",
     header: "User",
-    cell: (log) => log.userId || "System",
-    searchValue: (log) => log.userId || "System",
+    cell: (log) => log.userName || "System",
+    searchValue: (log) => log.userName || "System",
   },
   {
     id: "time",
