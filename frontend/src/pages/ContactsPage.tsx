@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Archive, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryState } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
@@ -10,15 +10,13 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
-import { getContacts } from "@/services/api";
+import { getContactsPage } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
 import type { Contact, ContactStatus } from "@/types";
 
-const statuses: Array<ContactStatus | "All"> = ["All", "New", "Qualified", "Viewing", "Negotiating", "Closed", "Dormant"];
 const editableStatuses: ContactStatus[] = ["New", "Qualified", "Viewing", "Negotiating", "Closed", "Dormant"];
 const inputClass =
   "h-10 rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring";
@@ -91,7 +89,6 @@ function DetailField({ label, value }: { label: string; value: string }) {
 
 export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [status, setStatus] = useState<ContactStatus | "All">("All");
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState<ContactDraft>(() => blankDraft());
   const [detailOpen, setDetailOpen] = useState(false);
@@ -99,13 +96,34 @@ export function ContactsPage() {
   const [profileDraft, setProfileDraft] = useState<ContactDraft>(() => blankDraft());
   const [assignmentDraft, setAssignmentDraft] = useState<ContactDraft>(() => blankDraft());
   const [pendingAction, setPendingAction] = useState<PendingContactAction | null>(null);
+  const [tableQuery, setTableQuery] = useState<DataTableQueryState>({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    filters: {},
+    sort: null,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const { members } = useAuth();
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
 
-  useEffect(() => {
-    getContacts().then(setContacts);
+  const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
+    setTableQuery(nextQuery);
   }, []);
+
+  useEffect(() => {
+    setIsLoading(true);
+    getContactsPage(tableQuery)
+      .then((result) => {
+        setContacts(result.data);
+        setTotalRows(result.total);
+        setPageCount(result.pageCount);
+      })
+      .finally(() => setIsLoading(false));
+  }, [tableQuery]);
 
   useEffect(() => {
     setCreateDraft((draft) => (draft.ownerId ? draft : { ...draft, ownerId: members[0]?.id ?? "" }));
@@ -123,10 +141,6 @@ export function ContactsPage() {
     setProfileDraft(draft);
     setAssignmentDraft(draft);
   }, [selectedContact]);
-
-  const filtered = useMemo(() => {
-    return contacts.filter((contact) => status === "All" || contact.status === status);
-  }, [contacts, status]);
 
   const updateDraft = (draft: ContactDraft, patch: Partial<ContactDraft>) => ({ ...draft, ...patch });
 
@@ -505,6 +519,22 @@ export function ContactsPage() {
     [members],
   );
 
+  const contactFilters = useMemo<DataTableFilter<Contact>[]>(
+    () => [
+      {
+        id: "status",
+        label: "Status",
+        defaultValue: "all",
+        options: [
+          { label: "All statuses", value: "all" },
+          ...editableStatuses.map((item) => ({ label: item, value: item })),
+        ],
+        predicate: (contact, selectedValue) => selectedValue === "all" || contact.status === selectedValue,
+      },
+    ],
+    [],
+  );
+
   return (
     <div>
       <PageHeader
@@ -565,22 +595,17 @@ export function ContactsPage() {
           );
         }}
         columns={contactColumns}
-        data={filtered}
-        emptyMessage="No contacts found."
+        data={contacts}
+        emptyMessage={isLoading ? "Loading contacts..." : "No contacts found."}
+        filters={contactFilters}
         initialPageSize={10}
+        onQueryChange={handleQueryChange}
         rowKey="id"
         search={{ enabled: true, placeholder: "Search contacts, email, or source" }}
-        toolbarEnd={
-          <Tabs value={status} onValueChange={(value) => setStatus(value as ContactStatus | "All")}>
-            <TabsList className="flex h-auto flex-wrap justify-start">
-              {statuses.map((item) => (
-                <TabsTrigger key={item} value={item} className="text-xs">
-                  {item}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        }
+        serverPageCount={pageCount}
+        serverSide
+        serverTotalRows={totalRows}
+        toolbarEnd={isLoading ? <span className="text-sm text-muted-foreground">Loading...</span> : null}
       />
 
       {selectedContact && (

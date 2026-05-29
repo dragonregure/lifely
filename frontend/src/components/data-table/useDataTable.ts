@@ -12,8 +12,12 @@ type UseDataTableProps<TData extends object> = Pick<
   | "filters"
   | "initialPageSize"
   | "initialSort"
+  | "onQueryChange"
   | "pageSizeOptions"
   | "search"
+  | "serverPageCount"
+  | "serverSide"
+  | "serverTotalRows"
   | "toolbarEnd"
 >;
 
@@ -24,9 +28,13 @@ export function useDataTable<TData extends object>({
   data,
   filters = [],
   initialSort,
+  onQueryChange,
   initialPageSize = 10,
   pageSizeOptions = DEFAULT_PAGE_SIZES,
   search = false,
+  serverPageCount,
+  serverSide = false,
+  serverTotalRows,
   toolbarEnd,
 }: UseDataTableProps<TData>) {
   const normalizedPageSizeOptions = useMemo(() => {
@@ -58,9 +66,25 @@ export function useDataTable<TData extends object>({
 
   useEffect(() => {
     setPage(1);
-  }, [data, filterValues, pageSize, query, sortState]);
+  }, [filterValues, pageSize, query, sortState]);
+
+  useEffect(() => {
+    if (!serverSide) return;
+
+    onQueryChange?.({
+      page,
+      pageSize,
+      search: query,
+      filters: filterValues,
+      sort: sortState,
+    });
+  }, [filterValues, onQueryChange, page, pageSize, query, serverSide, sortState]);
 
   const filteredData = useMemo(() => {
+    if (serverSide) {
+      return data;
+    }
+
     const normalizedQuery = query.trim().toLowerCase();
 
     return data.filter((row) => {
@@ -80,10 +104,10 @@ export function useDataTable<TData extends object>({
 
       return matchesSearch && matchesFilters;
     });
-  }, [columns, data, filterValues, filters, query, searchConfig, searchEnabled]);
+  }, [columns, data, filterValues, filters, query, searchConfig, searchEnabled, serverSide]);
 
   const sortedData = useMemo(() => {
-    if (!sortState) {
+    if (serverSide || !sortState) {
       return filteredData;
     }
 
@@ -96,7 +120,7 @@ export function useDataTable<TData extends object>({
     return [...filteredData].sort((a, b) =>
       compareSortValues(getColumnSortValue(a, column), getColumnSortValue(b, column), sortState.direction),
     );
-  }, [columns, filteredData, sortState]);
+  }, [columns, filteredData, serverSide, sortState]);
 
   const handleSort = (column: DataTableColumn<TData>) => {
     if (!isColumnSortable(column)) return;
@@ -114,7 +138,8 @@ export function useDataTable<TData extends object>({
     });
   };
 
-  const pageCount = Math.max(1, Math.ceil(sortedData.length / pageSize));
+  const totalRows = serverSide ? (serverTotalRows ?? sortedData.length) : sortedData.length;
+  const pageCount = serverSide ? Math.max(1, serverPageCount ?? Math.ceil(totalRows / pageSize)) : Math.max(1, Math.ceil(sortedData.length / pageSize));
   const currentPage = Math.min(page, pageCount);
 
   useEffect(() => {
@@ -125,8 +150,12 @@ export function useDataTable<TData extends object>({
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
+    if (serverSide) {
+      return sortedData;
+    }
+
     return sortedData.slice(start, start + pageSize);
-  }, [currentPage, sortedData, pageSize]);
+  }, [currentPage, sortedData, pageSize, serverSide]);
 
   return {
     actionConfig,
@@ -134,15 +163,15 @@ export function useDataTable<TData extends object>({
     filterValues,
     filteredData,
     handleSort,
-    hasPagination: sortedData.length > pageSize,
+    hasPagination: totalRows > pageSize,
     hasToolbar: searchEnabled || filters.length > 0 || Boolean(toolbarEnd),
     normalizedPageSizeOptions,
     pageCount,
     pageSize,
     paginatedData,
     query,
-    rangeEnd: Math.min(currentPage * pageSize, filteredData.length),
-    rangeStart: filteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1,
+    rangeEnd: Math.min(currentPage * pageSize, totalRows),
+    rangeStart: totalRows === 0 ? 0 : (currentPage - 1) * pageSize + 1,
     searchConfig,
     searchEnabled,
     setFilterValues,
@@ -150,5 +179,6 @@ export function useDataTable<TData extends object>({
     setPageSize,
     setQuery,
     sortState,
+    totalRows,
   };
 }

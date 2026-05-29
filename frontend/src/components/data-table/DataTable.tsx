@@ -16,6 +16,10 @@ export function DataTable<TData extends object>({
   pageSizeOptions,
   rowKey,
   search = false,
+  serverPageCount,
+  serverSide = false,
+  serverTotalRows,
+  onQueryChange,
   toolbarEnd,
 }: DataTableProps<TData>) {
   const table = useDataTable({
@@ -26,8 +30,12 @@ export function DataTable<TData extends object>({
     filters,
     initialPageSize,
     initialSort,
+    onQueryChange,
     pageSizeOptions,
     search,
+    serverPageCount,
+    serverSide,
+    serverTotalRows,
     toolbarEnd,
   });
 
@@ -67,7 +75,7 @@ export function DataTable<TData extends object>({
         rangeStart={table.rangeStart}
         setPage={table.setPage}
         setPageSize={table.setPageSize}
-        totalRows={table.filteredData.length}
+        totalRows={table.totalRows}
       />
     </div>
   );

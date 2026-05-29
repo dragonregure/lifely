@@ -4,6 +4,7 @@ export type {
   DataTableColumn,
   DataTableFilter,
   DataTableFilterOption,
+  DataTableQueryState,
   DataTableSearch,
   DataTableSortDirection,
   DataTableSortState,

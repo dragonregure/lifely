@@ -12,6 +12,18 @@ import type {
 
 export type ApiEnvelope<T> = { data: T };
 
+export type ApiPaginatedEnvelope<T> = {
+  data: T[];
+  meta: {
+    current_page: number;
+    from: number | null;
+    last_page: number;
+    per_page: number;
+    to: number | null;
+    total: number;
+  };
+};
+
 export type BackendTenant = {
   id: string;
   name: string;

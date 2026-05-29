@@ -3,11 +3,15 @@
 namespace App\Contracts;
 
 use App\Models\Contact;
+use App\Support\DataTables\DataTableQuery;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 interface ContactRepositoryInterface
 {
     public function all(string $tenantId, array $filters = []): Collection;
+
+    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
     public function find(string $tenantId, string $contactId): ?Contact;
 

@@ -7,6 +7,7 @@ use App\Http\Requests\StoreReferenceRequest;
 use App\Http\Requests\UpdateReferenceRequest;
 use App\Http\Resources\ReferenceResource;
 use App\Models\Reference;
+use App\Support\DataTables\DataTableQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -24,11 +25,10 @@ class ReferenceController extends BaseApiController
     {
         $this->authorize('viewAny', Reference::class);
 
-        return ReferenceResource::collection($this->references->all($this->tenantId($request), [
-            'group' => $request->query('group'),
-            'type' => $request->query('type'),
-            'status' => $request->query('status'),
-        ]));
+        return ReferenceResource::collection($this->references->paginate(
+            $this->tenantId($request),
+            DataTableQuery::fromRequest($request, ['group', 'type', 'status', 'scope'])
+        ));
     }
 
     public function store(StoreReferenceRequest $request): JsonResponse

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Contracts\ListingRepositoryInterface;
 use App\Http\Requests\StoreListingRequest;
 use App\Http\Resources\ListingResource;
+use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ class ListingController extends BaseApiController
     {
         $this->authorize(Permissions::LISTINGS_VIEW);
 
-        return ListingResource::collection($this->listings->all($this->tenantId($request)));
+        return ListingResource::collection($this->listings->paginate(
+            $this->tenantId($request),
+            DataTableQuery::fromRequest($request, ['status', 'property_type'])
+        ));
     }
 
     public function store(StoreListingRequest $request): JsonResponse

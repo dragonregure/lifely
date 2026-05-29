@@ -4,6 +4,9 @@ namespace App\Repositories;
 
 use App\Contracts\ReferenceRepositoryInterface;
 use App\Models\Reference;
+use App\Support\DataTables\DataTableQuery;
+use App\Support\DataTables\EloquentDataTable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +24,39 @@ class ReferenceRepository implements ReferenceRepositoryInterface
             ->orderBy('group')
             ->orderBy('value')
             ->get();
+    }
+
+    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+    {
+        $query = Reference::query()->visibleToTenant($tenantId);
+
+        if ($dataTable->filter('scope') === 'system') {
+            $query->whereNull('tenant_id');
+        }
+
+        if ($dataTable->filter('scope') === 'tenant') {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        return EloquentDataTable::paginate(
+            $query,
+            $dataTable,
+            ['group', 'reference_key', 'value', 'type', 'status'],
+            ['group' => 'group', 'type' => 'type', 'status' => 'status'],
+            [
+                'reference' => 'reference_key',
+                'key' => 'reference_key',
+                'group' => 'group',
+                'value' => 'value',
+                'type' => 'type',
+                'status' => 'status',
+                'updated' => 'updated_at',
+                'updated_at' => 'updated_at',
+                'created_at' => 'created_at',
+            ],
+            'group',
+            'asc'
+        );
     }
 
     public function findVisible(string $tenantId, string $referenceId): ?Reference

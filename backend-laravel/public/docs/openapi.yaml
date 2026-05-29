@@ -17,6 +17,41 @@ components:
       type: apiKey
       in: header
       name: X-Tenant-Id
+  parameters:
+    DataTablePage:
+      in: query
+      name: page
+      schema: { type: integer, minimum: 1, default: 1 }
+      description: Server-side table page number.
+    DataTablePerPage:
+      in: query
+      name: per_page
+      schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+      description: Number of records per page, capped at 100.
+    DataTableSearch:
+      in: query
+      name: search
+      schema: { type: string }
+      description: Server-side search term.
+    DataTableSort:
+      in: query
+      name: sort
+      schema: { type: string }
+      description: Whitelisted sort key for the current endpoint.
+    DataTableDirection:
+      in: query
+      name: direction
+      schema: { type: string, enum: [asc, desc], default: desc }
+      description: Sort direction.
+    DataTableFilters:
+      in: query
+      name: filter
+      style: deepObject
+      explode: true
+      schema:
+        type: object
+        additionalProperties: { type: string }
+      description: Endpoint-specific filters, for example `filter[status]=ACTIVE`.
   schemas:
     Tenant:
       type: object
@@ -533,12 +568,16 @@ paths:
   /contacts:
     get:
       summary: List contacts
+      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `status`, `source`, and `owner_id`.
       parameters:
-        - in: query
-          name: status
-          schema: { type: string }
+        - { $ref: "#/components/parameters/DataTablePage" }
+        - { $ref: "#/components/parameters/DataTablePerPage" }
+        - { $ref: "#/components/parameters/DataTableSearch" }
+        - { $ref: "#/components/parameters/DataTableSort" }
+        - { $ref: "#/components/parameters/DataTableDirection" }
+        - { $ref: "#/components/parameters/DataTableFilters" }
       responses:
-        "200": { description: Tenant-scoped contacts. }
+        "200": { description: Paginated tenant-scoped contacts. }
     post:
       summary: Create contact
       requestBody:
@@ -581,8 +620,16 @@ paths:
   /listings:
     get:
       summary: List listings
+      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `status` and `property_type`.
+      parameters:
+        - { $ref: "#/components/parameters/DataTablePage" }
+        - { $ref: "#/components/parameters/DataTablePerPage" }
+        - { $ref: "#/components/parameters/DataTableSearch" }
+        - { $ref: "#/components/parameters/DataTableSort" }
+        - { $ref: "#/components/parameters/DataTableDirection" }
+        - { $ref: "#/components/parameters/DataTableFilters" }
       responses:
-        "200": { description: Tenant-scoped listings. }
+        "200": { description: Paginated tenant-scoped listings. }
     post:
       summary: Create listing
       responses:
@@ -590,8 +637,16 @@ paths:
   /pipeline:
     get:
       summary: List pipeline deals
+      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `stage`, `user_id`, `contact_id`, and `listing_id`.
+      parameters:
+        - { $ref: "#/components/parameters/DataTablePage" }
+        - { $ref: "#/components/parameters/DataTablePerPage" }
+        - { $ref: "#/components/parameters/DataTableSearch" }
+        - { $ref: "#/components/parameters/DataTableSort" }
+        - { $ref: "#/components/parameters/DataTableDirection" }
+        - { $ref: "#/components/parameters/DataTableFilters" }
       responses:
-        "200": { description: Tenant-scoped pipeline deals. }
+        "200": { description: Paginated tenant-scoped pipeline deals. }
     post:
       summary: Create pipeline deal
       responses:
@@ -614,6 +669,12 @@ paths:
         - BearerAuth: []
         - TenantHeader: []
       parameters:
+        - { $ref: "#/components/parameters/DataTablePage" }
+        - { $ref: "#/components/parameters/DataTablePerPage" }
+        - { $ref: "#/components/parameters/DataTableSearch" }
+        - { $ref: "#/components/parameters/DataTableSort" }
+        - { $ref: "#/components/parameters/DataTableDirection" }
+        - { $ref: "#/components/parameters/DataTableFilters" }
         - in: query
           name: group
           schema: { type: string }
@@ -626,7 +687,7 @@ paths:
           name: status
           schema: { type: string, enum: [ACTIVE, INACTIVE] }
       responses:
-        "200": { description: System and tenant-visible references. }
+        "200": { description: Paginated system and tenant-visible references. }
         "403": { description: Missing `references.view` permission. }
     post:
       summary: Create reference
@@ -721,13 +782,29 @@ paths:
   /activity-logs:
     get:
       summary: List activity logs
+      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `action_type` and `user_id`.
+      parameters:
+        - { $ref: "#/components/parameters/DataTablePage" }
+        - { $ref: "#/components/parameters/DataTablePerPage" }
+        - { $ref: "#/components/parameters/DataTableSearch" }
+        - { $ref: "#/components/parameters/DataTableSort" }
+        - { $ref: "#/components/parameters/DataTableDirection" }
+        - { $ref: "#/components/parameters/DataTableFilters" }
       responses:
-        "200": { description: Tenant-scoped audit trail. }
+        "200": { description: Paginated tenant-scoped audit trail. }
   /email-campaigns:
     get:
       summary: List email campaigns
+      description: Supports server-side pagination, search, filters, and sorting. Filter keys include `status` and `user_id`.
+      parameters:
+        - { $ref: "#/components/parameters/DataTablePage" }
+        - { $ref: "#/components/parameters/DataTablePerPage" }
+        - { $ref: "#/components/parameters/DataTableSearch" }
+        - { $ref: "#/components/parameters/DataTableSort" }
+        - { $ref: "#/components/parameters/DataTableDirection" }
+        - { $ref: "#/components/parameters/DataTableFilters" }
       responses:
-        "200": { description: Tenant-scoped campaigns. }
+        "200": { description: Paginated tenant-scoped campaigns. }
   /bulk-emails:
     post:
       summary: Queue bulk email

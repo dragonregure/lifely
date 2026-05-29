@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Eye, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { DataTable, type DataTableColumn, type DataTableFilter } from "@/components/data-table";
+import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryState } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import { createReference, deleteReference, getReferences, updateReference } from "@/services/api";
+import { createReference, deleteReference, getReferencesPage, updateReference } from "@/services/api";
 import type { Reference, ReferenceStatus, ReferenceValueType } from "@/types";
 import { inputClass } from "./settingsUtils";
 
@@ -209,6 +209,15 @@ export function ReferenceSettings() {
   const [pendingDelete, setPendingDelete] = useState<Reference | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [tableQuery, setTableQuery] = useState<DataTableQueryState>({
+    page: 1,
+    pageSize: 10,
+    search: "",
+    filters: {},
+    sort: null,
+  });
+  const [totalRows, setTotalRows] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -217,21 +226,28 @@ export function ReferenceSettings() {
     [references, selectedReferenceId],
   );
 
-  const loadReferences = async () => {
+  const loadReferences = useCallback(async (query: DataTableQueryState) => {
     setIsLoading(true);
     setError("");
 
     try {
-      setReferences(await getReferences());
+      const result = await getReferencesPage(query);
+      setReferences(result.data);
+      setTotalRows(result.total);
+      setPageCount(result.pageCount);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to load references.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void loadReferences();
+    void loadReferences(tableQuery);
+  }, [loadReferences, tableQuery]);
+
+  const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
+    setTableQuery(nextQuery);
   }, []);
 
   useEffect(() => {
@@ -275,6 +291,7 @@ export function ReferenceSettings() {
       });
 
       setReferences((current) => [reference, ...current]);
+      setTotalRows((current) => current + 1);
       setCreateDraft(emptyDraft());
       setCreateOpen(false);
     }, "Reference created.");
@@ -320,6 +337,7 @@ export function ReferenceSettings() {
     void runAction(async () => {
       await deleteReference(pendingDelete.id);
       setReferences((current) => current.filter((reference) => reference.id !== pendingDelete.id));
+      setTotalRows((current) => Math.max(0, current - 1));
       if (selectedReferenceId === pendingDelete.id) {
         setSelectedReferenceId(null);
         setDetailOpen(false);
@@ -401,6 +419,7 @@ export function ReferenceSettings() {
         header: "Scope",
         cell: (reference) => <ScopeBadge reference={reference} />,
         searchValue: (reference) => (reference.isSystem ? "System" : "Tenant"),
+        sortable: false,
       },
       {
         id: "type",
@@ -525,11 +544,15 @@ export function ReferenceSettings() {
         emptyMessage={isLoading ? "Loading references..." : "No references found."}
         filters={filters}
         initialPageSize={10}
+        onQueryChange={handleQueryChange}
         rowKey="id"
         search={{ enabled: true, placeholder: "Search references, keys, or values" }}
+        serverPageCount={pageCount}
+        serverSide
+        serverTotalRows={totalRows}
         toolbarEnd={
           <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => void loadReferences()} disabled={isLoading || isSaving}>
+            <Button variant="outline" size="sm" onClick={() => void loadReferences(tableQuery)} disabled={isLoading || isSaving}>
               <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>

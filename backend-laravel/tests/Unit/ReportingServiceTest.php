@@ -7,7 +7,10 @@ use App\Contracts\PipelineRepositoryInterface;
 use App\Models\Contact;
 use App\Models\PipelineDeal;
 use App\Services\ReportingService;
+use App\Support\DataTables\DataTableQuery;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use PHPUnit\Framework\TestCase;
 
 class ReportingServiceTest extends TestCase
@@ -18,6 +21,11 @@ class ReportingServiceTest extends TestCase
             public function all(string $tenantId, array $filters = []): Collection
             {
                 return collect();
+            }
+
+            public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+            {
+                return new Paginator([], 0, $dataTable->perPage);
             }
 
             public function find(string $tenantId, string $contactId): ?Contact
@@ -45,6 +53,11 @@ class ReportingServiceTest extends TestCase
             public function all(string $tenantId): Collection
             {
                 return collect();
+            }
+
+            public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+            {
+                return new Paginator([], 0, $dataTable->perPage);
             }
 
             public function create(string $tenantId, array $data): PipelineDeal

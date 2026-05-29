@@ -7,9 +7,12 @@ use App\Models\Contact;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
+use App\Support\DataTables\DataTableQuery;
 use Database\Seeders\RbacSeeder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -40,6 +43,13 @@ class ContactApiTest extends TestCase
                         'status' => 'New',
                     ]),
                 ]);
+            }
+
+            public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+            {
+                $items = $this->all($tenantId);
+
+                return new Paginator($items, $items->count(), $dataTable->perPage, $dataTable->page);
             }
 
             public function find(string $tenantId, string $contactId): ?Contact

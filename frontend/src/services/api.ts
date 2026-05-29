@@ -1,15 +1,20 @@
 export { login, logout, register } from "@/services/authService";
 export {
   getActivityLogs,
+  getActivityLogsPage,
   getContacts,
+  getContactsPage,
   getEmailCampaigns,
+  getEmailCampaignsPage,
   getListings,
+  getListingsPage,
   getPipelineDeals,
+  getPipelineDealsPage,
   getSession,
   sendBulkEmailDraft,
 } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
-export { createReference, deleteReference, getReferences, updateReference } from "@/services/referenceService";
+export { createReference, deleteReference, getReferences, getReferencesPage, updateReference } from "@/services/referenceService";
 export type { ReferencePayload } from "@/services/referenceService";
 export {
   createPermission,

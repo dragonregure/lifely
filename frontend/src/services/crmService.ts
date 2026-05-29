@@ -1,5 +1,6 @@
 import type {
   ApiEnvelope,
+  ApiPaginatedEnvelope,
   BackendActivity,
   BackendCampaign,
   BackendContact,
@@ -9,6 +10,8 @@ import type {
   BackendUser,
   BackendUserAccess,
 } from "@/services/backendTypes";
+import type { PaginatedResult, ServerDataTableParams } from "@/services/dataTableParams";
+import { toQueryString } from "@/services/dataTableParams";
 import { apiRequest } from "@/services/httpClient";
 import { mapActivity, mapCampaign, mapContact, mapDeal, mapListing, mapTenant, mapUser, mapUserAccess } from "@/services/mappers";
 
@@ -37,28 +40,83 @@ export async function getSession() {
 }
 
 export async function getContacts() {
-  const response = await apiRequest<ApiEnvelope<BackendContact[]>>("/contacts");
-  return response.data.map(mapContact);
+  return (await getContactsPage({ page: 1, pageSize: 100 })).data;
+}
+
+export async function getContactsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapContact>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendContact>>(`/contacts?${toQueryString(params)}`);
+
+  return {
+    data: response.data.map(mapContact),
+    page: response.meta.current_page,
+    pageSize: response.meta.per_page,
+    pageCount: response.meta.last_page,
+    total: response.meta.total,
+  };
 }
 
 export async function getListings() {
-  const response = await apiRequest<ApiEnvelope<BackendListing[]>>("/listings");
-  return response.data.map(mapListing);
+  return (await getListingsPage({ page: 1, pageSize: 100 })).data;
+}
+
+export async function getListingsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapListing>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendListing>>(`/listings?${toQueryString(params)}`);
+
+  return {
+    data: response.data.map(mapListing),
+    page: response.meta.current_page,
+    pageSize: response.meta.per_page,
+    pageCount: response.meta.last_page,
+    total: response.meta.total,
+  };
 }
 
 export async function getPipelineDeals() {
-  const response = await apiRequest<ApiEnvelope<BackendDeal[]>>("/pipeline");
-  return response.data.map(mapDeal);
+  return (await getPipelineDealsPage({ page: 1, pageSize: 100 })).data;
+}
+
+export async function getPipelineDealsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapDeal>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/pipeline?${toQueryString(params)}`);
+
+  return {
+    data: response.data.map(mapDeal),
+    page: response.meta.current_page,
+    pageSize: response.meta.per_page,
+    pageCount: response.meta.last_page,
+    total: response.meta.total,
+  };
 }
 
 export async function getActivityLogs() {
-  const response = await apiRequest<ApiEnvelope<BackendActivity[]>>("/activity-logs");
-  return response.data.map(mapActivity);
+  return (await getActivityLogsPage({ page: 1, pageSize: 100 })).data;
+}
+
+export async function getActivityLogsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapActivity>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendActivity>>(`/activity-logs?${toQueryString(params)}`);
+
+  return {
+    data: response.data.map(mapActivity),
+    page: response.meta.current_page,
+    pageSize: response.meta.per_page,
+    pageCount: response.meta.last_page,
+    total: response.meta.total,
+  };
 }
 
 export async function getEmailCampaigns() {
-  const response = await apiRequest<ApiEnvelope<BackendCampaign[]>>("/email-campaigns");
-  return response.data.map(mapCampaign);
+  return (await getEmailCampaignsPage({ page: 1, pageSize: 100 })).data;
+}
+
+export async function getEmailCampaignsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapCampaign>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendCampaign>>(`/email-campaigns?${toQueryString(params)}`);
+
+  return {
+    data: response.data.map(mapCampaign),
+    page: response.meta.current_page,
+    pageSize: response.meta.per_page,
+    pageCount: response.meta.last_page,
+    total: response.meta.total,
+  };
 }
 
 export async function sendBulkEmailDraft(payload: { contactIds: string[]; subject: string; body: string }) {

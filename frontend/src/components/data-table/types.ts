@@ -9,6 +9,14 @@ export type DataTableSortState = {
   direction: DataTableSortDirection;
 };
 
+export type DataTableQueryState = {
+  page: number;
+  pageSize: number;
+  search: string;
+  filters: FilterValues;
+  sort: DataTableSortState | null;
+};
+
 export type DataTableColumn<TData extends object> = {
   id: string;
   header: ReactNode;
@@ -60,6 +68,10 @@ export type DataTableProps<TData extends object> = {
   pageSizeOptions?: number[];
   rowKey?: keyof TData | ((row: TData, index: number) => string | number);
   search?: boolean | DataTableSearch<TData>;
+  serverSide?: boolean;
+  serverTotalRows?: number;
+  serverPageCount?: number;
+  onQueryChange?: (state: DataTableQueryState) => void;
   toolbarEnd?: ReactNode;
 };
 

@@ -8,9 +8,12 @@ use App\Models\EmailCampaign;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
+use App\Support\DataTables\DataTableQuery;
 use Database\Seeders\RbacSeeder;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
+use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
@@ -55,6 +58,11 @@ class BulkEmailApiTest extends TestCase
             public function all(string $tenantId): Collection
             {
                 return collect();
+            }
+
+            public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+            {
+                return new Paginator([], 0, $dataTable->perPage, $dataTable->page);
             }
 
             public function queue(string $tenantId, array $data): EmailCampaign

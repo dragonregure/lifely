@@ -6,6 +6,7 @@ use App\Contracts\PipelineRepositoryInterface;
 use App\Http\Requests\StorePipelineDealRequest;
 use App\Http\Requests\UpdatePipelineStageRequest;
 use App\Http\Resources\PipelineDealResource;
+use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,10 @@ class PipelineController extends BaseApiController
     {
         $this->authorize(Permissions::PIPELINE_VIEW);
 
-        return PipelineDealResource::collection($this->pipeline->all($this->tenantId($request)));
+        return PipelineDealResource::collection($this->pipeline->paginate(
+            $this->tenantId($request),
+            DataTableQuery::fromRequest($request, ['stage', 'user_id', 'contact_id', 'listing_id'])
+        ));
     }
 
     public function store(StorePipelineDealRequest $request): JsonResponse

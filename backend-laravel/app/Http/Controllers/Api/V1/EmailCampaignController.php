@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Contracts\EmailCampaignRepositoryInterface;
 use App\Http\Requests\SendBulkEmailRequest;
 use App\Http\Resources\EmailCampaignResource;
+use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +22,10 @@ class EmailCampaignController extends BaseApiController
     {
         $this->authorize(Permissions::EMAIL_CAMPAIGNS_VIEW);
 
-        return EmailCampaignResource::collection($this->campaigns->all($this->tenantId($request)));
+        return EmailCampaignResource::collection($this->campaigns->paginate(
+            $this->tenantId($request),
+            DataTableQuery::fromRequest($request, ['status', 'user_id'])
+        ));
     }
 
     public function store(SendBulkEmailRequest $request): JsonResponse

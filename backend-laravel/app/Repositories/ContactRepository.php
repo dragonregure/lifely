@@ -5,6 +5,9 @@ namespace App\Repositories;
 use App\Contracts\ActivityRepositoryInterface;
 use App\Contracts\ContactRepositoryInterface;
 use App\Models\Contact;
+use App\Support\DataTables\DataTableQuery;
+use App\Support\DataTables\EloquentDataTable;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class ContactRepository implements ContactRepositoryInterface
@@ -20,6 +23,28 @@ class ContactRepository implements ContactRepositoryInterface
             ->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->latest()
             ->get();
+    }
+
+    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+    {
+        return EloquentDataTable::paginate(
+            Contact::query()->where('tenant_id', $tenantId),
+            $dataTable,
+            ['first_name', 'last_name', 'email', 'phone', 'status', 'source'],
+            ['status' => 'status', 'source' => 'source', 'owner_id' => 'owner_id'],
+            [
+                'contact' => 'first_name',
+                'first_name' => 'first_name',
+                'last_name' => 'last_name',
+                'email' => 'email',
+                'status' => 'status',
+                'owner' => 'owner_id',
+                'budget' => 'budget',
+                'source' => 'source',
+                'last-contacted' => 'last_contacted_at',
+                'created_at' => 'created_at',
+            ]
+        );
     }
 
     public function find(string $tenantId, string $contactId): ?Contact

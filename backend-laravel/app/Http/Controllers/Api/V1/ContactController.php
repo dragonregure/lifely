@@ -6,6 +6,7 @@ use App\Contracts\ContactRepositoryInterface;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Http\Resources\ContactResource;
+use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,9 +24,10 @@ class ContactController extends BaseApiController
     {
         $this->authorize(Permissions::CONTACTS_VIEW);
 
-        return ContactResource::collection($this->contacts->all($this->tenantId($request), [
-            'status' => $request->query('status'),
-        ]));
+        return ContactResource::collection($this->contacts->paginate(
+            $this->tenantId($request),
+            DataTableQuery::fromRequest($request, ['status', 'source', 'owner_id'])
+        ));
     }
 
     public function store(StoreContactRequest $request): JsonResponse
