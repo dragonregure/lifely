@@ -4,6 +4,7 @@ namespace App\Support\Rbac;
 
 final class Roles
 {
+    public const SYSTEM_ADMIN = 'System Admin';
     public const OFFICE_ADMIN = 'Office Admin';
     public const MASTER = 'Master';
     public const SALES = 'Sales';
@@ -19,6 +20,7 @@ final class Roles
     public static function defaults(): array
     {
         return [
+            self::SYSTEM_ADMIN => Permissions::all(),
             self::OFFICE_ADMIN => Permissions::all(),
             self::MASTER => Permissions::all(),
             self::SALES => [
@@ -34,6 +36,7 @@ final class Roles
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::REPORTS_VIEW,
                 Permissions::TENANT_VIEW,
+                Permissions::REFERENCES_VIEW,
             ],
             self::PROPERTY_MANAGER => [
                 Permissions::CONTACTS_VIEW,
@@ -43,6 +46,7 @@ final class Roles
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::REPORTS_VIEW,
                 Permissions::TENANT_VIEW,
+                Permissions::REFERENCES_VIEW,
             ],
             self::SENIOR_AGENT => [
                 Permissions::CONTACTS_VIEW,
@@ -55,6 +59,7 @@ final class Roles
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::REPORTS_VIEW,
                 Permissions::TENANT_VIEW,
+                Permissions::REFERENCES_VIEW,
             ],
             self::SIMPLE_AGENT => [
                 Permissions::CONTACTS_VIEW,
@@ -62,6 +67,7 @@ final class Roles
                 Permissions::PIPELINE_VIEW,
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::TENANT_VIEW,
+                Permissions::REFERENCES_VIEW,
             ],
             self::MARKETING_COORDINATOR => [
                 Permissions::CONTACTS_VIEW,
@@ -70,6 +76,7 @@ final class Roles
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::REPORTS_VIEW,
                 Permissions::TENANT_VIEW,
+                Permissions::REFERENCES_VIEW,
             ],
             self::TRANSACTION_COORDINATOR => [
                 Permissions::CONTACTS_VIEW,
@@ -79,6 +86,7 @@ final class Roles
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::REPORTS_VIEW,
                 Permissions::TENANT_VIEW,
+                Permissions::REFERENCES_VIEW,
             ],
         ];
     }

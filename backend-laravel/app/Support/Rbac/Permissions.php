@@ -36,6 +36,11 @@ final class Permissions
     public const REPORTS_VIEW = 'reports.view';
     public const TENANT_VIEW = 'tenant.view';
 
+    public const REFERENCES_VIEW = 'references.view';
+    public const REFERENCES_CREATE = 'references.create';
+    public const REFERENCES_UPDATE = 'references.update';
+    public const REFERENCES_DELETE = 'references.delete';
+
     /**
      * @return array<int, string>
      */
@@ -66,6 +71,10 @@ final class Permissions
             self::ACTIVITY_LOGS_VIEW,
             self::REPORTS_VIEW,
             self::TENANT_VIEW,
+            self::REFERENCES_VIEW,
+            self::REFERENCES_CREATE,
+            self::REFERENCES_UPDATE,
+            self::REFERENCES_DELETE,
         ];
     }
 

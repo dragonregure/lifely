@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\ListingController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\PipelineController;
+use App\Http\Controllers\Api\V1\ReferenceController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\TenantController;
 use App\Http\Controllers\Api\V1\UserAccessController;
@@ -44,6 +45,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('pipeline', [PipelineController::class, 'index']);
         Route::post('pipeline', [PipelineController::class, 'store']);
         Route::patch('pipeline/{pipeline}/stage', [PipelineController::class, 'updateStage']);
+        Route::apiResource('references', ReferenceController::class);
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
         Route::get('email-campaigns', [EmailCampaignController::class, 'index']);
         Route::post('bulk-emails', [EmailCampaignController::class, 'store']);

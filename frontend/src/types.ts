@@ -1,4 +1,5 @@
 export type Role =
+  | "System Admin"
   | "Office Admin"
   | "Master"
   | "Sales"

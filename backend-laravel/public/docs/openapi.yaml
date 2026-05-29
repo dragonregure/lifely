@@ -106,6 +106,20 @@ components:
           type: array
           items: { type: string }
           example: [roles.view, roles.create, users.assign_roles]
+    Reference:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid, nullable: true }
+        is_system: { type: boolean }
+        group: { type: string, example: street_type }
+        key: { type: string, example: ave }
+        value: { type: string, nullable: true, example: Avenue }
+        type: { type: string, example: string }
+        meta: { type: object, nullable: true }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
     RolePayload:
       type: object
       required: [name]
@@ -140,6 +154,21 @@ components:
           items: { type: string }
           example: [contacts.view, reports.view]
         guard_name: { type: string, default: web }
+    ReferencePayload:
+      type: object
+      required: [group, key]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Omit to create a tenant reference. Only System Admin can send null to create or convert a system reference.
+        group: { type: string, example: street_type }
+        key: { type: string, example: ave }
+        value: { type: string, nullable: true, example: Avenue }
+        type: { type: string, default: string, enum: [string, int, float, double, bool, array, object, "null"] }
+        meta: { type: object, nullable: true }
+        status: { type: string, enum: [ACTIVE, INACTIVE], default: ACTIVE }
 paths:
   /health:
     get:
@@ -577,6 +606,118 @@ paths:
           schema: { type: string, format: uuid }
       responses:
         "200": { description: Deal stage updated. }
+  /references:
+    get:
+      summary: List references
+      description: Requires `references.view`. Returns system references plus references owned by the current tenant.
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      parameters:
+        - in: query
+          name: group
+          schema: { type: string }
+          example: street_type
+        - in: query
+          name: type
+          schema: { type: string }
+          example: string
+        - in: query
+          name: status
+          schema: { type: string, enum: [ACTIVE, INACTIVE] }
+      responses:
+        "200": { description: System and tenant-visible references. }
+        "403": { description: Missing `references.view` permission. }
+    post:
+      summary: Create reference
+      description: "Requires `references.create`. Omitting `tenant_id` creates a tenant reference; only System Admin can send `tenant_id: null` to create a system reference."
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReferencePayload" }
+            examples:
+              streetType:
+                summary: Tenant street type
+                value:
+                  group: street_type
+                  key: mews
+                  value: Mews
+              systemReference:
+                summary: System reference
+                value:
+                  tenant_id: null
+                  group: street_type
+                  key: trl
+                  value: Trail
+      responses:
+        "201": { description: Reference created. }
+        "403": { description: Missing `references.create` permission or cross-tenant reference write. }
+        "422": { description: Validation failed or non-System Admin attempted a system reference write. }
+  /references/{reference}:
+    get:
+      summary: Show reference
+      description: Requires `references.view`.
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { description: Reference details. }
+        "404": { description: Reference is outside current tenant scope or not found. }
+    put:
+      summary: Update reference
+      description: "Requires `references.update`. Existing system references and `tenant_id: null` updates are limited to System Admin."
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReferencePayload" }
+      responses:
+        "200": { description: Reference updated. }
+        "403": { description: Missing `references.update` permission or cross-tenant reference write. }
+        "404": { description: Reference is outside current tenant scope or not found. }
+        "422": { description: Validation failed or non-System Admin attempted a system reference write. }
+    patch:
+      summary: Partially update reference
+      description: "Requires `references.update`. Accepts the same fields as reference update. Existing system references and `tenant_id: null` updates are limited to System Admin."
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReferencePayload" }
+      responses:
+        "200": { description: Reference updated. }
+        "403": { description: Missing `references.update` permission or cross-tenant reference write. }
+        "404": { description: Reference is outside current tenant scope or not found. }
+        "422": { description: Validation failed or non-System Admin attempted a system reference write. }
+    delete:
+      summary: Delete reference
+      description: Requires `references.delete`. Deleting system references is limited to System Admin.
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Reference deleted. }
+        "403": { description: Missing `references.delete` permission. }
+        "404": { description: Reference is outside current tenant scope or not found. }
+        "422": { description: Protected reference cannot be deleted. }
   /activity-logs:
     get:
       summary: List activity logs

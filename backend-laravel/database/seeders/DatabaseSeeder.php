@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RbacSeeder::class);
+        $this->call(ReferenceSeeder::class);
 
         $tenant = Tenant::query()->firstOrCreate(
             ['id' => '0197066f-2aa2-73f8-93d1-56a73ad14220'],

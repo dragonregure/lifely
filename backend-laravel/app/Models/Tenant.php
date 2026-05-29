@@ -27,4 +27,9 @@ class Tenant extends Model
     {
         return $this->hasMany(Listing::class);
     }
+
+    public function references(): HasMany
+    {
+        return $this->hasMany(Reference::class);
+    }
 }
