@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { DataTable, type DataTableColumn, type DataTableQueryState } from "@/components/data-table";
+import { useCallback, useState } from "react";
+import { DataTable, type DataTableColumn, type DataTableQueryContext, type DataTableQueryState } from "@/components/data-table";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { getActivityLogsPage } from "@/services/api";
+import { isAbortError } from "@/services/httpClient";
 import type { ActivityLog } from "@/types";
 
 const activityColumns: DataTableColumn<ActivityLog>[] = [
@@ -34,31 +35,34 @@ const activityColumns: DataTableColumn<ActivityLog>[] = [
 
 export function ActivityPage() {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [query, setQuery] = useState<DataTableQueryState>({
-    page: 1,
-    pageSize: 10,
-    search: "",
-    filters: {},
-    sort: null,
-  });
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
-    setQuery(nextQuery);
-  }, []);
-
-  useEffect(() => {
+  const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
+    setLoadError("");
     setIsLoading(true);
-    getActivityLogsPage(query)
+
+    getActivityLogsPage(nextQuery, { signal: context.signal })
       .then((result) => {
+        if (context.signal.aborted) return;
+
         setLogs(result.data);
         setTotalRows(result.total);
         setPageCount(result.pageCount);
       })
-      .finally(() => setIsLoading(false));
-  }, [query]);
+      .catch((caught) => {
+        if (!isAbortError(caught)) {
+          setLoadError(caught instanceof Error ? caught.message : "Unable to load activity logs.");
+        }
+      })
+      .finally(() => {
+        if (!context.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+  }, []);
 
   return (
     <div>
@@ -67,6 +71,8 @@ export function ActivityPage() {
         title="Activity logs"
         description="System-wide tracking for accountability and historical context."
       />
+
+      {loadError && <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadError}</div>}
 
       <DataTable
         columns={activityColumns}

@@ -43,8 +43,11 @@ export async function getContacts() {
   return (await getContactsPage({ page: 1, pageSize: 100 })).data;
 }
 
-export async function getContactsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapContact>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendContact>>(`/contacts?${toQueryString(params)}`);
+export async function getContactsPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapContact>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendContact>>(`/contacts?${toQueryString(params)}`, options);
 
   return {
     data: response.data.map(mapContact),
@@ -59,8 +62,11 @@ export async function getListings() {
   return (await getListingsPage({ page: 1, pageSize: 100 })).data;
 }
 
-export async function getListingsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapListing>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendListing>>(`/listings?${toQueryString(params)}`);
+export async function getListingsPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapListing>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendListing>>(`/listings?${toQueryString(params)}`, options);
 
   return {
     data: response.data.map(mapListing),
@@ -75,8 +81,11 @@ export async function getPipelineDeals() {
   return (await getPipelineDealsPage({ page: 1, pageSize: 100 })).data;
 }
 
-export async function getPipelineDealsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapDeal>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/pipeline?${toQueryString(params)}`);
+export async function getPipelineDealsPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapDeal>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/pipeline?${toQueryString(params)}`, options);
 
   return {
     data: response.data.map(mapDeal),
@@ -91,8 +100,11 @@ export async function getActivityLogs() {
   return (await getActivityLogsPage({ page: 1, pageSize: 100 })).data;
 }
 
-export async function getActivityLogsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapActivity>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendActivity>>(`/activity-logs?${toQueryString(params)}`);
+export async function getActivityLogsPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapActivity>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendActivity>>(`/activity-logs?${toQueryString(params)}`, options);
 
   return {
     data: response.data.map(mapActivity),
@@ -107,8 +119,11 @@ export async function getEmailCampaigns() {
   return (await getEmailCampaignsPage({ page: 1, pageSize: 100 })).data;
 }
 
-export async function getEmailCampaignsPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapCampaign>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendCampaign>>(`/email-campaigns?${toQueryString(params)}`);
+export async function getEmailCampaignsPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapCampaign>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendCampaign>>(`/email-campaigns?${toQueryString(params)}`, options);
 
   return {
     data: response.data.map(mapCampaign),

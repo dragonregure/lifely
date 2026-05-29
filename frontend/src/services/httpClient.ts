@@ -69,3 +69,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}, ret
 
   return (await response.json()) as T;
 }
+
+export function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}

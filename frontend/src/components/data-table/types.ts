@@ -17,6 +17,10 @@ export type DataTableQueryState = {
   sort: DataTableSortState | null;
 };
 
+export type DataTableQueryContext = {
+  signal: AbortSignal;
+};
+
 export type DataTableColumn<TData extends object> = {
   id: string;
   header: ReactNode;
@@ -45,6 +49,7 @@ export type DataTableFilter<TData extends object> = {
 export type DataTableSearch<TData extends object> = {
   enabled?: boolean;
   placeholder?: string;
+  debounceMs?: number;
   searchValue?: (row: TData) => string;
 };
 
@@ -71,7 +76,7 @@ export type DataTableProps<TData extends object> = {
   serverSide?: boolean;
   serverTotalRows?: number;
   serverPageCount?: number;
-  onQueryChange?: (state: DataTableQueryState) => void;
+  onQueryChange?: (state: DataTableQueryState, context: DataTableQueryContext) => void;
   toolbarEnd?: ReactNode;
 };
 

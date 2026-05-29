@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Archive, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
-import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryState } from "@/components/data-table";
+import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryContext, type DataTableQueryState } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { getContactsPage } from "@/services/api";
+import { isAbortError } from "@/services/httpClient";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
@@ -96,34 +97,37 @@ export function ContactsPage() {
   const [profileDraft, setProfileDraft] = useState<ContactDraft>(() => blankDraft());
   const [assignmentDraft, setAssignmentDraft] = useState<ContactDraft>(() => blankDraft());
   const [pendingAction, setPendingAction] = useState<PendingContactAction | null>(null);
-  const [tableQuery, setTableQuery] = useState<DataTableQueryState>({
-    page: 1,
-    pageSize: 10,
-    search: "",
-    filters: {},
-    sort: null,
-  });
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const { members } = useAuth();
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
 
-  const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
-    setTableQuery(nextQuery);
-  }, []);
-
-  useEffect(() => {
+  const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
+    setLoadError("");
     setIsLoading(true);
-    getContactsPage(tableQuery)
+
+    getContactsPage(nextQuery, { signal: context.signal })
       .then((result) => {
+        if (context.signal.aborted) return;
+
         setContacts(result.data);
         setTotalRows(result.total);
         setPageCount(result.pageCount);
       })
-      .finally(() => setIsLoading(false));
-  }, [tableQuery]);
+      .catch((caught) => {
+        if (!isAbortError(caught)) {
+          setLoadError(caught instanceof Error ? caught.message : "Unable to load contacts.");
+        }
+      })
+      .finally(() => {
+        if (!context.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+  }, []);
 
   useEffect(() => {
     setCreateDraft((draft) => (draft.ownerId ? draft : { ...draft, ownerId: members[0]?.id ?? "" }));
@@ -561,6 +565,8 @@ export function ContactsPage() {
           </PermissionGate>
         }
       />
+
+      {loadError && <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{loadError}</div>}
 
       <DataTable
         actions={(contact) => {

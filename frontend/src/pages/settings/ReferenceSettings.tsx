@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Eye, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryState } from "@/components/data-table";
+import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryContext, type DataTableQueryState } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { CreateDialog, type CreateDialogTab } from "@/components/dialogs/CreateDialog";
 import { DetailDialog, type DetailDialogTab } from "@/components/dialogs/DetailDialog";
@@ -21,6 +21,7 @@ import {
   getReferenceTypeOptions,
   updateReference,
 } from "@/services/api";
+import { isAbortError } from "@/services/httpClient";
 import type { ReferenceOption } from "@/services/referenceService";
 import type { Reference, ReferenceStatus, ReferenceValueType } from "@/types";
 import { inputClass } from "./settingsUtils";
@@ -267,25 +268,29 @@ export function ReferenceSettings() {
     [references, selectedReferenceId],
   );
 
-  const loadReferences = useCallback(async (query: DataTableQueryState) => {
+  const loadReferences = useCallback(async (query: DataTableQueryState, signal?: AbortSignal) => {
     setIsLoading(true);
     setError("");
 
     try {
-      const result = await getReferencesPage(query);
+      const result = await getReferencesPage(query, { signal });
+      if (signal?.aborted) return;
+
       setReferences(result.data);
       setTotalRows(result.total);
       setPageCount(result.pageCount);
     } catch (caught) {
+      if (isAbortError(caught)) {
+        return;
+      }
+
       setError(caught instanceof Error ? caught.message : "Unable to load references.");
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) {
+        setIsLoading(false);
+      }
     }
   }, []);
-
-  useEffect(() => {
-    void loadReferences(tableQuery);
-  }, [loadReferences, tableQuery]);
 
   useEffect(() => {
     Promise.all([getReferenceTypeOptions(), getReferenceGroupOptions()])
@@ -296,9 +301,10 @@ export function ReferenceSettings() {
       .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load reference filters."));
   }, []);
 
-  const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
+  const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
     setTableQuery(nextQuery);
-  }, []);
+    void loadReferences(nextQuery, context.signal);
+  }, [loadReferences]);
 
   useEffect(() => {
     if (selectedReference) {

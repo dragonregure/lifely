@@ -38,8 +38,11 @@ export async function getReferences() {
   return (await getReferencesPage({ page: 1, pageSize: 100 })).data;
 }
 
-export async function getReferencesPage(params?: ServerDataTableParams): Promise<PaginatedResult<ReturnType<typeof mapReference>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendReference>>(`/references?${toQueryString(params)}`);
+export async function getReferencesPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapReference>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendReference>>(`/references?${toQueryString(params)}`, options);
 
   return {
     data: response.data.map(mapReference),

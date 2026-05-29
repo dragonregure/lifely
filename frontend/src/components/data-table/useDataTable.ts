@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ALL_FILTER_VALUE, DEFAULT_PAGE_SIZES } from "./constants";
 import type { DataTableActions, DataTableColumn, DataTableProps, DataTableSearch, DataTableSortState } from "./types";
 import { clampPageSize, compareSortValues, getAccessorValue, getColumnSortValue, isColumnSortable, toSearchText } from "./utils";
@@ -44,11 +44,15 @@ export function useDataTable<TData extends object>({
   const [pageSize, setPageSize] = useState(clampPageSize(initialPageSize));
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, string>>({});
   const [sortState, setSortState] = useState<DataTableSortState | null>(initialSort ?? null);
+  const requestControllerRef = useRef<AbortController | null>(null);
 
   const searchConfig: DataTableSearch<TData> = useMemo(() => (typeof search === "boolean" ? { enabled: search } : search), [search]);
   const searchEnabled = Boolean(searchConfig.enabled);
+  const searchDebounceMs = searchConfig.debounceMs ?? 1000;
+  const isSearchSettling = serverSide && searchEnabled && query !== debouncedQuery;
   const actionConfig: DataTableActions<TData> | null = useMemo(() => {
     if (!actions) return null;
     return typeof actions === "function" ? { cell: actions, header: actionsHeader } : actions;
@@ -69,16 +73,50 @@ export function useDataTable<TData extends object>({
   }, [filterValues, pageSize, query, sortState]);
 
   useEffect(() => {
+    if (!serverSide || !searchEnabled || searchDebounceMs <= 0) {
+      setDebouncedQuery(query);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setDebouncedQuery(query), searchDebounceMs);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [query, searchDebounceMs, searchEnabled, serverSide]);
+
+  useEffect(() => {
     if (!serverSide) return;
+
+    requestControllerRef.current?.abort();
+  }, [query, serverSide]);
+
+  useEffect(() => {
+    if (!serverSide || isSearchSettling) return;
+
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
 
     onQueryChange?.({
       page,
       pageSize,
-      search: query,
+      search: debouncedQuery,
       filters: filterValues,
       sort: sortState,
+    }, {
+      signal: controller.signal,
     });
-  }, [filterValues, onQueryChange, page, pageSize, query, serverSide, sortState]);
+
+    return () => {
+      controller.abort();
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = null;
+      }
+    };
+  }, [debouncedQuery, filterValues, isSearchSettling, onQueryChange, page, pageSize, serverSide, sortState]);
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   const filteredData = useMemo(() => {
     if (serverSide) {
