@@ -26,7 +26,7 @@ class ReferencePolicy
     public function update(User $user, Reference $reference): bool
     {
         if ($reference->tenant_id === null) {
-            return $user->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM);
+            return $user->can(Permissions::REFERENCES_MANAGE_SYSTEM);
         }
 
         return $user->can(Permissions::REFERENCES_UPDATE);
@@ -35,7 +35,7 @@ class ReferencePolicy
     public function delete(User $user, Reference $reference): bool
     {
         if ($reference->tenant_id === null) {
-            return $user->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM);
+            return $user->can(Permissions::REFERENCES_MANAGE_SYSTEM);
         }
 
         return $user->can(Permissions::REFERENCES_DELETE);

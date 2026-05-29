@@ -52,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(fn (User $user): ?bool => $user->hasPermissionTo(Permissions::SYSTEM_BYPASS) ? true : null);
+        Gate::before(fn (User $user): ?bool => $user->hasSystemBypass() ? true : null);
 
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Permission::class, PermissionPolicy::class);

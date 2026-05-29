@@ -67,6 +67,25 @@ class RbacApiTest extends TestCase
         $this->postJson('/api/v1/roles', ['name' => 'Blocked'])->assertForbidden();
     }
 
+    public function test_system_bypass_permission_authorizes_gate_checks(): void
+    {
+        $user = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'role' => Roles::SIMPLE_AGENT,
+        ]);
+        $user->givePermissionTo(Permissions::SYSTEM_BYPASS);
+        Sanctum::actingAs($user, ['access']);
+
+        $this->assertTrue($user->can(Permissions::ROLES_CREATE));
+
+        $this->getJson('/api/v1/roles')->assertOk();
+
+        $this->postJson('/api/v1/roles', [
+            'name' => 'Bypass Managed Role',
+            'guard_name' => 'web',
+        ])->assertCreated();
+    }
+
     public function test_authorized_user_can_manage_permissions(): void
     {
         $this->actingOfficeAdmin();

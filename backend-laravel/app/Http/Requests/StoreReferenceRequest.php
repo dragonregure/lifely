@@ -31,7 +31,7 @@ class StoreReferenceRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($this->has('tenant_id') && $this->input('tenant_id') === null && ! $this->user()?->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM)) {
+            if ($this->has('tenant_id') && $this->input('tenant_id') === null && ! $this->user()?->can(Permissions::REFERENCES_MANAGE_SYSTEM)) {
                 $validator->errors()->add('tenant_id', 'Only System Admin can create system references.');
             }
         });

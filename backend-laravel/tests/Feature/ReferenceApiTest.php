@@ -131,6 +131,39 @@ class ReferenceApiTest extends TestCase
             ->assertJsonPath('data.tenant_id', null);
     }
 
+    public function test_system_bypass_permission_can_manage_system_references(): void
+    {
+        $user = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'role' => Roles::SIMPLE_AGENT,
+        ]);
+        $user->givePermissionTo(Permissions::SYSTEM_BYPASS);
+        Sanctum::actingAs($user, ['access']);
+
+        $create = $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->postJson('/api/v1/references', [
+                'tenant_id' => null,
+                'group' => 'street_type',
+                'key' => 'bypass',
+                'value' => 'Bypass',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.tenant_id', null);
+
+        $referenceId = $create->json('data.id');
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->patchJson("/api/v1/references/{$referenceId}", [
+                'value' => 'Bypass Updated',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.value', 'Bypass Updated');
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->deleteJson("/api/v1/references/{$referenceId}")
+            ->assertNoContent();
+    }
+
     public function test_office_admin_cannot_create_or_update_system_references(): void
     {
         $this->actingOfficeAdmin();

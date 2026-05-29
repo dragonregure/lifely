@@ -1,3 +1,4 @@
+import { PERMISSIONS } from "@/rbac/permissions";
 import type { UserAccess } from "@/types";
 
 export const inputClass =
@@ -16,7 +17,11 @@ export function toggleValue(values: string[], value: string) {
 }
 
 export function can(userAccess: UserAccess | null, permission: string) {
-  return userAccess?.permissions.includes(permission) ?? false;
+  return (
+    userAccess?.permissions.includes(PERMISSIONS.system.bypass) ||
+    userAccess?.permissions.includes(permission) ||
+    false
+  );
 }
 
 export function groupPermissionNames(values: string[]) {

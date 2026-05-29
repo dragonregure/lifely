@@ -35,7 +35,7 @@ class UpdateReferenceRequest extends FormRequest
                 return;
             }
 
-            if (! $this->user()?->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM)) {
+            if (! $this->user()?->can(Permissions::REFERENCES_MANAGE_SYSTEM)) {
                 $validator->errors()->add('tenant_id', 'Only System Admin can update system references.');
             }
         });
