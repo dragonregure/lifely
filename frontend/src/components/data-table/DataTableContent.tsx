@@ -41,14 +41,14 @@ export function DataTableContent<TData extends object>({
         <TableBody>
           {paginatedData.length > 0 ? (
             paginatedData.map((row, index) => (
-              <TableRow key={getRowKey(row, index, rowKey)}>
+              <TableRow key={getRowKey(row, index, rowKey)} className="group">
                 {columns.map((column) => (
                   <TableCell key={column.id} className={column.className}>
                     {column.cell ? column.cell(row) : getAccessorValue(row, column.accessor)}
                   </TableCell>
                 ))}
                 {actionConfig && (
-                  <TableCell className={cn(DEFAULT_ACTION_COLUMN_CLASS, actionConfig.className)}>
+                  <TableCell className={cn(DEFAULT_ACTION_COLUMN_CLASS, "transition-colors group-hover:bg-muted/50", actionConfig.className)}>
                     <div className={cn("flex justify-end gap-1", actionConfig.wrapperClassName)}>{actionConfig.cell(row)}</div>
                   </TableCell>
                 )}
