@@ -13,6 +13,8 @@ interface ReferenceRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
+    public function referenceTypeOptions(string $tenantId): Collection;
+
     public function findVisible(string $tenantId, string $referenceId): ?Reference;
 
     public function create(string $tenantId, array $data): Reference;

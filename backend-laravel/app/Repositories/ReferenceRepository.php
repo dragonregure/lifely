@@ -59,6 +59,35 @@ class ReferenceRepository implements ReferenceRepositoryInterface
         );
     }
 
+    public function referenceTypeOptions(string $tenantId): Collection
+    {
+        $definedTypes = Reference::query()
+            ->visibleToTenant($tenantId)
+            ->where('group', Reference::GROUP_REFERENCE_TYPE)
+            ->orderBy('value')
+            ->get(['reference_key', 'value'])
+            ->mapWithKeys(fn (Reference $reference): array => [
+                $reference->reference_key => $reference->value ?? $reference->reference_key,
+            ]);
+
+        $discoveredTypes = Reference::query()
+            ->visibleToTenant($tenantId)
+            ->select('group')
+            ->distinct()
+            ->orderBy('group')
+            ->pluck('group')
+            ->mapWithKeys(fn (string $group): array => [$group => $definedTypes[$group] ?? $group]);
+
+        return $definedTypes
+            ->merge($discoveredTypes)
+            ->sort()
+            ->map(fn (string $label, string $value): array => [
+                'label' => $label,
+                'value' => $value,
+            ])
+            ->values();
+    }
+
     public function findVisible(string $tenantId, string $referenceId): ?Reference
     {
         return Reference::query()

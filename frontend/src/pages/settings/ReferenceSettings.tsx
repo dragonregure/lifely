@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import { createReference, deleteReference, getReferencesPage, updateReference } from "@/services/api";
+import { createReference, deleteReference, getReferencesPage, getReferenceTypeOptions, updateReference } from "@/services/api";
+import type { ReferenceTypeOption } from "@/services/referenceService";
 import type { Reference, ReferenceStatus, ReferenceValueType } from "@/types";
 import { inputClass } from "./settingsUtils";
 
@@ -218,6 +219,7 @@ export function ReferenceSettings() {
   });
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
+  const [referenceTypeOptions, setReferenceTypeOptions] = useState<ReferenceTypeOption[]>([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -245,6 +247,12 @@ export function ReferenceSettings() {
   useEffect(() => {
     void loadReferences(tableQuery);
   }, [loadReferences, tableQuery]);
+
+  useEffect(() => {
+    getReferenceTypeOptions()
+      .then(setReferenceTypeOptions)
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load reference types."));
+  }, []);
 
   const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
     setTableQuery(nextQuery);
@@ -292,6 +300,13 @@ export function ReferenceSettings() {
 
       setReferences((current) => [reference, ...current]);
       setTotalRows((current) => current + 1);
+      setReferenceTypeOptions((current) => {
+        if (current.some((option) => option.value === reference.group)) {
+          return current;
+        }
+
+        return [...current, { label: reference.group, value: reference.group }].sort((a, b) => a.label.localeCompare(b.label));
+      });
       setCreateDraft(emptyDraft());
       setCreateOpen(false);
     }, "Reference created.");
@@ -351,21 +366,13 @@ export function ReferenceSettings() {
     setDetailOpen(true);
   };
 
-  const groupOptions = useMemo(
-    () =>
-      Array.from(new Set(references.map((reference) => reference.group)))
-        .sort((a, b) => a.localeCompare(b))
-        .map((group) => ({ label: group, value: group })),
-    [references],
-  );
-
   const filters = useMemo<DataTableFilter<Reference>[]>(
     () => [
       {
         id: "group",
         label: "Reference type",
         defaultValue: "all",
-        options: [{ label: "All types", value: "all" }, ...groupOptions],
+        options: [{ label: "All types", value: "all" }, ...referenceTypeOptions],
         predicate: (reference, selectedValue) => selectedValue === "all" || reference.group === selectedValue,
       },
       {
@@ -392,7 +399,7 @@ export function ReferenceSettings() {
         predicate: (reference, selectedValue) => selectedValue === "all" || reference.status === selectedValue,
       },
     ],
-    [groupOptions],
+    [referenceTypeOptions],
   );
 
   const columns = useMemo<DataTableColumn<Reference>[]>(

@@ -718,6 +718,16 @@ paths:
         "201": { description: Reference created. }
         "403": { description: Missing `references.create` permission or cross-tenant reference write. }
         "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
+  /references/types:
+    get:
+      summary: List reference type options
+      description: Requires `references.view`. Returns stable reference type filter options independent from the current paginated table result.
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      responses:
+        "200": { description: Reference type options for filters. }
+        "403": { description: Missing `references.view` permission. }
   /references/{reference}:
     get:
       summary: Show reference

@@ -61,6 +61,38 @@ class ReferenceApiTest extends TestCase
             ->assertJsonMissing(['key' => 'hidden']);
     }
 
+    public function test_reference_type_options_are_not_limited_by_current_table_results(): void
+    {
+        $this->actingOfficeAdmin();
+
+        Reference::factory()->system()->create([
+            'group' => Reference::GROUP_REFERENCE_TYPE,
+            'reference_key' => 'street_type',
+            'value' => 'Street Type',
+        ]);
+        Reference::factory()->system()->create([
+            'group' => Reference::GROUP_REFERENCE_TYPE,
+            'reference_key' => 'contact_status',
+            'value' => 'Contact Status',
+        ]);
+        Reference::factory()->system()->create([
+            'group' => 'contact_status',
+            'reference_key' => 'new',
+            'value' => 'New',
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->getJson('/api/v1/references?filter[group]=missing_group')
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->getJson('/api/v1/references/types')
+            ->assertOk()
+            ->assertJsonFragment(['label' => 'Street Type', 'value' => 'street_type'])
+            ->assertJsonFragment(['label' => 'Contact Status', 'value' => 'contact_status']);
+    }
+
     public function test_authorized_user_can_create_update_and_delete_tenant_reference(): void
     {
         $this->actingOfficeAdmin();

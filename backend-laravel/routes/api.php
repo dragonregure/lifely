@@ -45,6 +45,7 @@ Route::prefix('v1')->group(function (): void {
         Route::get('pipeline', [PipelineController::class, 'index']);
         Route::post('pipeline', [PipelineController::class, 'store']);
         Route::patch('pipeline/{pipeline}/stage', [PipelineController::class, 'updateStage']);
+        Route::get('references/types', [ReferenceController::class, 'referenceTypes']);
         Route::apiResource('references', ReferenceController::class);
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
         Route::get('email-campaigns', [EmailCampaignController::class, 'index']);

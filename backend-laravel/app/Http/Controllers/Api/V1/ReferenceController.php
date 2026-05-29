@@ -31,6 +31,15 @@ class ReferenceController extends BaseApiController
         ));
     }
 
+    public function referenceTypes(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Reference::class);
+
+        return response()->json([
+            'data' => $this->references->referenceTypeOptions($this->tenantId($request)),
+        ]);
+    }
+
     public function store(StoreReferenceRequest $request): JsonResponse
     {
         $this->authorize('create', Reference::class);

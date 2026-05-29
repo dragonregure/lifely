@@ -15,6 +15,11 @@ export type ReferencePayload = {
   status?: ReferenceStatus;
 };
 
+export type ReferenceTypeOption = {
+  label: string;
+  value: string;
+};
+
 function toBackendPayload(payload: Partial<ReferencePayload>) {
   return {
     ...(Object.prototype.hasOwnProperty.call(payload, "tenantId") ? { tenant_id: payload.tenantId } : {}),
@@ -41,6 +46,11 @@ export async function getReferencesPage(params?: ServerDataTableParams): Promise
     pageCount: response.meta.last_page,
     total: response.meta.total,
   };
+}
+
+export async function getReferenceTypeOptions() {
+  const response = await apiRequest<ApiEnvelope<ReferenceTypeOption[]>>("/references/types");
+  return response.data;
 }
 
 export async function createReference(payload: ReferencePayload) {
