@@ -7,6 +7,7 @@ import { PERMISSIONS } from "@/rbac/permissions";
 import { AccessSettings } from "./settings/AccessSettings";
 import { MemberSettings } from "./settings/MemberSettings";
 import { OverviewSettings } from "./settings/OverviewSettings";
+import { ReferenceSettings } from "./settings/ReferenceSettings";
 import type { SettingsView } from "./settings/settingsTypes";
 import { inputClass } from "./settings/settingsUtils";
 import { useRbacSettings } from "./settings/useRbacSettings";
@@ -15,6 +16,7 @@ export function SettingsPage() {
   const settings = useRbacSettings();
   const canOpenMemberSettings = settings.canAssignRoles || settings.canAssignPermissions;
   const canOpenAccessSettings = settings.canViewRoles || settings.canViewPermissions;
+  const canOpenReferenceSettings = settings.canViewReferences;
 
   return (
     <div>
@@ -36,6 +38,7 @@ export function SettingsPage() {
               <option value="overview">Overview</option>
               {canOpenMemberSettings && <option value="members">Member Setting</option>}
               {canOpenAccessSettings && <option value="access">Role & Permission Setting</option>}
+              {canOpenReferenceSettings && <option value="references">Reference Setting</option>}
             </select>
             <PermissionGate permission={PERMISSIONS.users.view}>
               <Button variant="outline">
@@ -86,6 +89,8 @@ export function SettingsPage() {
       )}
 
       {settings.activeView === "access" && <AccessSettings {...settings} />}
+
+      {settings.activeView === "references" && <ReferenceSettings />}
     </div>
   );
 }

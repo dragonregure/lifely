@@ -206,7 +206,9 @@ export function useRbacSettings() {
       ? "Office profile, members, and your effective backend permissions."
       : activeView === "members"
         ? "Assign roles and direct permissions to individual members."
-        : "Manage reusable backend roles and permissions.";
+        : activeView === "references"
+          ? "Manage reusable reference values for CRM forms and workflows."
+          : "Manage reusable backend roles and permissions.";
 
   return {
     access,
@@ -217,6 +219,8 @@ export function useRbacSettings() {
     canCreateRoles: can(access, PERMISSIONS.roles.create),
     canDeletePermissions: can(access, PERMISSIONS.permissions.delete),
     canDeleteRoles: can(access, PERMISSIONS.roles.delete),
+    canManageSystemReferences: can(access, PERMISSIONS.references.manageSystem),
+    canViewReferences: can(access, PERMISSIONS.references.view),
     canUpdatePermissions: can(access, PERMISSIONS.permissions.update),
     canUpdateRoles: can(access, PERMISSIONS.roles.update),
     canViewPermissions: can(access, PERMISSIONS.permissions.view),

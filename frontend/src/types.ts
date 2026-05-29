@@ -30,6 +30,24 @@ export type UserAccess = {
   permissions: string[];
 };
 
+export type ReferenceStatus = "ACTIVE" | "INACTIVE";
+
+export type ReferenceValueType = "string" | "int" | "float" | "double" | "bool" | "array" | "object" | "null";
+
+export type Reference = {
+  id: string;
+  tenantId: string | null;
+  isSystem: boolean;
+  group: string;
+  key: string;
+  value: string | null;
+  type: ReferenceValueType;
+  meta: Record<string, unknown> | null;
+  status: ReferenceStatus;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
 export type ContactStatus = "New" | "Qualified" | "Viewing" | "Negotiating" | "Closed" | "Dormant";
 
 export type ListingStatus = "Available" | "Reserved" | "Under Contract" | "Sold";

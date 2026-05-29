@@ -9,6 +9,8 @@ export {
   sendBulkEmailDraft,
 } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
+export { createReference, deleteReference, getReferences, updateReference } from "@/services/referenceService";
+export type { ReferencePayload } from "@/services/referenceService";
 export {
   createPermission,
   createRole,

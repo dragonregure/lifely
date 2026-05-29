@@ -5,12 +5,25 @@ import type {
   BackendDeal,
   BackendListing,
   BackendPermission,
+  BackendReference,
   BackendRole,
   BackendTenant,
   BackendUser,
   BackendUserAccess,
 } from "@/services/backendTypes";
-import type { AccessRole, ActivityLog, Contact, EmailCampaign, Listing, Permission, PipelineDeal, Tenant, User, UserAccess } from "@/types";
+import type {
+  AccessRole,
+  ActivityLog,
+  Contact,
+  EmailCampaign,
+  Listing,
+  Permission,
+  PipelineDeal,
+  Reference,
+  Tenant,
+  User,
+  UserAccess,
+} from "@/types";
 
 function initials(name: string) {
   return name
@@ -67,6 +80,22 @@ export function mapUserAccess(access: BackendUserAccess): UserAccess {
     roles: access.roles,
     directPermissions: access.direct_permissions,
     permissions: access.permissions,
+  };
+}
+
+export function mapReference(reference: BackendReference): Reference {
+  return {
+    id: reference.id,
+    tenantId: reference.tenant_id,
+    isSystem: reference.is_system,
+    group: reference.group,
+    key: reference.key,
+    value: reference.value,
+    type: reference.type,
+    meta: reference.meta,
+    status: reference.status,
+    createdAt: reference.created_at,
+    updatedAt: reference.updated_at,
   };
 }
 

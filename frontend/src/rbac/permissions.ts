@@ -66,4 +66,5 @@ export const SETTINGS_PERMISSIONS = [
   PERMISSIONS.users.assignPermissions,
   PERMISSIONS.roles.view,
   PERMISSIONS.permissions.view,
+  PERMISSIONS.references.view,
 ] as const satisfies readonly PermissionName[];

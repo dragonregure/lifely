@@ -1,4 +1,14 @@
-import type { ActivityLog, ContactStatus, EmailCampaign, Listing, ListingStatus, PipelineStage, Role } from "@/types";
+import type {
+  ActivityLog,
+  ContactStatus,
+  EmailCampaign,
+  Listing,
+  ListingStatus,
+  PipelineStage,
+  ReferenceStatus,
+  ReferenceValueType,
+  Role,
+} from "@/types";
 
 export type ApiEnvelope<T> = { data: T };
 
@@ -116,4 +126,18 @@ export type BackendUserAccess = {
   roles: Role[];
   direct_permissions: string[];
   permissions: string[];
+};
+
+export type BackendReference = {
+  id: string;
+  tenant_id: string | null;
+  is_system: boolean;
+  group: string;
+  key: string;
+  value: string | null;
+  type: ReferenceValueType;
+  meta: Record<string, unknown> | null;
+  status: ReferenceStatus;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
