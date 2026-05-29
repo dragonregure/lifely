@@ -25,4 +25,20 @@ class DocumentationRedirectTest extends TestCase
             ->assertOk()
             ->assertSee('openapi: 3.0.3');
     }
+
+    public function test_openapi_yaml_includes_xdebug_query_parameter_outside_production(): void
+    {
+        $this->get('/api/docs')
+            ->assertOk()
+            ->assertSee('XDEBUG_SESSION_START');
+    }
+
+    public function test_openapi_yaml_omits_xdebug_query_parameter_in_production(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'production');
+
+        $this->get('/api/docs')
+            ->assertOk()
+            ->assertDontSee('XDEBUG_SESSION_START');
+    }
 }

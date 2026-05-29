@@ -67,7 +67,7 @@ return [
             'middleware' => [
                 'api' => [],
                 'asset' => [],
-                'docs' => [],
+                'docs' => [\App\Http\Middleware\InjectXdebugOpenApiParameter::class],
                 'oauth2_callback' => [],
             ],
 
