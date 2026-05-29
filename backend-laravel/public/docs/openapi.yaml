@@ -149,7 +149,10 @@ components:
         is_system: { type: boolean }
         group: { type: string, example: street_type }
         key: { type: string, example: ave }
-        value: { type: string, nullable: true, example: Avenue }
+        value:
+          nullable: true
+          description: Value cast according to `type`.
+          example: Avenue
         type: { type: string, example: string }
         meta: { type: object, nullable: true }
         status: { type: string, enum: [ACTIVE, INACTIVE] }
@@ -200,7 +203,11 @@ components:
           description: Omit to create a tenant reference. Only users with `references.manage_system` can send null to create or convert a system reference.
         group: { type: string, example: street_type }
         key: { type: string, example: ave }
-        value: { type: string, nullable: true, example: Avenue }
+        value:
+          type: string
+          nullable: true
+          description: Stored value. API responses cast this value according to `type`.
+          example: Avenue
         type: { type: string, default: string, enum: [string, int, float, double, bool, array, object, "null"] }
         meta: { type: object, nullable: true }
         status: { type: string, enum: [ACTIVE, INACTIVE], default: ACTIVE }
@@ -721,12 +728,22 @@ paths:
   /references/types:
     get:
       summary: List reference type options
-      description: Requires `references.view`. Returns stable reference type filter options independent from the current paginated table result.
+      description: Requires `references.view`. Returns PHP value type options from the `reference_type` reference group.
       security:
         - BearerAuth: []
         - TenantHeader: []
       responses:
-        "200": { description: Reference type options for filters. }
+        "200": { description: Reference value type options. }
+        "403": { description: Missing `references.view` permission. }
+  /references/groups:
+    get:
+      summary: List reference group options
+      description: Requires `references.view`. Returns stable reference group filter options independent from the current paginated table result.
+      security:
+        - BearerAuth: []
+        - TenantHeader: []
+      responses:
+        "200": { description: Reference group options for filters. }
         "403": { description: Missing `references.view` permission. }
   /references/{reference}:
     get:

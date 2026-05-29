@@ -67,13 +67,13 @@ class ReferenceApiTest extends TestCase
 
         Reference::factory()->system()->create([
             'group' => Reference::GROUP_REFERENCE_TYPE,
-            'reference_key' => 'street_type',
-            'value' => 'Street Type',
+            'reference_key' => 'string',
+            'value' => 'String',
         ]);
         Reference::factory()->system()->create([
             'group' => Reference::GROUP_REFERENCE_TYPE,
-            'reference_key' => 'contact_status',
-            'value' => 'Contact Status',
+            'reference_key' => 'int',
+            'value' => 'Integer',
         ]);
         Reference::factory()->system()->create([
             'group' => 'contact_status',
@@ -89,8 +89,39 @@ class ReferenceApiTest extends TestCase
         $this->withHeader('X-Tenant-Id', $this->tenant->id)
             ->getJson('/api/v1/references/types')
             ->assertOk()
-            ->assertJsonFragment(['label' => 'Street Type', 'value' => 'street_type'])
-            ->assertJsonFragment(['label' => 'Contact Status', 'value' => 'contact_status']);
+            ->assertJsonFragment(['label' => 'String', 'value' => 'string'])
+            ->assertJsonFragment(['label' => 'Integer', 'value' => 'int'])
+            ->assertJsonMissing(['label' => 'Contact Status', 'value' => 'contact_status']);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->getJson('/api/v1/references/groups')
+            ->assertOk()
+            ->assertJsonFragment(['label' => 'Contact Status', 'value' => 'contact_status'])
+            ->assertJsonFragment(['label' => 'Reference Type', 'value' => Reference::GROUP_REFERENCE_TYPE]);
+    }
+
+    public function test_reference_values_are_cast_by_reference_type(): void
+    {
+        $this->actingOfficeAdmin();
+
+        Reference::factory()->system()->create([
+            'group' => 'typed_values',
+            'reference_key' => 'max_retries',
+            'value' => '3',
+            'type' => 'int',
+        ]);
+        Reference::factory()->system()->create([
+            'group' => 'typed_values',
+            'reference_key' => 'enabled',
+            'value' => 'true',
+            'type' => 'bool',
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->getJson('/api/v1/references?filter[group]=typed_values')
+            ->assertOk()
+            ->assertJsonFragment(['key' => 'max_retries', 'value' => 3])
+            ->assertJsonFragment(['key' => 'enabled', 'value' => true]);
     }
 
     public function test_authorized_user_can_create_update_and_delete_tenant_reference(): void

@@ -13,12 +13,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import { createReference, deleteReference, getReferencesPage, getReferenceTypeOptions, updateReference } from "@/services/api";
-import type { ReferenceTypeOption } from "@/services/referenceService";
+import {
+  createReference,
+  deleteReference,
+  getReferenceGroupOptions,
+  getReferencesPage,
+  getReferenceTypeOptions,
+  updateReference,
+} from "@/services/api";
+import type { ReferenceOption } from "@/services/referenceService";
 import type { Reference, ReferenceStatus, ReferenceValueType } from "@/types";
 import { inputClass } from "./settingsUtils";
 
-const referenceTypes: ReferenceValueType[] = ["string", "int", "float", "double", "bool", "array", "object", "null"];
+const fallbackReferenceTypes: ReferenceValueType[] = ["string", "int", "float", "double", "bool", "array", "object", "null"];
 const referenceStatuses: ReferenceStatus[] = ["ACTIVE", "INACTIVE"];
 
 type ReferenceDraft = {
@@ -48,7 +55,7 @@ function draftFromReference(reference: Reference): ReferenceDraft {
     scope: reference.isSystem ? "system" : "tenant",
     group: reference.group,
     key: reference.key,
-    value: reference.value ?? "",
+    value: referenceValueToInput(reference.value),
     type: reference.type,
     status: reference.status,
     meta: reference.meta ? JSON.stringify(reference.meta, null, 2) : "",
@@ -73,6 +80,30 @@ function parseMeta(value: string): { ok: true; data: Record<string, unknown> | n
   }
 }
 
+function referenceValueToInput(value: Reference["value"]): string {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value, null, 2);
+  }
+
+  return String(value);
+}
+
+function formatReferenceValue(value: Reference["value"]): string {
+  if (value === null || value === undefined || value === "") {
+    return "No value";
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
 function DetailField({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border bg-slate-50 p-3">
@@ -94,18 +125,25 @@ function ReferenceFormFields({
   draft,
   fieldPrefix,
   canManageSystem,
+  typeOptions,
   onChange,
 }: {
   draft: ReferenceDraft;
   fieldPrefix: string;
   canManageSystem: boolean;
+  typeOptions: ReferenceOption[];
   onChange: (patch: Partial<ReferenceDraft>) => void;
 }) {
+  const valueTypeOptions =
+    typeOptions.length > 0
+      ? typeOptions
+      : fallbackReferenceTypes.map((type) => ({ label: type, value: type }));
+
   return {
     definition: (
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor={`${fieldPrefix}-group`}>Reference type</Label>
+          <Label htmlFor={`${fieldPrefix}-group`}>Group</Label>
           <Input
             id={`${fieldPrefix}-group`}
             required
@@ -141,9 +179,9 @@ function ReferenceFormFields({
             value={draft.type}
             onChange={(event) => onChange({ type: event.target.value as ReferenceValueType })}
           >
-            {referenceTypes.map((type) => (
-              <option key={type} value={type}>
-                {type}
+            {valueTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -219,7 +257,8 @@ export function ReferenceSettings() {
   });
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
-  const [referenceTypeOptions, setReferenceTypeOptions] = useState<ReferenceTypeOption[]>([]);
+  const [referenceTypeOptions, setReferenceTypeOptions] = useState<ReferenceOption[]>([]);
+  const [referenceGroupOptions, setReferenceGroupOptions] = useState<ReferenceOption[]>([]);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -249,9 +288,12 @@ export function ReferenceSettings() {
   }, [loadReferences, tableQuery]);
 
   useEffect(() => {
-    getReferenceTypeOptions()
-      .then(setReferenceTypeOptions)
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load reference types."));
+    Promise.all([getReferenceTypeOptions(), getReferenceGroupOptions()])
+      .then(([typeOptions, groupOptions]) => {
+        setReferenceTypeOptions(typeOptions);
+        setReferenceGroupOptions(groupOptions);
+      })
+      .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load reference filters."));
   }, []);
 
   const handleQueryChange = useCallback((nextQuery: DataTableQueryState) => {
@@ -300,7 +342,7 @@ export function ReferenceSettings() {
 
       setReferences((current) => [reference, ...current]);
       setTotalRows((current) => current + 1);
-      setReferenceTypeOptions((current) => {
+      setReferenceGroupOptions((current) => {
         if (current.some((option) => option.value === reference.group)) {
           return current;
         }
@@ -370,10 +412,17 @@ export function ReferenceSettings() {
     () => [
       {
         id: "group",
-        label: "Reference type",
+        label: "Group",
+        defaultValue: "all",
+        options: [{ label: "All groups", value: "all" }, ...referenceGroupOptions],
+        predicate: (reference, selectedValue) => selectedValue === "all" || reference.group === selectedValue,
+      },
+      {
+        id: "type",
+        label: "Value type",
         defaultValue: "all",
         options: [{ label: "All types", value: "all" }, ...referenceTypeOptions],
-        predicate: (reference, selectedValue) => selectedValue === "all" || reference.group === selectedValue,
+        predicate: (reference, selectedValue) => selectedValue === "all" || reference.type === selectedValue,
       },
       {
         id: "scope",
@@ -399,7 +448,7 @@ export function ReferenceSettings() {
         predicate: (reference, selectedValue) => selectedValue === "all" || reference.status === selectedValue,
       },
     ],
-    [referenceTypeOptions],
+    [referenceGroupOptions, referenceTypeOptions],
   );
 
   const columns = useMemo<DataTableColumn<Reference>[]>(
@@ -418,8 +467,8 @@ export function ReferenceSettings() {
       {
         id: "value",
         header: "Value",
-        cell: (reference) => <span className="line-clamp-2 break-words">{reference.value || "No value"}</span>,
-        searchValue: (reference) => reference.value ?? "",
+        cell: (reference) => <span className="line-clamp-2 break-words">{formatReferenceValue(reference.value)}</span>,
+        searchValue: (reference) => formatReferenceValue(reference.value),
       },
       {
         id: "scope",
@@ -453,12 +502,14 @@ export function ReferenceSettings() {
     draft: createDraft,
     fieldPrefix: "create-reference",
     canManageSystem,
+    typeOptions: referenceTypeOptions,
     onChange: (patch) => setCreateDraft((draft) => ({ ...draft, ...patch })),
   });
   const editFields = ReferenceFormFields({
     draft: editDraft,
     fieldPrefix: "edit-reference",
     canManageSystem,
+    typeOptions: referenceTypeOptions,
     onChange: (patch) => setEditDraft((draft) => ({ ...draft, ...patch })),
   });
 
@@ -474,9 +525,9 @@ export function ReferenceSettings() {
           label: "Definition",
           viewContent: (
             <div className="grid gap-3 md:grid-cols-2">
-              <DetailField label="Reference type" value={selectedReference.group} />
+              <DetailField label="Group" value={selectedReference.group} />
               <DetailField label="Key" value={selectedReference.key} />
-              <DetailField label="Value" value={selectedReference.value || "No value"} />
+              <DetailField label="Value" value={formatReferenceValue(selectedReference.value)} />
               <DetailField label="Type" value={selectedReference.type} />
               <DetailField label="Status" value={selectedReference.status} />
               <DetailField label="Updated" value={selectedReference.updatedAt ? new Date(selectedReference.updatedAt).toLocaleString() : "Not recorded"} />

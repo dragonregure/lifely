@@ -15,10 +15,12 @@ export type ReferencePayload = {
   status?: ReferenceStatus;
 };
 
-export type ReferenceTypeOption = {
+export type ReferenceOption = {
   label: string;
   value: string;
 };
+
+export type ReferenceTypeOption = ReferenceOption;
 
 function toBackendPayload(payload: Partial<ReferencePayload>) {
   return {
@@ -49,7 +51,12 @@ export async function getReferencesPage(params?: ServerDataTableParams): Promise
 }
 
 export async function getReferenceTypeOptions() {
-  const response = await apiRequest<ApiEnvelope<ReferenceTypeOption[]>>("/references/types");
+  const response = await apiRequest<ApiEnvelope<ReferenceOption[]>>("/references/types");
+  return response.data;
+}
+
+export async function getReferenceGroupOptions() {
+  const response = await apiRequest<ApiEnvelope<ReferenceOption[]>>("/references/groups");
   return response.data;
 }
 

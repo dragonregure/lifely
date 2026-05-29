@@ -24,11 +24,13 @@ class ReferenceSeeder extends Seeder
     private function systemReferences(): array
     {
         return [
-            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'reference_type', 'value' => 'Reference Type'],
-            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'street_type', 'value' => 'Street Type'],
-            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'contact_status', 'value' => 'Contact Status'],
-            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'listing_status', 'value' => 'Listing Status'],
-            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'pipeline_stage', 'value' => 'Pipeline Stage'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'string', 'value' => 'String'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'int', 'value' => 'Integer'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'float', 'value' => 'Float'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'bool', 'value' => 'Boolean'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'array', 'value' => 'Array'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'object', 'value' => 'Object'],
+            ['group' => Reference::GROUP_REFERENCE_TYPE, 'reference_key' => 'null', 'value' => 'Null'],
             ['group' => 'street_type', 'reference_key' => 'st', 'value' => 'Street'],
             ['group' => 'street_type', 'reference_key' => 'ave', 'value' => 'Avenue'],
             ['group' => 'street_type', 'reference_key' => 'rd', 'value' => 'Road'],

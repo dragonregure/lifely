@@ -5,6 +5,7 @@ import type {
   Listing,
   ListingStatus,
   PipelineStage,
+  ReferenceValue,
   ReferenceStatus,
   ReferenceValueType,
   Role,
@@ -146,7 +147,7 @@ export type BackendReference = {
   is_system: boolean;
   group: string;
   key: string;
-  value: string | null;
+  value: ReferenceValue;
   type: ReferenceValueType;
   meta: Record<string, unknown> | null;
   status: ReferenceStatus;

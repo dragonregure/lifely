@@ -40,6 +40,15 @@ class ReferenceController extends BaseApiController
         ]);
     }
 
+    public function groups(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Reference::class);
+
+        return response()->json([
+            'data' => $this->references->groupOptions($this->tenantId($request)),
+        ]);
+    }
+
     public function store(StoreReferenceRequest $request): JsonResponse
     {
         $this->authorize('create', Reference::class);

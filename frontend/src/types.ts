@@ -34,13 +34,15 @@ export type ReferenceStatus = "ACTIVE" | "INACTIVE";
 
 export type ReferenceValueType = "string" | "int" | "float" | "double" | "bool" | "array" | "object" | "null";
 
+export type ReferenceValue = string | number | boolean | unknown[] | Record<string, unknown> | null;
+
 export type Reference = {
   id: string;
   tenantId: string | null;
   isSystem: boolean;
   group: string;
   key: string;
-  value: string | null;
+  value: ReferenceValue;
   type: ReferenceValueType;
   meta: Record<string, unknown> | null;
   status: ReferenceStatus;
