@@ -21,8 +21,8 @@ final class Roles
     {
         return [
             self::SYSTEM_ADMIN => Permissions::all(),
-            self::OFFICE_ADMIN => Permissions::all(),
-            self::MASTER => Permissions::all(),
+            self::OFFICE_ADMIN => Permissions::tenantAdmin(),
+            self::MASTER => Permissions::tenantAdmin(),
             self::SALES => [
                 Permissions::CONTACTS_VIEW,
                 Permissions::CONTACTS_CREATE,

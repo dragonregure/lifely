@@ -4,6 +4,8 @@ namespace App\Support\Rbac;
 
 final class Permissions
 {
+    public const SYSTEM_BYPASS = 'system.bypass';
+
     public const ROLES_VIEW = 'roles.view';
     public const ROLES_CREATE = 'roles.create';
     public const ROLES_UPDATE = 'roles.update';
@@ -40,6 +42,7 @@ final class Permissions
     public const REFERENCES_CREATE = 'references.create';
     public const REFERENCES_UPDATE = 'references.update';
     public const REFERENCES_DELETE = 'references.delete';
+    public const REFERENCES_MANAGE_SYSTEM = 'references.manage_system';
 
     /**
      * @return array<int, string>
@@ -47,6 +50,7 @@ final class Permissions
     public static function all(): array
     {
         return [
+            self::SYSTEM_BYPASS,
             self::ROLES_VIEW,
             self::ROLES_CREATE,
             self::ROLES_UPDATE,
@@ -75,7 +79,27 @@ final class Permissions
             self::REFERENCES_CREATE,
             self::REFERENCES_UPDATE,
             self::REFERENCES_DELETE,
+            self::REFERENCES_MANAGE_SYSTEM,
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function systemOnly(): array
+    {
+        return [
+            self::SYSTEM_BYPASS,
+            self::REFERENCES_MANAGE_SYSTEM,
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function tenantAdmin(): array
+    {
+        return array_values(array_diff(self::all(), self::systemOnly()));
     }
 
     /**

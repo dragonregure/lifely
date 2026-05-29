@@ -115,6 +115,22 @@ class ReferenceApiTest extends TestCase
             ->assertJsonFragment(['id' => $create->json('data.id'), 'key' => 'trl']);
     }
 
+    public function test_system_reference_write_is_authorized_by_permission(): void
+    {
+        $user = $this->actingOfficeAdmin();
+        $user->givePermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->postJson('/api/v1/references', [
+                'tenant_id' => null,
+                'group' => 'street_type',
+                'key' => 'walk',
+                'value' => 'Walk',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.tenant_id', null);
+    }
+
     public function test_office_admin_cannot_create_or_update_system_references(): void
     {
         $this->actingOfficeAdmin();

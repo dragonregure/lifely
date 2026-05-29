@@ -162,7 +162,7 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: Omit to create a tenant reference. Only System Admin can send null to create or convert a system reference.
+          description: Omit to create a tenant reference. Only users with `references.manage_system` can send null to create or convert a system reference.
         group: { type: string, example: street_type }
         key: { type: string, example: ave }
         value: { type: string, nullable: true, example: Avenue }
@@ -630,7 +630,7 @@ paths:
         "403": { description: Missing `references.view` permission. }
     post:
       summary: Create reference
-      description: "Requires `references.create`. Omitting `tenant_id` creates a tenant reference; only System Admin can send `tenant_id: null` to create a system reference."
+      description: "Requires `references.create`. Omitting `tenant_id` creates a tenant reference; only users with `references.manage_system` can send `tenant_id: null` to create a system reference."
       security:
         - BearerAuth: []
         - TenantHeader: []
@@ -656,7 +656,7 @@ paths:
       responses:
         "201": { description: Reference created. }
         "403": { description: Missing `references.create` permission or cross-tenant reference write. }
-        "422": { description: Validation failed or non-System Admin attempted a system reference write. }
+        "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
   /references/{reference}:
     get:
       summary: Show reference
@@ -671,7 +671,7 @@ paths:
         "404": { description: Reference is outside current tenant scope or not found. }
     put:
       summary: Update reference
-      description: "Requires `references.update`. Existing system references and `tenant_id: null` updates are limited to System Admin."
+      description: "Requires `references.update`. Existing system references and `tenant_id: null` updates require `references.manage_system`."
       parameters:
         - in: path
           name: reference
@@ -686,10 +686,10 @@ paths:
         "200": { description: Reference updated. }
         "403": { description: Missing `references.update` permission or cross-tenant reference write. }
         "404": { description: Reference is outside current tenant scope or not found. }
-        "422": { description: Validation failed or non-System Admin attempted a system reference write. }
+        "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
     patch:
       summary: Partially update reference
-      description: "Requires `references.update`. Accepts the same fields as reference update. Existing system references and `tenant_id: null` updates are limited to System Admin."
+      description: "Requires `references.update`. Accepts the same fields as reference update. Existing system references and `tenant_id: null` updates require `references.manage_system`."
       parameters:
         - in: path
           name: reference
@@ -704,10 +704,10 @@ paths:
         "200": { description: Reference updated. }
         "403": { description: Missing `references.update` permission or cross-tenant reference write. }
         "404": { description: Reference is outside current tenant scope or not found. }
-        "422": { description: Validation failed or non-System Admin attempted a system reference write. }
+        "422": { description: Validation failed or user without `references.manage_system` attempted a system reference write. }
     delete:
       summary: Delete reference
-      description: Requires `references.delete`. Deleting system references is limited to System Admin.
+      description: Requires `references.delete`. Deleting system references requires `references.manage_system`.
       parameters:
         - in: path
           name: reference

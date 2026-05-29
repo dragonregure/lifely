@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Reference;
-use App\Support\Rbac\Roles;
+use App\Support\Rbac\Permissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -31,7 +31,7 @@ class StoreReferenceRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($this->has('tenant_id') && $this->input('tenant_id') === null && ! $this->user()?->hasRole(Roles::SYSTEM_ADMIN)) {
+            if ($this->has('tenant_id') && $this->input('tenant_id') === null && ! $this->user()?->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM)) {
                 $validator->errors()->add('tenant_id', 'Only System Admin can create system references.');
             }
         });

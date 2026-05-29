@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Reference;
-use App\Support\Rbac\Roles;
+use App\Support\Rbac\Permissions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -35,7 +35,7 @@ class UpdateReferenceRequest extends FormRequest
                 return;
             }
 
-            if (! $this->user()?->hasRole(Roles::SYSTEM_ADMIN)) {
+            if (! $this->user()?->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM)) {
                 $validator->errors()->add('tenant_id', 'Only System Admin can update system references.');
             }
         });

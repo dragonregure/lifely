@@ -1,4 +1,7 @@
 export const PERMISSIONS = {
+  system: {
+    bypass: "system.bypass",
+  },
   roles: {
     view: "roles.view",
     create: "roles.create",
@@ -42,6 +45,13 @@ export const PERMISSIONS = {
   },
   tenant: {
     view: "tenant.view",
+  },
+  references: {
+    view: "references.view",
+    create: "references.create",
+    update: "references.update",
+    delete: "references.delete",
+    manageSystem: "references.manage_system",
   },
 } as const;
 

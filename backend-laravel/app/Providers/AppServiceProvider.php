@@ -25,7 +25,6 @@ use App\Repositories\ReferenceRepository;
 use App\Repositories\TenantRepository;
 use App\Services\ReportingService;
 use App\Support\Rbac\Permissions;
-use App\Support\Rbac\Roles as LifelyRoles;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
@@ -53,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(fn (User $user): ?bool => $user->hasRole(LifelyRoles::SYSTEM_ADMIN) ? true : null);
+        Gate::before(fn (User $user): ?bool => $user->hasPermissionTo(Permissions::SYSTEM_BYPASS) ? true : null);
 
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Permission::class, PermissionPolicy::class);

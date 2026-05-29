@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Models\Reference;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
-use App\Support\Rbac\Roles;
 
 class ReferencePolicy
 {
@@ -27,7 +26,7 @@ class ReferencePolicy
     public function update(User $user, Reference $reference): bool
     {
         if ($reference->tenant_id === null) {
-            return $user->hasRole(Roles::SYSTEM_ADMIN);
+            return $user->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM);
         }
 
         return $user->can(Permissions::REFERENCES_UPDATE);
@@ -36,7 +35,7 @@ class ReferencePolicy
     public function delete(User $user, Reference $reference): bool
     {
         if ($reference->tenant_id === null) {
-            return $user->hasRole(Roles::SYSTEM_ADMIN);
+            return $user->hasPermissionTo(Permissions::REFERENCES_MANAGE_SYSTEM);
         }
 
         return $user->can(Permissions::REFERENCES_DELETE);
