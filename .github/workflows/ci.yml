@@ -66,6 +66,7 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate --ansi
+          php artisan migrate:fresh --seed --force
 
       - name: Run backend tests
         run: composer test
