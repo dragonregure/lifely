@@ -1,5 +1,4 @@
 import { UserPlus } from "lucide-react";
-import { LoadingInline } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
