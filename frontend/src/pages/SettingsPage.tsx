@@ -48,7 +48,6 @@ export function SettingsPage() {
                 Invite member
               </Button>
             </PermissionGate>
-            {settings.isLoading && <LoadingInline label="Loading settings" />}
           </div>
         }
       />
