@@ -1,0 +1,105 @@
+# API Conventions
+
+The Laravel backend exposes JSON APIs under `/api/v1`. Swagger UI is available at `/api/documentation`, and the raw OpenAPI YAML is served from `/api/docs`.
+
+## Authentication
+
+Lifely uses Laravel Sanctum bearer tokens with access and refresh tokens.
+
+Public routes:
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `GET /health`
+
+Protected routes use:
+
+- `auth:sanctum`
+- `access.token`
+
+Protected requests should send:
+
+```http
+Authorization: Bearer <access-token>
+Accept: application/json
+```
+
+Tenant-scoped requests may use `X-Tenant-Id`; tenant mismatch is rejected.
+
+## Controller Pattern
+
+- Use thin controllers.
+- Resolve tenant context with `BaseApiController::tenantId($request)`.
+- Authorize with permission constants, policies, or gates.
+- Validate with Form Requests.
+- Serialize with API Resources.
+- Return `201 Created` for creates, `202 Accepted` for queued workflows, `204 No Content` for deletes, and `404` for tenant-scoped misses.
+
+## Validation
+
+Use Form Requests for validation. Use `ResolvesTenantForValidation` when validation needs tenant-aware `exists` rules.
+
+Example:
+
+```php
+'owner_id' => ['nullable', 'uuid', Rule::exists('users', 'id')->where('tenant_id', $tenantId)]
+```
+
+## Repositories
+
+Repository methods for tenant-owned resources accept `string $tenantId` as the first argument. They must scope queries by tenant before reads, updates, deletes, aggregates, and pagination.
+
+Repositories should not own cross-cutting side effects. Activity logging is handled by observers/listeners after Eloquent CUD events.
+
+## API Resources
+
+Use API Resources for response shape. Keep backend response fields snake_case. Cast dates to ISO strings and numerics to stable numeric values when needed.
+
+The frontend maps snake_case API responses to camelCase domain objects in `frontend/src/services/mappers.ts`.
+
+## Server-Side Tables
+
+Data-heavy list endpoints should support server-side table parameters:
+
+- `page`
+- `per_page`, capped at 100
+- `search`
+- `sort`
+- `direction`, `asc` or `desc`
+- `filter[key]`
+
+Backend helpers:
+
+- `App\Support\DataTables\DataTableQuery`
+- `App\Support\DataTables\EloquentDataTable`
+
+Frontend helpers:
+
+- `DataTable`
+- `toQueryString` in `frontend/src/services/dataTableParams.ts`
+
+## OpenAPI
+
+Update `backend-laravel/public/docs/openapi.yaml` for:
+
+- New or changed routes
+- Request body changes
+- Query parameter changes
+- Response schema changes
+- Auth changes
+- Permission requirements
+
+Use `APP_URL`-driven server generation for environment-specific API URLs. In non-production environments, the docs may include `XDEBUG_SESSION_START` query parameters.
+
+## Activity Logs
+
+Activity logs include:
+
+- `action_type`
+- `description`
+- `user_id`
+- `user_name`
+- `properties`
+
+Update workflows should include changed fields in `properties.changes`, keyed by field name with `old` and `new` values.
