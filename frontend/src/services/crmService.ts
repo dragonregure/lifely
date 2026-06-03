@@ -45,7 +45,7 @@ function toBackendContactPayload(payload: Partial<ContactPayload>) {
 export async function getSession() {
   const [me, members, access] = await Promise.all([
     apiRequest<ApiEnvelope<{ user: BackendUser }>>("/auth/me"),
-    apiRequest<ApiEnvelope<BackendUser[]>>("/members"),
+    getMembers(),
     apiRequest<ApiEnvelope<BackendUserAccess>>("/me/permissions"),
   ]);
 
@@ -62,8 +62,14 @@ export async function getSession() {
       directPermissions: userAccess.directPermissions,
       permissions: userAccess.permissions,
     },
-    members: members.data.map(mapUser),
+    members,
   };
+}
+
+export async function getMembers(options: Pick<RequestInit, "signal"> = {}) {
+  const response = await apiRequest<ApiEnvelope<BackendUser[]>>("/members", options);
+
+  return response.data.map(mapUser);
 }
 
 export async function getContacts() {

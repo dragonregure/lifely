@@ -10,6 +10,7 @@ export {
   getEmailCampaignsPage,
   getListings,
   getListingsPage,
+  getMembers,
   getPipelineDeals,
   getPipelineDealsPage,
   getSession,

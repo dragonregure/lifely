@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Archive, Eye, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { DataTable, type DataTableColumn, type DataTableFilter, type DataTableQueryContext, type DataTableQueryState } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
@@ -12,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
-import { createContact, deleteContact, getContactsPage, updateContact, type ContactPayload } from "@/services/api";
+import { createContact, deleteContact, getContactsPage, getMembers, updateContact, type ContactPayload } from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import type { Contact, ContactStatus } from "@/types";
+import type { Contact, ContactStatus, User } from "@/types";
 
 const editableStatuses: ContactStatus[] = ["New", "Qualified", "Viewing", "Negotiating", "Closed", "Dormant"];
 const inputClass =
@@ -128,14 +128,27 @@ function DetailField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ReadOnlyFormField({ id, label, value, isLoading = false }: { id: string; label: string; value: string; isLoading?: boolean }) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input id={id} readOnly value={isLoading ? "Loading..." : value} className="bg-slate-50 text-slate-900" />
+    </div>
+  );
+}
+
 export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [createDraft, setCreateDraft] = useState<ContactDraft>(() => blankDraft());
+  const [createOwnerDetails, setCreateOwnerDetails] = useState<User | null>(null);
+  const [isCreateOwnerLoading, setIsCreateOwnerLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [profileDraft, setProfileDraft] = useState<ContactDraft>(() => blankDraft());
   const [assignmentDraft, setAssignmentDraft] = useState<ContactDraft>(() => blankDraft());
+  const [assignmentOwnerDetails, setAssignmentOwnerDetails] = useState<User | null>(null);
+  const [isAssignmentOwnerLoading, setIsAssignmentOwnerLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingContactAction | null>(null);
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
@@ -147,6 +160,8 @@ export function ContactsPage() {
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
   const canDeleteContacts = can(PERMISSIONS.contacts.delete);
+  const createOwnerRequestRef = useRef(0);
+  const assignmentOwnerRequestRef = useRef(0);
 
   const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
     setLoadError("");
@@ -172,10 +187,6 @@ export function ContactsPage() {
       });
   }, []);
 
-  useEffect(() => {
-    setCreateDraft((draft) => (draft.ownerId ? draft : { ...draft, ownerId: members[0]?.id ?? "" }));
-  }, [members]);
-
   const selectedContact = useMemo(
     () => contacts.find((contact) => contact.id === selectedContactId) ?? null,
     [contacts, selectedContactId],
@@ -187,10 +198,96 @@ export function ContactsPage() {
     const draft = draftFromContact(selectedContact);
     setProfileDraft(draft);
     setAssignmentDraft(draft);
-  }, [selectedContact]);
+    setAssignmentOwnerDetails(members.find((user) => user.id === draft.ownerId) ?? null);
+  }, [members, selectedContact]);
 
   const updateDraft = (draft: ContactDraft, patch: Partial<ContactDraft>) => ({ ...draft, ...patch });
   const refreshContacts = () => setContactsRefreshKey((current) => current + 1);
+
+  const fetchCreateOwnerDetails = useCallback(
+    async (ownerId: string) => {
+      if (!ownerId) {
+        createOwnerRequestRef.current += 1;
+        setIsCreateOwnerLoading(false);
+        setCreateOwnerDetails(null);
+        return;
+      }
+
+      const requestId = createOwnerRequestRef.current + 1;
+      createOwnerRequestRef.current = requestId;
+      setIsCreateOwnerLoading(true);
+
+      try {
+        const nextMembers = await getMembers();
+
+        if (createOwnerRequestRef.current !== requestId) return;
+        setCreateOwnerDetails(nextMembers.find((member) => member.id === ownerId) ?? null);
+      } catch (caught) {
+        if (createOwnerRequestRef.current !== requestId) return;
+        setCreateOwnerDetails(members.find((member) => member.id === ownerId) ?? null);
+        setLoadError(caught instanceof Error ? caught.message : "Unable to load owner details.");
+      } finally {
+        if (createOwnerRequestRef.current === requestId) {
+          setIsCreateOwnerLoading(false);
+        }
+      }
+    },
+    [members],
+  );
+
+  const fetchAssignmentOwnerDetails = useCallback(
+    async (ownerId: string) => {
+      if (!ownerId) {
+        assignmentOwnerRequestRef.current += 1;
+        setIsAssignmentOwnerLoading(false);
+        setAssignmentOwnerDetails(null);
+        return;
+      }
+
+      const requestId = assignmentOwnerRequestRef.current + 1;
+      assignmentOwnerRequestRef.current = requestId;
+      setIsAssignmentOwnerLoading(true);
+
+      try {
+        const nextMembers = await getMembers();
+
+        if (assignmentOwnerRequestRef.current !== requestId) return;
+        setAssignmentOwnerDetails(nextMembers.find((member) => member.id === ownerId) ?? null);
+      } catch (caught) {
+        if (assignmentOwnerRequestRef.current !== requestId) return;
+        setAssignmentOwnerDetails(members.find((member) => member.id === ownerId) ?? null);
+        setLoadError(caught instanceof Error ? caught.message : "Unable to load owner details.");
+      } finally {
+        if (assignmentOwnerRequestRef.current === requestId) {
+          setIsAssignmentOwnerLoading(false);
+        }
+      }
+    },
+    [members],
+  );
+
+  const handleAssignmentOwnerChange = (ownerId: string) => {
+    setLoadError("");
+    setAssignmentDraft((draft) => updateDraft(draft, { ownerId }));
+    void fetchAssignmentOwnerDetails(ownerId);
+  };
+
+  const handleCreateOwnerChange = (ownerId: string) => {
+    setLoadError("");
+    setCreateDraft((draft) => updateDraft(draft, { ownerId }));
+    void fetchCreateOwnerDetails(ownerId);
+  };
+
+  const handleCreateOpenChange = (open: boolean) => {
+    setCreateOpen(open);
+
+    if (!open) {
+      createOwnerRequestRef.current += 1;
+      setCreateDraft(blankDraft());
+      setCreateOwnerDetails(null);
+      setIsCreateOwnerLoading(false);
+    }
+  };
 
   const handleCreateContact = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -200,10 +297,10 @@ export function ContactsPage() {
     setIsMutating(true);
 
     try {
-      const ownerId = createDraft.ownerId || members[0]?.id || "";
-      await createContact(payloadFromDraft({ ...createDraft, ownerId }));
+      await createContact(payloadFromDraft(createDraft));
 
-      setCreateDraft(blankDraft(ownerId));
+      setCreateDraft(blankDraft());
+      setCreateOwnerDetails(null);
       setCreateOpen(false);
       refreshContacts();
     } catch (caught) {
@@ -306,10 +403,11 @@ export function ContactsPage() {
           label: "Profile",
           viewContent: (
             <div className="grid gap-3 md:grid-cols-2">
-              <DetailField label="Name" value={contactName(selectedContact)} />
-              <DetailField label="Status" value={selectedContact.status} />
+              <DetailField label="First name" value={selectedContact.firstName} />
+              <DetailField label="Last name" value={selectedContact.lastName} />
               <DetailField label="Email" value={selectedContact.email} />
               <DetailField label="Phone" value={selectedContact.phone || "Not provided"} />
+              <DetailField label="Status" value={selectedContact.status} />
               <DetailField label="Budget" value={formatCurrency(selectedContact.budget)} />
               <DetailField label="Source" value={selectedContact.source} />
             </div>
@@ -395,8 +493,8 @@ export function ContactsPage() {
           viewContent: (
             <div className="grid gap-3 md:grid-cols-2">
               <DetailField label="Owner" value={selectedOwner?.name ?? "Unassigned"} />
-              <DetailField label="Owner role" value={selectedOwner?.role ?? "Not assigned"} />
               <DetailField label="Last contacted" value={new Date(selectedContact.lastContactedAt).toLocaleDateString()} />
+              <DetailField label="Owner role" value={selectedOwner?.role ?? "Not assigned"} />
               <DetailField label="Owner email" value={selectedOwner?.email ?? "Not assigned"} />
             </div>
           ),
@@ -408,7 +506,7 @@ export function ContactsPage() {
                   id="assignment-owner"
                   className={inputClass}
                   value={assignmentDraft.ownerId}
-                  onChange={(event) => setAssignmentDraft(updateDraft(assignmentDraft, { ownerId: event.target.value }))}
+                  onChange={(event) => handleAssignmentOwnerChange(event.target.value)}
                 >
                   {members.map((member) => (
                     <option key={member.id} value={member.id}>
@@ -426,6 +524,18 @@ export function ContactsPage() {
                   onChange={(event) => setAssignmentDraft(updateDraft(assignmentDraft, { lastContactedAt: event.target.value }))}
                 />
               </div>
+              <ReadOnlyFormField
+                id="assignment-owner-role"
+                label="Owner role"
+                value={assignmentOwnerDetails?.role ?? "Not assigned"}
+                isLoading={isAssignmentOwnerLoading}
+              />
+              <ReadOnlyFormField
+                id="assignment-owner-email"
+                label="Owner email"
+                value={assignmentOwnerDetails?.email ?? "Not assigned"}
+                isLoading={isAssignmentOwnerLoading}
+              />
             </div>
           ),
           onSave: saveAssignment,
@@ -475,14 +585,6 @@ export function ContactsPage() {
               onChange={(event) => setCreateDraft(updateDraft(createDraft, { phone: event.target.value }))}
             />
           </div>
-        </div>
-      ),
-    },
-    {
-      value: "ownership",
-      label: "Ownership",
-      content: (
-        <div className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="create-status">Status</Label>
             <select
@@ -508,14 +610,31 @@ export function ContactsPage() {
               onChange={(event) => setCreateDraft(updateDraft(createDraft, { budget: event.target.value }))}
             />
           </div>
+          <div className="grid gap-2 md:col-span-2">
+            <Label htmlFor="create-source">Source</Label>
+            <Input
+              id="create-source"
+              value={createDraft.source}
+              onChange={(event) => setCreateDraft(updateDraft(createDraft, { source: event.target.value }))}
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      value: "assignment",
+      label: "Assignment",
+      content: (
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="create-owner">Owner</Label>
             <select
               id="create-owner"
               className={inputClass}
               value={createDraft.ownerId}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { ownerId: event.target.value }))}
+              onChange={(event) => handleCreateOwnerChange(event.target.value)}
             >
+              <option value="">Choose Owner</option>
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name}
@@ -524,13 +643,26 @@ export function ContactsPage() {
             </select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="create-source">Source</Label>
+            <Label htmlFor="create-contacted">Last contacted</Label>
             <Input
-              id="create-source"
-              value={createDraft.source}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { source: event.target.value }))}
+              id="create-contacted"
+              type="date"
+              value={createDraft.lastContactedAt}
+              onChange={(event) => setCreateDraft(updateDraft(createDraft, { lastContactedAt: event.target.value }))}
             />
           </div>
+          <ReadOnlyFormField
+            id="create-owner-role"
+            label="Owner role"
+            value={createOwnerDetails?.role ?? "Not assigned"}
+            isLoading={isCreateOwnerLoading}
+          />
+          <ReadOnlyFormField
+            id="create-owner-email"
+            label="Owner email"
+            value={createOwnerDetails?.email ?? "Not assigned"}
+            isLoading={isCreateOwnerLoading}
+          />
         </div>
       ),
     },
@@ -611,7 +743,7 @@ export function ContactsPage() {
               description="Capture profile, ownership, and source details for a new lead."
               submitLabel="Save lead"
               open={createOpen}
-              onOpenChange={setCreateOpen}
+              onOpenChange={handleCreateOpenChange}
               isSubmitting={isMutating}
               onSubmit={handleCreateContact}
               tabs={createTabs}
