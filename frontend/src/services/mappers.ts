@@ -3,6 +3,7 @@ import type {
   BackendCampaign,
   BackendContact,
   BackendDeal,
+  BackendDocument,
   BackendListing,
   BackendPermission,
   BackendReference,
@@ -23,6 +24,8 @@ import type {
   Tenant,
   User,
   UserAccess,
+  ListingStatus,
+  ListingType,
 } from "@/types";
 
 function initials(name: string) {
@@ -115,6 +118,20 @@ export function mapContact(contact: BackendContact): Contact {
   };
 }
 
+export function mapDocument(document: BackendDocument): Listing["documents"][number] {
+  return {
+    id: document.id,
+    tenantId: document.tenant_id,
+    model: document.model,
+    modelId: document.model_id,
+    type: document.type,
+    order: Number(document.order ?? 0),
+    url: document.url,
+    createdAt: document.created_at,
+    updatedAt: document.updated_at,
+  };
+}
+
 export function mapListing(listing: BackendListing): Listing {
   return {
     id: listing.id,
@@ -122,10 +139,11 @@ export function mapListing(listing: BackendListing): Listing {
     title: listing.title,
     address: listing.address,
     price: Number(listing.price),
-    status: listing.status,
+    status: Number(listing.status) as ListingStatus,
     bedrooms: listing.bedrooms,
     bathrooms: listing.bathrooms,
-    type: listing.property_type,
+    type: Number(listing.property_type) as ListingType,
+    documents: listing.documents?.map(mapDocument) ?? [],
   };
 }
 

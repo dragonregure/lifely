@@ -30,10 +30,10 @@ return new class extends Migration
             $table->string('title');
             $table->text('address');
             $table->decimal('price', 12, 2);
-            $table->string('status')->default('Available');
+            $table->unsignedTinyInteger('status')->default(1);
             $table->unsignedTinyInteger('bedrooms')->default(0);
             $table->unsignedTinyInteger('bathrooms')->default(0);
-            $table->string('property_type')->default('House');
+            $table->unsignedTinyInteger('property_type')->default(1);
             $table->timestamps();
             $table->index(['tenant_id', 'status']);
         });

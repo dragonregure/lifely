@@ -14,7 +14,7 @@ import type { PaginatedResult, ServerDataTableParams } from "@/services/dataTabl
 import { toQueryString } from "@/services/dataTableParams";
 import { apiRequest } from "@/services/httpClient";
 import { mapActivity, mapCampaign, mapContact, mapDeal, mapListing, mapTenant, mapUser, mapUserAccess } from "@/services/mappers";
-import type { ContactStatus } from "@/types";
+import type { ContactStatus, ListingStatus, ListingType } from "@/types";
 
 export type ContactPayload = {
   ownerId?: string | null;
@@ -28,6 +28,16 @@ export type ContactPayload = {
   lastContactedAt?: string | null;
 };
 
+export type ListingPayload = {
+  title?: string;
+  address?: string;
+  price?: number;
+  status?: ListingStatus;
+  bedrooms?: number;
+  bathrooms?: number;
+  type?: ListingType;
+};
+
 function toBackendContactPayload(payload: Partial<ContactPayload>) {
   return {
     ...(Object.prototype.hasOwnProperty.call(payload, "ownerId") ? { owner_id: payload.ownerId } : {}),
@@ -39,6 +49,18 @@ function toBackendContactPayload(payload: Partial<ContactPayload>) {
     ...(Object.prototype.hasOwnProperty.call(payload, "budget") ? { budget: payload.budget } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "source") ? { source: payload.source } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "lastContactedAt") ? { last_contacted_at: payload.lastContactedAt } : {}),
+  };
+}
+
+function toBackendListingPayload(payload: Partial<ListingPayload>) {
+  return {
+    ...(payload.title !== undefined ? { title: payload.title } : {}),
+    ...(payload.address !== undefined ? { address: payload.address } : {}),
+    ...(payload.price !== undefined ? { price: payload.price } : {}),
+    ...(payload.status !== undefined ? { status: payload.status } : {}),
+    ...(payload.bedrooms !== undefined ? { bedrooms: payload.bedrooms } : {}),
+    ...(payload.bathrooms !== undefined ? { bathrooms: payload.bathrooms } : {}),
+    ...(payload.type !== undefined ? { property_type: payload.type } : {}),
   };
 }
 
@@ -130,6 +152,24 @@ export async function getListingsPage(
     pageCount: response.meta.last_page,
     total: response.meta.total,
   };
+}
+
+export async function createListing(payload: ListingPayload) {
+  const response = await apiRequest<ApiEnvelope<BackendListing>>("/listings", {
+    method: "POST",
+    body: JSON.stringify(toBackendListingPayload(payload)),
+  });
+
+  return mapListing(response.data);
+}
+
+export async function updateListing(listingId: string, payload: Partial<ListingPayload>) {
+  const response = await apiRequest<ApiEnvelope<BackendListing>>(`/listings/${listingId}`, {
+    method: "PATCH",
+    body: JSON.stringify(toBackendListingPayload(payload)),
+  });
+
+  return mapListing(response.data);
 }
 
 export async function getPipelineDeals() {

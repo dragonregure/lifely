@@ -16,10 +16,11 @@ class ListingResource extends JsonResource
             'title' => $this->title,
             'address' => $this->address,
             'price' => (float) $this->price,
-            'status' => $this->status,
+            'status' => (int) $this->status,
             'bedrooms' => $this->bedrooms,
             'bathrooms' => $this->bathrooms,
-            'property_type' => $this->property_type,
+            'property_type' => (int) $this->property_type,
+            'documents' => DocumentResource::collection($this->whenLoaded('documents')),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

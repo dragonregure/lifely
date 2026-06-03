@@ -41,7 +41,7 @@ Route::prefix('v1')->group(function (): void {
         Route::put('users/{user}/permissions', [UserAccessController::class, 'syncPermissions']);
         Route::get('dashboard', DashboardController::class);
         Route::apiResource('contacts', ContactController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
-        Route::apiResource('listings', ListingController::class)->only(['index', 'store']);
+        Route::apiResource('listings', ListingController::class)->only(['index', 'store', 'update']);
         Route::get('pipeline', [PipelineController::class, 'index']);
         Route::post('pipeline', [PipelineController::class, 'store']);
         Route::patch('pipeline/{pipeline}/stage', [PipelineController::class, 'updateStage']);

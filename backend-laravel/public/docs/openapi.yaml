@@ -223,6 +223,18 @@ components:
         source: { type: string, nullable: true }
         last_contacted_at: { type: string, format: date-time, nullable: true }
         created_at: { type: string, format: date-time, nullable: true }
+    Document:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        model: { type: string, example: listing }
+        model_id: { type: string, format: uuid }
+        type: { type: string, example: mainImage }
+        order: { type: integer, example: 0 }
+        url: { type: string, format: uri }
+        created_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time, nullable: true }
     Listing:
       type: object
       properties:
@@ -231,10 +243,19 @@ components:
         title: { type: string }
         address: { type: string }
         price: { type: number }
-        status: { type: string, enum: [Available, Reserved, Under Contract, Sold] }
+        status:
+          type: integer
+          enum: [1, 2, 3, 4]
+          description: "1=Available, 2=Reserved, 3=Under Contract, 4=Sold."
         bedrooms: { type: integer, nullable: true }
         bathrooms: { type: integer, nullable: true }
-        property_type: { type: string, enum: [House, Condo, Townhome, Land] }
+        property_type:
+          type: integer
+          enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+          description: "1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use."
+        documents:
+          type: array
+          items: { $ref: "#/components/schemas/Document" }
         created_at: { type: string, format: date-time, nullable: true }
     PipelineDeal:
       type: object
@@ -454,10 +475,34 @@ components:
         title: { type: string, maxLength: 180 }
         address: { type: string }
         price: { type: number, minimum: 0 }
-        status: { type: string, nullable: true, enum: [Available, Reserved, Under Contract, Sold] }
+        status:
+          type: integer
+          nullable: true
+          enum: [1, 2, 3, 4]
+          description: "1=Available, 2=Reserved, 3=Under Contract, 4=Sold."
         bedrooms: { type: integer, nullable: true, minimum: 0, maximum: 20 }
         bathrooms: { type: integer, nullable: true, minimum: 0, maximum: 20 }
-        property_type: { type: string, nullable: true, enum: [House, Condo, Townhome, Land] }
+        property_type:
+          type: integer
+          nullable: true
+          enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+          description: "1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use."
+    ListingUpdatePayload:
+      type: object
+      properties:
+        title: { type: string, maxLength: 180 }
+        address: { type: string }
+        price: { type: number, minimum: 0 }
+        status:
+          type: integer
+          enum: [1, 2, 3, 4]
+          description: "1=Available, 2=Reserved, 3=Under Contract, 4=Sold."
+        bedrooms: { type: integer, minimum: 0, maximum: 20 }
+        bathrooms: { type: integer, minimum: 0, maximum: 20 }
+        property_type:
+          type: integer
+          enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+          description: "1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use."
     PipelineStorePayload:
       type: object
       required: [contact_id, listing_id, user_id, value]
@@ -992,12 +1037,14 @@ paths:
         - { $ref: "#/components/parameters/Direction" }
         - in: query
           name: filter[status]
-          schema: { type: string, enum: [Available, Reserved, Under Contract, Sold] }
-          description: Filter by listing status. Top-level `status` is also accepted.
+          schema: { type: integer, enum: [1, 2, 3, 4] }
+          description: "Filter by listing status code. 1=Available, 2=Reserved, 3=Under Contract, 4=Sold. Top-level `status` is also accepted."
         - in: query
           name: filter[property_type]
-          schema: { type: string, enum: [House, Condo, Townhome, Land] }
-          description: Filter by property type. Top-level `property_type` is also accepted.
+          schema:
+            type: integer
+            enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+          description: "Filter by property type code. 1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use. Top-level `property_type` is also accepted."
       responses:
         "200": { description: Paginated tenant-scoped listings. }
         "403": { description: Missing `listings.view` permission. }
@@ -1013,6 +1060,23 @@ paths:
       responses:
         "201": { description: Listing created. }
         "403": { description: Missing `listings.create` permission. }
+        "422": { description: Validation failed. }
+  /listings/{listing}:
+    patch:
+      tags: [Listings]
+      summary: Update listing
+      description: Requires `listings.update`.
+      parameters:
+        - { $ref: "#/components/parameters/ListingId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingUpdatePayload" }
+      responses:
+        "200": { description: Listing updated. }
+        "403": { description: Missing `listings.update` permission. }
+        "404": { description: Listing is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
   /pipeline:
     get:

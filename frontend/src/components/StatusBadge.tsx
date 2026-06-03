@@ -1,8 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import type { ContactStatus, ListingStatus } from "@/types";
-
 type StatusBadgeProps = {
-  status: ContactStatus | ListingStatus | "Queued" | "Sent" | "Draft";
+  status: string;
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {

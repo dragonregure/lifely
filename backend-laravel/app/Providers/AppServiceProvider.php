@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Contracts\ActivityRepositoryInterface;
 use App\Contracts\ContactRepositoryInterface;
+use App\Contracts\DocumentRepositoryInterface;
 use App\Contracts\EmailCampaignRepositoryInterface;
 use App\Contracts\ListingRepositoryInterface;
 use App\Contracts\PipelineRepositoryInterface;
@@ -26,6 +27,7 @@ use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use App\Repositories\ActivityRepository;
 use App\Repositories\ContactRepository;
+use App\Repositories\DocumentRepository;
 use App\Repositories\EmailCampaignRepository;
 use App\Repositories\ListingRepository;
 use App\Repositories\PipelineRepository;
@@ -47,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(ActivityRepositoryInterface::class, ActivityRepository::class);
         $this->app->bind(ContactRepositoryInterface::class, ContactRepository::class);
+        $this->app->bind(DocumentRepositoryInterface::class, DocumentRepository::class);
         $this->app->bind(EmailCampaignRepositoryInterface::class, EmailCampaignRepository::class);
         $this->app->bind(ListingRepositoryInterface::class, ListingRepository::class);
         $this->app->bind(PipelineRepositoryInterface::class, PipelineRepository::class);

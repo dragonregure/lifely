@@ -13,5 +13,9 @@ interface ListingRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
+    public function find(string $tenantId, string $listingId): ?Listing;
+
     public function create(string $tenantId, array $data): Listing;
+
+    public function update(string $tenantId, string $listingId, array $data): ?Listing;
 }

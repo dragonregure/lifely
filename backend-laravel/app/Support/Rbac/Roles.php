@@ -44,6 +44,7 @@ final class Roles
                 Permissions::CONTACTS_VIEW,
                 Permissions::LISTINGS_VIEW,
                 Permissions::LISTINGS_CREATE,
+                Permissions::LISTINGS_UPDATE,
                 Permissions::PIPELINE_VIEW,
                 Permissions::ACTIVITY_LOGS_VIEW,
                 Permissions::REPORTS_VIEW,

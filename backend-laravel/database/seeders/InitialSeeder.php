@@ -49,10 +49,10 @@ class InitialSeeder extends Seeder
         ], [
             'address' => '18 Harbor Lane, Westport',
             'price' => 875000,
-            'status' => 'Available',
+            'status' => Listing::STATUS_AVAILABLE,
             'bedrooms' => 4,
             'bathrooms' => 3,
-            'property_type' => 'House',
+            'property_type' => Listing::TYPE_HOUSE,
         ]);
 
         PipelineDeal::query()->firstOrCreate([

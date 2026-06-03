@@ -27,6 +27,7 @@ final class Permissions
 
     public const LISTINGS_VIEW = 'listings.view';
     public const LISTINGS_CREATE = 'listings.create';
+    public const LISTINGS_UPDATE = 'listings.update';
 
     public const PIPELINE_VIEW = 'pipeline.view';
     public const PIPELINE_CREATE = 'pipeline.create';
@@ -69,6 +70,7 @@ final class Permissions
             self::CONTACTS_DELETE,
             self::LISTINGS_VIEW,
             self::LISTINGS_CREATE,
+            self::LISTINGS_UPDATE,
             self::PIPELINE_VIEW,
             self::PIPELINE_CREATE,
             self::PIPELINE_UPDATE,

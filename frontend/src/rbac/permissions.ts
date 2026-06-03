@@ -28,6 +28,7 @@ export const PERMISSIONS = {
   listings: {
     view: "listings.view",
     create: "listings.create",
+    update: "listings.update",
   },
   pipeline: {
     view: "pipeline.view",

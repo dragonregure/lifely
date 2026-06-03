@@ -15,6 +15,7 @@ class ListingRepository implements ListingRepositoryInterface
     {
         return Listing::query()
             ->where('tenant_id', $tenantId)
+            ->with(['documents' => fn ($query) => $query->where('tenant_id', $tenantId)])
             ->latest()
             ->get();
     }
@@ -22,7 +23,9 @@ class ListingRepository implements ListingRepositoryInterface
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
     {
         return EloquentDataTable::paginate(
-            Listing::query()->where('tenant_id', $tenantId),
+            Listing::query()
+                ->where('tenant_id', $tenantId)
+                ->with(['documents' => fn ($query) => $query->where('tenant_id', $tenantId)]),
             $dataTable,
             ['title', 'address', 'status', 'property_type'],
             ['status' => 'status', 'property_type' => 'property_type'],
@@ -40,8 +43,33 @@ class ListingRepository implements ListingRepositoryInterface
         );
     }
 
+    public function find(string $tenantId, string $listingId): ?Listing
+    {
+        return Listing::query()
+            ->where('tenant_id', $tenantId)
+            ->with(['documents' => fn ($query) => $query->where('tenant_id', $tenantId)])
+            ->find($listingId);
+    }
+
     public function create(string $tenantId, array $data): Listing
     {
-        return Listing::query()->create($data + ['tenant_id' => $tenantId]);
+        return Listing::query()->create($data + ['tenant_id' => $tenantId])->load([
+            'documents' => fn ($query) => $query->where('tenant_id', $tenantId),
+        ]);
+    }
+
+    public function update(string $tenantId, string $listingId, array $data): ?Listing
+    {
+        $listing = $this->find($tenantId, $listingId);
+
+        if (! $listing) {
+            return null;
+        }
+
+        $listing->update($data);
+
+        return $listing->refresh()->load([
+            'documents' => fn ($query) => $query->where('tenant_id', $tenantId),
+        ]);
     }
 }

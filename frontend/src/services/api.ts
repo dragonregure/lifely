@@ -1,5 +1,6 @@
 export { login, logout, register } from "@/services/authService";
 export {
+  createListing,
   createContact,
   deleteContact,
   getActivityLogs,
@@ -16,8 +17,9 @@ export {
   getSession,
   sendBulkEmailDraft,
   updateContact,
+  updateListing,
 } from "@/services/crmService";
-export type { ContactPayload } from "@/services/crmService";
+export type { ContactPayload, ListingPayload } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
 export {
   createReference,

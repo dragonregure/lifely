@@ -2,8 +2,8 @@ import type {
   ActivityLog,
   ContactStatus,
   EmailCampaign,
-  Listing,
   ListingStatus,
+  ListingType,
   PipelineStage,
   ReferenceValue,
   ReferenceStatus,
@@ -68,6 +68,18 @@ export type BackendContact = {
   created_at?: string | null;
 };
 
+export type BackendDocument = {
+  id: string;
+  tenant_id: string;
+  model: string;
+  model_id: string;
+  type: string;
+  order: number;
+  url: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 export type BackendListing = {
   id: string;
   tenant_id: string;
@@ -77,7 +89,8 @@ export type BackendListing = {
   status: ListingStatus;
   bedrooms: number;
   bathrooms: number;
-  property_type: Listing["type"];
+  property_type: ListingType;
+  documents?: BackendDocument[];
 };
 
 export type BackendDeal = {

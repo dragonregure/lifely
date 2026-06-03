@@ -52,7 +52,9 @@ export type Reference = {
 
 export type ContactStatus = "New" | "Qualified" | "Viewing" | "Negotiating" | "Closed" | "Dormant";
 
-export type ListingStatus = "Available" | "Reserved" | "Under Contract" | "Sold";
+export type ListingStatus = 1 | 2 | 3 | 4;
+
+export type ListingType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
 export type PipelineStage = "New lead" | "Contacted" | "Viewing" | "Offer" | "Closing";
 
@@ -89,6 +91,18 @@ export type Contact = {
   lastContactedAt: string;
 };
 
+export type ListingDocument = {
+  id: string;
+  tenantId: string;
+  model: string;
+  modelId: string;
+  type: string;
+  order: number;
+  url: string;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
 export type Listing = {
   id: string;
   tenantId: string;
@@ -98,7 +112,8 @@ export type Listing = {
   status: ListingStatus;
   bedrooms: number;
   bathrooms: number;
-  type: "House" | "Condo" | "Townhome" | "Land";
+  type: ListingType;
+  documents: ListingDocument[];
 };
 
 export type PipelineDeal = {

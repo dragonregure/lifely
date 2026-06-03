@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1000px" height="1000px" viewBox="0 0 1000 1000" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 58 (84663) - https://sketch.com -->
+    <title>Before you start</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Before-you-start" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <ellipse id="Oval" fill="#CED6DC" fill-rule="nonzero" cx="520" cy="766.5" rx="461" ry="37.5"></ellipse>
+        <path d="M50.2743937,493.221894 C59.4431445,390.769454 551.38566,193.025451 642.713073,290.066378 C734.040486,387.107304 646.240505,569.227738 454.851981,615.864146 C263.463456,662.500555 41.1056429,595.674334 50.2743937,493.221894 Z" id="Background-Shape" fill="#DDE3E9" opacity="0.35921224" transform="translate(364.500000, 447.500000) scale(-1, 1) translate(-364.500000, -447.500000) "></path>
+        <path d="M375.191942,560.473033 C383.402967,473.551856 823.959443,305.784828 905.747217,388.114849 C987.534991,470.44487 966.83291,643.61653 795.435945,683.183098 C624.03898,722.749667 366.980916,647.39421 375.191942,560.473033 Z" id="Background-Shape" fill="#DDE3E9"></path>
+        <polygon id="Path-15" fill="#F2F2F2" points="372 749 372 403 590 178 810 403 810 749"></polygon>
+        <polyline id="Path-14" stroke="#C5CFD6" stroke-width="35" stroke-linecap="round" points="303 459 590 167 876 459"></polyline>
+        <rect id="Rectangle" fill="#C5CFD6" x="430" y="502" width="130" height="247" rx="5"></rect>
+        <circle id="Oval" fill="#FFFFFF" cx="495" cy="575" r="25"></circle>
+        <rect id="Rectangle-Copy" fill="#C5CFD6" x="622" y="502" width="130" height="130" rx="5"></rect>
+        <path d="M591.5,313 C654.184319,313 705,363.815681 705,426.5 C705,426.667069 704.999639,426.834054 704.998918,427.000954 L478.004,427 L478,426.5 C478,364.442524 527.804449,314.0175 589.62307,313.015206 Z" id="Combined-Shape" fill="#C5CFD6"></path>
+    </g>
+</svg>

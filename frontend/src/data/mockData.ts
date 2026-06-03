@@ -8,6 +8,7 @@ import type {
   Tenant,
   User,
 } from "@/types";
+import { LISTING_STATUS, LISTING_TYPE } from "@/lib/listingOptions";
 
 export const tenant: Tenant = {
   id: "tenant-skyline",
@@ -140,10 +141,11 @@ export const listings: Listing[] = [
     title: "Harbor View Residence",
     address: "18 Harbor Lane, Westport",
     price: 875000,
-    status: "Available",
+    status: LISTING_STATUS.available,
     bedrooms: 4,
     bathrooms: 3,
-    type: "House",
+    type: LISTING_TYPE.house,
+    documents: [],
   },
   {
     id: "listing-2",
@@ -151,10 +153,11 @@ export const listings: Listing[] = [
     title: "Atlas Park Condo",
     address: "220 Atlas Ave Unit 12B",
     price: 645000,
-    status: "Reserved",
+    status: LISTING_STATUS.reserved,
     bedrooms: 2,
     bathrooms: 2,
-    type: "Condo",
+    type: LISTING_TYPE.condo,
+    documents: [],
   },
   {
     id: "listing-3",
@@ -162,10 +165,11 @@ export const listings: Listing[] = [
     title: "Cedar Row Townhome",
     address: "44 Cedar Row, Northfield",
     price: 735000,
-    status: "Under Contract",
+    status: LISTING_STATUS.underContract,
     bedrooms: 3,
     bathrooms: 3,
-    type: "Townhome",
+    type: LISTING_TYPE.townhome,
+    documents: [],
   },
   {
     id: "listing-4",
@@ -173,10 +177,11 @@ export const listings: Listing[] = [
     title: "Lakefront Parcel",
     address: "Lot 7 Bluewater Road",
     price: 410000,
-    status: "Available",
+    status: LISTING_STATUS.available,
     bedrooms: 0,
     bathrooms: 0,
-    type: "Land",
+    type: LISTING_TYPE.land,
+    documents: [],
   },
 ];
 
