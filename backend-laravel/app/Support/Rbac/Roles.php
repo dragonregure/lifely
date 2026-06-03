@@ -2,6 +2,8 @@
 
 namespace App\Support\Rbac;
 
+use Illuminate\Support\Arr;
+
 final class Roles
 {
     public const SYSTEM_ADMIN = 'System Admin';
@@ -94,5 +96,11 @@ final class Roles
     public static function protectedAdmin(): string
     {
         return self::OFFICE_ADMIN;
+    }
+
+    public static function randomRole(): string
+    {
+        $roles = (new \ReflectionClass(static::class))->getConstants();
+        return Arr::random($roles);
     }
 }
