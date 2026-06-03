@@ -47,10 +47,12 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function configure(): static
+    public function withAssignedRole(?string $role = null): static
     {
-        return $this->afterCreating(function (User $user) {
-            $user->assignRole($user->role);
-        });
+        return $this
+            ->state($role === null ? [] : ['role' => $role])
+            ->afterCreating(function (User $user) use ($role): void {
+                $user->assignRole($role ?? $user->role);
+            });
     }
 }

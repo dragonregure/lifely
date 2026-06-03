@@ -70,3 +70,5 @@ Role and permission mutations must clear Spatie permission cache.
 ## Testing
 
 Feature tests should cover authorized and unauthorized behavior for sensitive endpoints. Prefer direct permission assignment in tests over relying on a broad role unless the test is specifically about role seeding.
+
+`User::factory()` sets the user's `role` column only. Use `withAssignedRole()` when factory-created users must also receive a Spatie role assignment, such as seeded demo users.

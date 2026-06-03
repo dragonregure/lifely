@@ -101,8 +101,11 @@ class InitialSeeder extends Seeder
         $this->admin = $admin;
         $admin->assignRole(Roles::OFFICE_ADMIN);
 
-        User::factory()->count(10)->create([
-            'tenant_id' => $this->tenant->id,
-        ]);
+        User::factory()
+            ->count(10)
+            ->withAssignedRole()
+            ->create([
+                'tenant_id' => $this->tenant->id,
+            ]);
     }
 }
