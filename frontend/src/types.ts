@@ -103,6 +103,10 @@ export type ListingDocument = {
   updatedAt?: string | null;
 };
 
+export type ListingAgent = User & {
+  isPrimaryOwner: boolean;
+};
+
 export type Listing = {
   id: string;
   tenantId: string;
@@ -115,6 +119,7 @@ export type Listing = {
   type: ListingType;
   documents: ListingDocument[];
   contacts: Contact[];
+  agents: ListingAgent[];
 };
 
 export type PipelineDeal = {

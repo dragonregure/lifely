@@ -22,6 +22,7 @@ class ListingResource extends JsonResource
             'property_type' => (int) $this->property_type,
             'documents' => DocumentResource::collection($this->whenLoaded('documents')),
             'contacts' => ContactResource::collection($this->whenLoaded('contacts')),
+            'users' => MemberResource::collection($this->whenLoaded('users')),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

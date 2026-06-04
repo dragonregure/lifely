@@ -147,6 +147,7 @@ export const listings: Listing[] = [
     type: LISTING_TYPE.house,
     documents: [],
     contacts: [contacts[0], contacts[5]],
+    agents: [{ ...users[0], isPrimaryOwner: true }, { ...users[1], isPrimaryOwner: false }],
   },
   {
     id: "listing-2",
@@ -160,6 +161,7 @@ export const listings: Listing[] = [
     type: LISTING_TYPE.condo,
     documents: [],
     contacts: [contacts[2]],
+    agents: [{ ...users[1], isPrimaryOwner: true }],
   },
   {
     id: "listing-3",
@@ -173,6 +175,7 @@ export const listings: Listing[] = [
     type: LISTING_TYPE.townhome,
     documents: [],
     contacts: [contacts[3]],
+    agents: [{ ...users[2], isPrimaryOwner: true }],
   },
   {
     id: "listing-4",
@@ -186,6 +189,7 @@ export const listings: Listing[] = [
     type: LISTING_TYPE.land,
     documents: [],
     contacts: [contacts[1]],
+    agents: [],
   },
 ];
 

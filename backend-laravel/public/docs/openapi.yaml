@@ -172,6 +172,10 @@ components:
           items: { type: string }
         name: { type: string }
         email: { type: string, format: email }
+        is_primary_owner:
+          type: boolean
+          nullable: true
+          description: Present on listing user assignment responses. True when this member is the listing primary owner.
         created_at: { type: string, format: date-time, nullable: true }
     Permission:
       type: object
@@ -259,6 +263,10 @@ components:
         contacts:
           type: array
           items: { $ref: "#/components/schemas/Contact" }
+        users:
+          type: array
+          description: User assignments for this listing. `is_primary_owner` marks the selected primary owner.
+          items: { $ref: "#/components/schemas/Member" }
         created_at: { type: string, format: date-time, nullable: true }
     PipelineDeal:
       type: object
@@ -495,6 +503,16 @@ components:
           nullable: true
           items: { type: string, format: uuid }
           description: Contact UUIDs to assign to this listing. Contacts must belong to the current tenant.
+        user_ids:
+          type: array
+          nullable: true
+          items: { type: string, format: uuid }
+          description: User UUIDs to assign as listing agents. Users must belong to the current tenant.
+        primary_owner_user_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Assigned user UUID to mark as the primary owner. Must be included in `user_ids` when provided.
     ListingUpdatePayload:
       type: object
       properties:
@@ -515,6 +533,15 @@ components:
           type: array
           items: { type: string, format: uuid }
           description: Full replacement list of assigned contact UUIDs. Send an empty array to unassign all contacts.
+        user_ids:
+          type: array
+          items: { type: string, format: uuid }
+          description: Full replacement list of assigned user UUIDs. Send an empty array to unassign all agents.
+        primary_owner_user_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Assigned user UUID to mark as the primary owner. Must be included in `user_ids` when provided.
     PipelineStorePayload:
       type: object
       required: [contact_id, listing_id, user_id, value]

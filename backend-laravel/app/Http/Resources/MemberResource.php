@@ -18,6 +18,10 @@ class MemberResource extends JsonResource
             'direct_permissions' => $this->getDirectPermissions()->pluck('name')->values(),
             'name' => $this->name,
             'email' => $this->email,
+            'is_primary_owner' => $this->whenPivotLoaded(
+                'listing_users',
+                fn () => (bool) $this->resource->getRelation('pivot')->getAttribute('is_primary_owner')
+            ),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

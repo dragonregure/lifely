@@ -145,6 +145,10 @@ export function mapListing(listing: BackendListing): Listing {
     type: Number(listing.property_type) as ListingType,
     documents: listing.documents?.map(mapDocument) ?? [],
     contacts: listing.contacts?.map(mapContact) ?? [],
+    agents: listing.users?.map((user) => ({
+      ...mapUser(user),
+      isPrimaryOwner: Boolean(user.is_primary_owner),
+    })) ?? [],
   };
 }
 

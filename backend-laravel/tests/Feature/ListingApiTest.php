@@ -48,6 +48,38 @@ class ListingApiTest extends TestCase
         ]);
     }
 
+    public function test_authorized_user_can_create_listing_with_agents_and_primary_owner(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_CREATE]);
+        $primaryAgent = $this->createUser($tenant, 'Priya Agent', 'priya.agent@example.com');
+        $secondaryAgent = $this->createUser($tenant, 'Jon Agent', 'jon.agent@example.com');
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/listings', $this->listingPayload([
+                'user_ids' => [$secondaryAgent->id, $primaryAgent->id],
+                'primary_owner_user_id' => $primaryAgent->id,
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('data.users.0.id', $primaryAgent->id)
+            ->assertJsonPath('data.users.0.is_primary_owner', true)
+            ->assertJsonPath('data.users.1.id', $secondaryAgent->id)
+            ->assertJsonPath('data.users.1.is_primary_owner', false);
+
+        $listing = Listing::query()->where('tenant_id', $tenant->id)->firstOrFail();
+
+        $this->assertDatabaseHas('listing_users', [
+            'listing_id' => $listing->id,
+            'user_id' => $primaryAgent->id,
+            'is_primary_owner' => true,
+        ]);
+        $this->assertDatabaseHas('listing_users', [
+            'listing_id' => $listing->id,
+            'user_id' => $secondaryAgent->id,
+            'is_primary_owner' => null,
+        ]);
+    }
+
     public function test_authorized_user_can_update_listing_contacts(): void
     {
         $tenant = Tenant::factory()->create();
@@ -74,6 +106,68 @@ class ListingApiTest extends TestCase
         ]);
     }
 
+    public function test_authorized_user_can_update_listing_agents_and_primary_owner(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_UPDATE]);
+        $listing = $this->createListing($tenant);
+        $existingAgent = $this->createUser($tenant, 'Existing Agent', 'existing.agent@example.com');
+        $nextAgent = $this->createUser($tenant, 'Next Agent', 'next.agent@example.com');
+        $listing->users()->sync([$existingAgent->id => ['is_primary_owner' => true]]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/listings/{$listing->id}", [
+                'user_ids' => [$nextAgent->id],
+                'primary_owner_user_id' => $nextAgent->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.users.0.id', $nextAgent->id)
+            ->assertJsonPath('data.users.0.is_primary_owner', true);
+
+        $this->assertDatabaseMissing('listing_users', [
+            'listing_id' => $listing->id,
+            'user_id' => $existingAgent->id,
+        ]);
+        $this->assertDatabaseHas('listing_users', [
+            'listing_id' => $listing->id,
+            'user_id' => $nextAgent->id,
+            'is_primary_owner' => true,
+        ]);
+    }
+
+    public function test_authorized_user_can_switch_primary_owner_between_assigned_agents(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_UPDATE]);
+        $listing = $this->createListing($tenant);
+        $firstAgent = $this->createUser($tenant, 'First Agent', 'first.agent@example.com');
+        $secondAgent = $this->createUser($tenant, 'Second Agent', 'second.agent@example.com');
+        $listing->users()->sync([
+            $firstAgent->id => ['is_primary_owner' => true],
+            $secondAgent->id => ['is_primary_owner' => null],
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/listings/{$listing->id}", [
+                'user_ids' => [$firstAgent->id, $secondAgent->id],
+                'primary_owner_user_id' => $secondAgent->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.users.0.id', $secondAgent->id)
+            ->assertJsonPath('data.users.0.is_primary_owner', true);
+
+        $this->assertDatabaseHas('listing_users', [
+            'listing_id' => $listing->id,
+            'user_id' => $firstAgent->id,
+            'is_primary_owner' => null,
+        ]);
+        $this->assertDatabaseHas('listing_users', [
+            'listing_id' => $listing->id,
+            'user_id' => $secondAgent->id,
+            'is_primary_owner' => true,
+        ]);
+    }
+
     public function test_listing_contact_assignments_must_belong_to_current_tenant(): void
     {
         $tenant = Tenant::factory()->create();
@@ -89,6 +183,42 @@ class ListingApiTest extends TestCase
             ->assertJsonValidationErrors('contact_ids.0');
 
         $this->assertDatabaseCount('listing_contacts', 0);
+    }
+
+    public function test_listing_agent_assignments_must_belong_to_current_tenant(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $otherTenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_CREATE]);
+        $otherAgent = $this->createUser($otherTenant, 'Other Agent', 'other.agent@example.com');
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/listings', $this->listingPayload([
+                'user_ids' => [$otherAgent->id],
+                'primary_owner_user_id' => $otherAgent->id,
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['user_ids.0', 'primary_owner_user_id']);
+
+        $this->assertDatabaseCount('listing_users', 0);
+    }
+
+    public function test_listing_primary_owner_must_be_assigned_user(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_CREATE]);
+        $assignedAgent = $this->createUser($tenant, 'Assigned Agent', 'assigned.agent@example.com');
+        $unassignedAgent = $this->createUser($tenant, 'Unassigned Agent', 'unassigned.agent@example.com');
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/listings', $this->listingPayload([
+                'user_ids' => [$assignedAgent->id],
+                'primary_owner_user_id' => $unassignedAgent->id,
+            ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('primary_owner_user_id');
+
+        $this->assertDatabaseCount('listing_users', 0);
     }
 
     /**
@@ -139,6 +269,15 @@ class ListingApiTest extends TestCase
             'budget' => 500000,
             'source' => 'Website',
             'last_contacted_at' => now(),
+        ]);
+    }
+
+    private function createUser(Tenant $tenant, string $name, string $email): User
+    {
+        return User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => $name,
+            'email' => $email,
         ]);
     }
 }

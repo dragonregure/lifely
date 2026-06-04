@@ -31,6 +31,31 @@ class UpdateListingRequest extends FormRequest
             'property_type' => ['sometimes', 'integer', Rule::in(Listing::propertyTypeValues())],
             'contact_ids' => ['sometimes', 'array'],
             'contact_ids.*' => ['required', 'uuid', 'distinct', Rule::exists('contacts', 'id')->where('tenant_id', $tenantId)],
+            'user_ids' => ['sometimes', 'array'],
+            'user_ids.*' => ['required', 'uuid', 'distinct', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
+            'primary_owner_user_id' => ['sometimes', 'nullable', 'uuid', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator): void {
+            if (! $this->has('primary_owner_user_id')) {
+                return;
+            }
+
+            if (! $this->has('user_ids')) {
+                $validator->errors()->add('primary_owner_user_id', 'Provide user_ids when setting the primary owner.');
+
+                return;
+            }
+
+            if (
+                $this->filled('primary_owner_user_id')
+                && ! in_array($this->input('primary_owner_user_id'), $this->input('user_ids', []), true)
+            ) {
+                $validator->errors()->add('primary_owner_user_id', 'The primary owner must be one of the assigned users.');
+            }
+        });
     }
 }

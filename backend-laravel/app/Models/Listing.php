@@ -103,6 +103,13 @@ class Listing extends Model
             ->using(ListingContact::class);
     }
 
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'listing_users')
+            ->using(ListingUser::class)
+            ->withPivot('is_primary_owner');
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class, 'model_id')

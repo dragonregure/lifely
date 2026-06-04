@@ -16,12 +16,12 @@ import {
   type ServerMultiSelectOption,
 } from "@/components/ui/server-multi-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createListing, getContactsPage, getListingsPage, updateListing, type ListingPayload } from "@/services/api";
+import { createListing, getContactsPage, getListingsPage, getMembersPage, updateListing, type ListingPayload } from "@/services/api";
 import { LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS, listingStatusLabel, listingTypeLabel } from "@/lib/listingOptions";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import type { Contact, Listing } from "@/types";
+import type { Contact, Listing, ListingAgent, User } from "@/types";
 
 const PAGE_SIZE_OPTIONS = [8, 12, 16, 24];
 
@@ -39,10 +39,16 @@ type ListingDraft = {
   bathrooms: string;
   type: string;
   contacts: Contact[];
+  agents: ListingAgent[];
+  primaryOwnerUserId: string | null;
 };
 
 type ContactOption = ServerMultiSelectOption & {
   contact: Contact;
+};
+
+type AgentOption = ServerMultiSelectOption & {
+  user: User;
 };
 
 function listingImageUrl(listing: Listing) {
@@ -51,6 +57,10 @@ function listingImageUrl(listing: Listing) {
 
 function contactName(contact: Contact) {
   return `${contact.firstName} ${contact.lastName}`;
+}
+
+function userName(user: User) {
+  return user.name;
 }
 
 function handleImageFallback(event: SyntheticEvent<HTMLImageElement>) {
@@ -70,6 +80,8 @@ function emptyListingDraft(statusOptions: ListingOption[], typeOptions: ListingO
     bathrooms: "0",
     type: String(typeOptions[0]?.value ?? ""),
     contacts: [],
+    agents: [],
+    primaryOwnerUserId: null,
   };
 }
 
@@ -83,6 +95,8 @@ function draftFromListing(listing: Listing): ListingDraft {
     bathrooms: String(listing.bathrooms),
     type: String(listing.type),
     contacts: listing.contacts,
+    agents: listing.agents,
+    primaryOwnerUserId: listing.agents.find((agent) => agent.isPrimaryOwner)?.id ?? null,
   };
 }
 
@@ -96,6 +110,8 @@ function payloadFromDraft(draft: ListingDraft): ListingPayload {
     bathrooms: Number(draft.bathrooms),
     type: Number(draft.type) as ListingPayload["type"],
     contactIds: draft.contacts.map((contact) => contact.id),
+    userIds: draft.agents.map((agent) => agent.id),
+    primaryOwnerUserId: draft.primaryOwnerUserId,
   };
 }
 
@@ -108,6 +124,15 @@ function contactToOption(contact: Contact): ContactOption {
   };
 }
 
+function userToOption(user: User): AgentOption {
+  return {
+    value: user.id,
+    label: userName(user),
+    description: user.email,
+    user,
+  };
+}
+
 type ListingFormFieldsProps = {
   draft: ListingDraft;
   statusOptions: ListingOption[];
@@ -116,7 +141,7 @@ type ListingFormFieldsProps = {
 };
 
 function ListingFormFields({ draft, statusOptions, typeOptions, setDraft }: ListingFormFieldsProps) {
-  const updateDraft = (field: Exclude<keyof ListingDraft, "contacts">, value: string) => {
+  const updateDraft = (field: Exclude<keyof ListingDraft, "contacts" | "agents" | "primaryOwnerUserId">, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
   };
 
@@ -190,11 +215,12 @@ function ListingFormFields({ draft, statusOptions, typeOptions, setDraft }: List
 
 type ListingAssignmentFieldsProps = {
   draft: ListingDraft;
+  loadAgentOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<AgentOption>>;
   loadContactOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ContactOption>>;
   setDraft: Dispatch<SetStateAction<ListingDraft>>;
 };
 
-function ListingAssignmentFields({ draft, loadContactOptions, setDraft }: ListingAssignmentFieldsProps) {
+function ListingAssignmentFields({ draft, loadAgentOptions, loadContactOptions, setDraft }: ListingAssignmentFieldsProps) {
   const addContacts = (selectedOptions: ContactOption[]) => {
     if (selectedOptions.length === 0) return;
 
@@ -216,6 +242,39 @@ function ListingAssignmentFields({ draft, loadContactOptions, setDraft }: Listin
     setDraft((current) => ({
       ...current,
       contacts: current.contacts.filter((contact) => contact.id !== contactId),
+    }));
+  };
+
+  const addAgents = (selectedOptions: AgentOption[]) => {
+    if (selectedOptions.length === 0) return;
+
+    setDraft((current) => {
+      const assignedIds = new Set(current.agents.map((agent) => agent.id));
+      const nextAgents = selectedOptions
+        .map((option) => option.user)
+        .filter((user) => !assignedIds.has(user.id))
+        .map((user) => ({ ...user, isPrimaryOwner: false }));
+
+      if (nextAgents.length === 0) {
+        return current;
+      }
+
+      return { ...current, agents: [...current.agents, ...nextAgents] };
+    });
+  };
+
+  const removeAgent = (agentId: string) => {
+    setDraft((current) => ({
+      ...current,
+      agents: current.agents.filter((agent) => agent.id !== agentId),
+      primaryOwnerUserId: current.primaryOwnerUserId === agentId ? null : current.primaryOwnerUserId,
+    }));
+  };
+
+  const setPrimaryOwner = (agentId: string, isChecked: boolean) => {
+    setDraft((current) => ({
+      ...current,
+      primaryOwnerUserId: isChecked ? agentId : null,
     }));
   };
 
@@ -256,6 +315,50 @@ function ListingAssignmentFields({ draft, loadContactOptions, setDraft }: Listin
           </ul>
         )}
       </div>
+
+      <div className="grid gap-2">
+        <Label htmlFor="listing-agent-assignment">Agents</Label>
+        <ServerMultiSelect<AgentOption>
+          id="listing-agent-assignment"
+          value={[]}
+          onChange={addAgents}
+          loadOptions={loadAgentOptions}
+          placeholder="Add agents"
+          searchPlaceholder="Search agents..."
+          emptyLabel="No agents found."
+        />
+      </div>
+
+      <div className="rounded-md border bg-slate-50 p-3">
+        {draft.agents.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No agents assigned.</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {draft.agents.map((agent) => (
+              <li key={agent.id} className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900 ring-1 ring-border">
+                <span className="truncate">{userName(agent)}</span>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 shrink-0 rounded border-input accent-primary focus:outline-none focus:ring-2 focus:ring-ring"
+                  checked={draft.primaryOwnerUserId === agent.id}
+                  onChange={(event) => setPrimaryOwner(agent.id, event.target.checked)}
+                  title="Set this user as primary owner"
+                  aria-label={`Set ${userName(agent)} as primary owner`}
+                />
+                <button
+                  type="button"
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label={`Unassign ${userName(agent)}`}
+                  title={`Unassign ${userName(agent)}`}
+                  onClick={() => removeAgent(agent.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -285,6 +388,7 @@ export function ListingsPage() {
   const typeOptions = LISTING_TYPE_OPTIONS;
   const [refreshKey, setRefreshKey] = useState(0);
   const assignedContactIds = useMemo(() => new Set(formDraft.contacts.map((contact) => contact.id)), [formDraft.contacts]);
+  const assignedAgentIds = useMemo(() => new Set(formDraft.agents.map((agent) => agent.id)), [formDraft.agents]);
 
   const loadContactOptions = useCallback(
     async ({ search, page, pageSize, signal }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<ContactOption>> => {
@@ -310,6 +414,32 @@ export function ListingsPage() {
       };
     },
     [assignedContactIds],
+  );
+
+  const loadAgentOptions = useCallback(
+    async ({ search, page, pageSize, signal }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<AgentOption>> => {
+      const result = await getMembersPage(
+        {
+          page,
+          pageSize,
+          search,
+          sort: {
+            columnId: "name",
+            direction: "asc",
+          },
+        },
+        { signal },
+      );
+
+      return {
+        options: result.data.map((user) => ({
+          ...userToOption(user),
+          disabled: assignedAgentIds.has(user.id),
+        })),
+        hasMore: result.page < result.pageCount,
+      };
+    },
+    [assignedAgentIds],
   );
 
   useEffect(() => {
@@ -639,6 +769,22 @@ export function ListingsPage() {
                   </div>
                 )}
               </div>
+
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-xs uppercase text-muted-foreground">Assigned agents</p>
+                {selectedListing.agents.length === 0 ? (
+                  <p className="mt-1 text-sm font-medium text-slate-900">No agents assigned</p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedListing.agents.map((agent) => (
+                      <span key={agent.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900">
+                        {userName(agent)}
+                        {agent.isPrimaryOwner ? <span className="ml-1 text-xs text-muted-foreground">(primary)</span> : null}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </DialogContent>
         ) : null}
@@ -667,7 +813,12 @@ export function ListingsPage() {
                 />
               </TabsContent>
               <TabsContent value="assignment">
-                <ListingAssignmentFields draft={formDraft} loadContactOptions={loadContactOptions} setDraft={setFormDraft} />
+                <ListingAssignmentFields
+                  draft={formDraft}
+                  loadAgentOptions={loadAgentOptions}
+                  loadContactOptions={loadContactOptions}
+                  setDraft={setFormDraft}
+                />
               </TabsContent>
             </Tabs>
             <div className="flex justify-end gap-2">

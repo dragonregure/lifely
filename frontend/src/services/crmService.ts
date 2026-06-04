@@ -37,6 +37,8 @@ export type ListingPayload = {
   bathrooms?: number;
   type?: ListingType;
   contactIds?: string[];
+  userIds?: string[];
+  primaryOwnerUserId?: string | null;
 };
 
 function toBackendContactPayload(payload: Partial<ContactPayload>) {
@@ -63,6 +65,8 @@ function toBackendListingPayload(payload: Partial<ListingPayload>) {
     ...(payload.bathrooms !== undefined ? { bathrooms: payload.bathrooms } : {}),
     ...(payload.type !== undefined ? { property_type: payload.type } : {}),
     ...(payload.contactIds !== undefined ? { contact_ids: payload.contactIds } : {}),
+    ...(payload.userIds !== undefined ? { user_ids: payload.userIds } : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, "primaryOwnerUserId") ? { primary_owner_user_id: payload.primaryOwnerUserId } : {}),
   };
 }
 

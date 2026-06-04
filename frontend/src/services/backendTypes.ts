@@ -92,6 +92,7 @@ export type BackendListing = {
   property_type: ListingType;
   documents?: BackendDocument[];
   contacts?: BackendContact[];
+  users?: Array<BackendUser & { is_primary_owner?: boolean | null }>;
 };
 
 export type BackendDeal = {
