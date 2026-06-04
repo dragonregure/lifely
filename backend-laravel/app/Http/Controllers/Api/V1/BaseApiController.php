@@ -10,6 +10,8 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 abstract class BaseApiController extends Controller
 {
+    protected const ALLOWED_INCLUDES = [];
+
     protected function tenantId(Request $request): string
     {
         $tenantId = app(TenantResolver::class)->resolve($request);
@@ -25,5 +27,28 @@ abstract class BaseApiController extends Controller
         }
 
         return $tenantId;
+    }
+
+    protected function includes(Request $request): array
+    {
+        $requested = $request->query('include', []);
+        $values = is_array($requested) ? $requested : [$requested];
+        $includes = [];
+
+        foreach ($values as $value) {
+            if (! is_string($value)) {
+                continue;
+            }
+
+            foreach (explode(',', $value) as $relation) {
+                $relation = trim($relation);
+
+                if (in_array($relation, static::ALLOWED_INCLUDES, true) && ! in_array($relation, $includes, true)) {
+                    $includes[] = $relation;
+                }
+            }
+        }
+
+        return $includes;
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Listing;
 use App\Models\Reference;
 use App\Models\Tenant;
@@ -38,8 +39,7 @@ class ListingApiTest extends TestCase
             ]))
             ->assertCreated()
             ->assertJsonPath('data.title', 'Harbor View Residence')
-            ->assertJsonPath('data.contacts.0.id', $contact->id)
-            ->assertJsonPath('data.contacts.0.email', 'ethan@example.com');
+            ->assertJsonMissingPath('data.contacts');
 
         $listing = Listing::query()->where('tenant_id', $tenant->id)->firstOrFail();
 
@@ -62,10 +62,7 @@ class ListingApiTest extends TestCase
                 'primary_owner_user_id' => $primaryAgent->id,
             ]))
             ->assertCreated()
-            ->assertJsonPath('data.users.0.id', $primaryAgent->id)
-            ->assertJsonPath('data.users.0.is_primary_owner', true)
-            ->assertJsonPath('data.users.1.id', $secondaryAgent->id)
-            ->assertJsonPath('data.users.1.is_primary_owner', false);
+            ->assertJsonMissingPath('data.users');
 
         $listing = Listing::query()->where('tenant_id', $tenant->id)->firstOrFail();
 
@@ -95,7 +92,7 @@ class ListingApiTest extends TestCase
                 'contact_ids' => [$nextContact->id],
             ])
             ->assertOk()
-            ->assertJsonPath('data.contacts.0.id', $nextContact->id);
+            ->assertJsonMissingPath('data.contacts');
 
         $this->assertDatabaseMissing('listing_contacts', [
             'listing_id' => $listing->id,
@@ -122,8 +119,7 @@ class ListingApiTest extends TestCase
                 'primary_owner_user_id' => $nextAgent->id,
             ])
             ->assertOk()
-            ->assertJsonPath('data.users.0.id', $nextAgent->id)
-            ->assertJsonPath('data.users.0.is_primary_owner', true);
+            ->assertJsonMissingPath('data.users');
 
         $this->assertDatabaseMissing('listing_users', [
             'listing_id' => $listing->id,
@@ -154,8 +150,7 @@ class ListingApiTest extends TestCase
                 'primary_owner_user_id' => $secondAgent->id,
             ])
             ->assertOk()
-            ->assertJsonPath('data.users.0.id', $secondAgent->id)
-            ->assertJsonPath('data.users.0.is_primary_owner', true);
+            ->assertJsonMissingPath('data.users');
 
         $this->assertDatabaseHas('listing_users', [
             'listing_id' => $listing->id,
@@ -167,6 +162,79 @@ class ListingApiTest extends TestCase
             'user_id' => $secondAgent->id,
             'is_primary_owner' => true,
         ]);
+    }
+
+    public function test_listing_index_omits_relations_by_default(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_VIEW]);
+        $listing = $this->createListing($tenant);
+        $contact = $this->createContact($tenant);
+        $listing->contacts()->sync([$contact->id]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/listings')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $listing->id)
+            ->assertJsonMissingPath('data.0.contacts')
+            ->assertJsonMissingPath('data.0.users')
+            ->assertJsonMissingPath('data.0.documents');
+    }
+
+    public function test_listing_index_can_include_requested_relations(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_VIEW]);
+        $listing = $this->createListing($tenant);
+        $contact = $this->createContact($tenant);
+        $agent = $this->createUser($tenant, 'Priya Agent', 'priya.agent@example.com');
+        $listing->contacts()->sync([$contact->id]);
+        $listing->users()->sync([$agent->id => ['is_primary_owner' => true]]);
+        Document::query()->create([
+            'tenant_id' => $tenant->id,
+            'model' => 'listing',
+            'model_id' => $listing->id,
+            'type' => 'mainImage',
+            'order' => 1,
+            'url' => 'https://example.test/listing.jpg',
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/listings?include[]=documents&include[]=contacts&include[]=users')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $listing->id)
+            ->assertJsonPath('data.0.documents.0.url', 'https://example.test/listing.jpg')
+            ->assertJsonPath('data.0.contacts.0.id', $contact->id)
+            ->assertJsonPath('data.0.users.0.id', $agent->id)
+            ->assertJsonPath('data.0.users.0.is_primary_owner', true);
+    }
+
+    public function test_authorized_user_can_fetch_listing_with_requested_relations(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $this->actingUserWithPermissions($tenant, [Permissions::LISTINGS_VIEW]);
+        $listing = $this->createListing($tenant);
+        $contact = $this->createContact($tenant);
+        $agent = $this->createUser($tenant, 'Priya Agent', 'priya.agent@example.com');
+        $listing->contacts()->sync([$contact->id]);
+        $listing->users()->sync([$agent->id => ['is_primary_owner' => true]]);
+        Document::query()->create([
+            'tenant_id' => $tenant->id,
+            'model' => 'listing',
+            'model_id' => $listing->id,
+            'type' => 'mainImage',
+            'order' => 1,
+            'url' => 'https://example.test/listing.jpg',
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson("/api/v1/listings/{$listing->id}?include[]=documents&include[]=contacts&include[]=users")
+            ->assertOk()
+            ->assertJsonPath('data.id', $listing->id)
+            ->assertJsonPath('data.documents.0.url', 'https://example.test/listing.jpg')
+            ->assertJsonPath('data.contacts.0.id', $contact->id)
+            ->assertJsonPath('data.users.0.id', $agent->id)
+            ->assertJsonPath('data.users.0.is_primary_owner', true);
     }
 
     public function test_listing_contact_assignments_must_belong_to_current_tenant(): void

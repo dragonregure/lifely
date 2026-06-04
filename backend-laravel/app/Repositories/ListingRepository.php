@@ -17,17 +17,16 @@ class ListingRepository implements ListingRepositoryInterface
     {
         return Listing::query()
             ->where('tenant_id', $tenantId)
-            ->with($this->relations($tenantId))
             ->latest()
             ->get();
     }
 
-    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+    public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
     {
         return EloquentDataTable::paginate(
             Listing::query()
                 ->where('tenant_id', $tenantId)
-                ->with($this->relations($tenantId)),
+                ->with($this->relations($tenantId, $includes)),
             $dataTable,
             ['title', 'address', 'status', 'property_type'],
             ['status' => 'status', 'property_type' => 'property_type'],
@@ -45,11 +44,11 @@ class ListingRepository implements ListingRepositoryInterface
         );
     }
 
-    public function find(string $tenantId, string $listingId): ?Listing
+    public function find(string $tenantId, string $listingId, array $includes = []): ?Listing
     {
         return Listing::query()
             ->where('tenant_id', $tenantId)
-            ->with($this->relations($tenantId))
+            ->with($this->relations($tenantId, $includes))
             ->find($listingId);
     }
 
@@ -64,7 +63,7 @@ class ListingRepository implements ListingRepositoryInterface
             $listing->contacts()->sync($contactIds);
             $listing->users()->sync($this->userSyncPayload($userIds, $primaryOwnerUserId));
 
-            return $listing->load($this->relations($tenantId));
+            return $listing;
         });
     }
 
@@ -81,7 +80,7 @@ class ListingRepository implements ListingRepositoryInterface
             return null;
         }
 
-        return DB::transaction(function () use ($tenantId, $listing, $data, $hasContactIds, $contactIds, $hasUserIds, $userIds, $primaryOwnerUserId): Listing {
+        return DB::transaction(function () use ($listing, $data, $hasContactIds, $contactIds, $hasUserIds, $userIds, $primaryOwnerUserId): Listing {
             $listing->update($data);
 
             if ($hasContactIds) {
@@ -96,17 +95,24 @@ class ListingRepository implements ListingRepositoryInterface
                 $listing->users()->sync($this->userSyncPayload($userIds, $primaryOwnerUserId));
             }
 
-            return $listing->refresh()->load($this->relations($tenantId));
+            return $listing->refresh();
         });
     }
 
-    private function relations(string $tenantId): array
+    private function relations(string $tenantId, array $includes): array
     {
-        return [
+        $relations = [
             'documents' => fn ($query) => $query->where('tenant_id', $tenantId),
-            'contacts' => fn ($query) => $query->where('tenant_id', $tenantId)->orderBy('first_name')->orderBy('last_name'),
-            'users' => fn ($query) => $query->where('tenant_id', $tenantId)->orderByDesc('listing_users.is_primary_owner')->orderBy('name'),
+            'contacts' => fn ($query) => $query->where('tenant_id', $tenantId)
+                ->with('statusReference')
+                ->orderBy('first_name')
+                ->orderBy('last_name'),
+            'users' => fn ($query) => $query->where('tenant_id', $tenantId)
+                ->orderByDesc('listing_users.is_primary_owner')
+                ->orderBy('name'),
         ];
+
+        return array_intersect_key($relations, array_flip($includes));
     }
 
     private function userSyncPayload(array $userIds, ?string $primaryOwnerUserId): array

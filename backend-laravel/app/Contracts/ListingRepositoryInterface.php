@@ -11,9 +11,9 @@ interface ListingRepositoryInterface
 {
     public function all(string $tenantId): Collection;
 
-    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
+    public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator;
 
-    public function find(string $tenantId, string $listingId): ?Listing;
+    public function find(string $tenantId, string $listingId, array $includes = []): ?Listing;
 
     public function create(string $tenantId, array $data): Listing;
 

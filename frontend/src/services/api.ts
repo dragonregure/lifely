@@ -9,6 +9,7 @@ export {
   getContactsPage,
   getEmailCampaigns,
   getEmailCampaignsPage,
+  getListing,
   getListings,
   getListingsPage,
   getMembers,
@@ -20,7 +21,7 @@ export {
   updateContact,
   updateListing,
 } from "@/services/crmService";
-export type { ContactPayload, ListingPayload } from "@/services/crmService";
+export type { ContactPayload, ListingInclude, ListingPayload } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
 export {
   createReference,

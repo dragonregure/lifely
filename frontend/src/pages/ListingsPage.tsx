@@ -16,7 +16,7 @@ import {
   type ServerMultiSelectOption,
 } from "@/components/ui/server-multi-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createListing, getContactsPage, getListingsPage, getMembersPage, updateListing, type ListingPayload } from "@/services/api";
+import { createListing, getContactsPage, getListing, getListingsPage, getMembersPage, updateListing, type ListingInclude, type ListingPayload } from "@/services/api";
 import { LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS, listingStatusLabel, listingTypeLabel } from "@/lib/listingOptions";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
@@ -24,6 +24,7 @@ import { useAuthorization } from "@/rbac/useAuthorization";
 import type { Contact, Listing, ListingAgent, User } from "@/types";
 
 const PAGE_SIZE_OPTIONS = [8, 12, 16, 24];
+const LISTING_DETAIL_INCLUDES = ["documents", "contacts", "users"] satisfies ListingInclude[];
 
 type ListingOption = {
   label: string;
@@ -374,6 +375,7 @@ export function ListingsPage() {
   const [formDraft, setFormDraft] = useState<ListingDraft>(() => emptyListingDraft(LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -509,6 +511,19 @@ export function ListingsPage() {
     setIsFormOpen(true);
   };
 
+  const openListingDetails = useCallback(async (listing: Listing) => {
+    setDetailLoadingId(listing.id);
+    setError(null);
+
+    try {
+      setSelectedListing(await getListing(listing.id, { include: LISTING_DETAIL_INCLUDES }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to load listing details.");
+    } finally {
+      setDetailLoadingId(null);
+    }
+  }, []);
+
   const openEditForm = (listing: Listing) => {
     setFormListing(listing);
     setSelectedListing(null);
@@ -529,9 +544,15 @@ export function ListingsPage() {
       const listing = formListing ? await updateListing(formListing.id, payload) : await createListing(payload);
 
       setListings((current) => (formListing ? current.map((item) => (item.id === listing.id ? listing : item)) : [listing, ...current]));
-      setSelectedListing(listing);
       setIsFormOpen(false);
       setRefreshKey((value) => value + 1);
+
+      try {
+        setSelectedListing(await getListing(listing.id, { include: LISTING_DETAIL_INCLUDES }));
+      } catch {
+        setSelectedListing(listing);
+        setError("Listing saved, but the related detail data could not be loaded.");
+      }
     } catch (caught) {
       setFormError(caught instanceof Error ? caught.message : "Unable to save listing.");
     } finally {
@@ -628,7 +649,9 @@ export function ListingsPage() {
               key={listing.id}
               type="button"
               className="group overflow-hidden rounded-lg border bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
-              onClick={() => setSelectedListing(listing)}
+              aria-busy={detailLoadingId === listing.id}
+              disabled={detailLoadingId === listing.id}
+              onClick={() => void openListingDetails(listing)}
             >
               <img
                 src={listingImageUrl(listing)}

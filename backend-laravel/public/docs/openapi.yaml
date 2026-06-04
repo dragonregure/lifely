@@ -74,6 +74,15 @@ components:
       required: true
       schema: { type: string, format: uuid }
       description: Tenant-scoped listing UUID.
+    ListingIncludes:
+      in: query
+      name: include[]
+      style: form
+      explode: true
+      schema:
+        type: array
+        items: { type: string, enum: [documents, contacts, users] }
+      description: Optional listing relations to include. Omit this parameter for main listing fields only.
     PipelineId:
       in: path
       name: pipeline
@@ -260,13 +269,15 @@ components:
           description: "1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use."
         documents:
           type: array
+          description: Present only when `documents` is requested through `include[]`.
           items: { $ref: "#/components/schemas/Document" }
         contacts:
           type: array
+          description: Present only when `contacts` is requested through `include[]`.
           items: { $ref: "#/components/schemas/Contact" }
         users:
           type: array
-          description: User assignments for this listing. `is_primary_owner` marks the selected primary owner.
+          description: Present only when `users` is requested through `include[]`. User assignments include `is_primary_owner` for the selected primary owner.
           items: { $ref: "#/components/schemas/Member" }
         created_at: { type: string, format: date-time, nullable: true }
     PipelineDeal:
@@ -1094,6 +1105,7 @@ paths:
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/PerPage" }
         - { $ref: "#/components/parameters/Search" }
+        - { $ref: "#/components/parameters/ListingIncludes" }
         - in: query
           name: sort
           schema: { type: string, enum: [title, address, price, status, bedrooms, bathrooms, type, property_type, created_at] }
@@ -1126,6 +1138,17 @@ paths:
         "403": { description: Missing `listings.create` permission. }
         "422": { description: Validation failed. }
   /listings/{listing}:
+    get:
+      tags: [Listings]
+      summary: Show listing
+      description: Requires `listings.view`. Returns main listing fields only unless relation names are requested with `include[]`.
+      parameters:
+        - { $ref: "#/components/parameters/ListingId" }
+        - { $ref: "#/components/parameters/ListingIncludes" }
+      responses:
+        "200": { description: Tenant-scoped listing. }
+        "403": { description: Missing `listings.view` permission. }
+        "404": { description: Listing is outside current tenant scope or not found. }
     patch:
       tags: [Listings]
       summary: Update listing

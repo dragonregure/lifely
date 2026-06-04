@@ -41,6 +41,16 @@ export type ListingPayload = {
   primaryOwnerUserId?: string | null;
 };
 
+export type ListingInclude = "documents" | "contacts" | "users";
+
+type ListingRequestOptions = Pick<RequestInit, "signal"> & {
+  include?: readonly ListingInclude[];
+};
+
+type ListingPageRequestOptions = Pick<RequestInit, "signal"> & {
+  include?: readonly ListingInclude[];
+};
+
 function toBackendContactPayload(payload: Partial<ContactPayload>) {
   return {
     ...(Object.prototype.hasOwnProperty.call(payload, "ownerId") ? { owner_id: payload.ownerId } : {}),
@@ -68,6 +78,18 @@ function toBackendListingPayload(payload: Partial<ListingPayload>) {
     ...(payload.userIds !== undefined ? { user_ids: payload.userIds } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "primaryOwnerUserId") ? { primary_owner_user_id: payload.primaryOwnerUserId } : {}),
   };
+}
+
+function appendIncludes(query: URLSearchParams, includes: readonly ListingInclude[] = []) {
+  includes.forEach((include) => query.append("include[]", include));
+}
+
+function toIncludeQueryString(includes: readonly ListingInclude[] = []) {
+  const query = new URLSearchParams();
+
+  appendIncludes(query, includes);
+
+  return query.toString();
 }
 
 export async function getSession() {
@@ -156,15 +178,18 @@ export async function deleteContact(contactId: string) {
   await apiRequest<void>(`/contacts/${contactId}`, { method: "DELETE" });
 }
 
-export async function getListings() {
-  return (await getListingsPage({ page: 1, pageSize: 100 })).data;
+export async function getListings(options: ListingPageRequestOptions = {}) {
+  return (await getListingsPage({ page: 1, pageSize: 100 }, options)).data;
 }
 
 export async function getListingsPage(
   params?: ServerDataTableParams,
-  options: Pick<RequestInit, "signal"> = {},
+  options: ListingPageRequestOptions = {},
 ): Promise<PaginatedResult<ReturnType<typeof mapListing>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendListing>>(`/listings?${toQueryString(params)}`, options);
+  const { include = [], ...requestOptions } = options;
+  const query = new URLSearchParams(toQueryString(params));
+  appendIncludes(query, include);
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendListing>>(`/listings?${query.toString()}`, requestOptions);
 
   return {
     data: response.data.map(mapListing),
@@ -173,6 +198,14 @@ export async function getListingsPage(
     pageCount: response.meta.last_page,
     total: response.meta.total,
   };
+}
+
+export async function getListing(listingId: string, options: ListingRequestOptions = {}) {
+  const { include = [], ...requestOptions } = options;
+  const queryString = toIncludeQueryString(include);
+  const response = await apiRequest<ApiEnvelope<BackendListing>>(`/listings/${listingId}${queryString ? `?${queryString}` : ""}`, requestOptions);
+
+  return mapListing(response.data);
 }
 
 export async function createListing(payload: ListingPayload) {

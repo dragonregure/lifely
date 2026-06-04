@@ -16,6 +16,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ListingController extends BaseApiController
 {
+    protected const ALLOWED_INCLUDES = ['documents', 'contacts', 'users'];
+
     public function __construct(private readonly ListingRepositoryInterface $listings)
     {
     }
@@ -26,7 +28,8 @@ class ListingController extends BaseApiController
 
         return ListingResource::collection($this->listings->paginate(
             $this->tenantId($request),
-            DataTableQuery::fromRequest($request, ['status', 'property_type'])
+            DataTableQuery::fromRequest($request, ['status', 'property_type']),
+            $this->includes($request)
         ));
     }
 
@@ -37,6 +40,19 @@ class ListingController extends BaseApiController
         return (new ListingResource($this->listings->create($this->tenantId($request), $request->validated())))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
+    }
+
+    public function show(Request $request, string $listing): ListingResource
+    {
+        $this->authorize(Permissions::LISTINGS_VIEW);
+
+        $model = $this->listings->find($this->tenantId($request), $listing, $this->includes($request));
+
+        if (! $model) {
+            throw new NotFoundHttpException('Listing not found.');
+        }
+
+        return new ListingResource($model);
     }
 
     public function update(UpdateListingRequest $request, string $listing): ListingResource
