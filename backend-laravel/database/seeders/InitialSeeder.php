@@ -8,6 +8,7 @@ use App\Models\PipelineDeal;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Roles;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -15,6 +16,8 @@ class InitialSeeder extends Seeder
 {
     private Tenant $tenant;
     private User $admin;
+    private Collection $users;
+    private Collection $contacts;
 
     /**
      * Run the database seeds.
@@ -29,19 +32,7 @@ class InitialSeeder extends Seeder
         );
 
         $this->createUsers();
-
-        $contact = Contact::query()->firstOrCreate([
-            'tenant_id' => $this->tenant->id,
-            'email' => 'ethan.miller@example.com',
-        ], [
-            'owner_id' => $this->admin->id,
-            'first_name' => 'Ethan',
-            'last_name' => 'Miller',
-            'phone' => '(555) 014-8802',
-            'status' => 'New',
-            'budget' => 680000,
-            'source' => 'Open house',
-        ]);
+        $this->createContacts();
 
         $listing = Listing::query()->firstOrCreate([
             'tenant_id' => $this->tenant->id,
@@ -57,7 +48,7 @@ class InitialSeeder extends Seeder
 
         PipelineDeal::query()->firstOrCreate([
             'tenant_id' => $this->tenant->id,
-            'contact_id' => $contact->id,
+            'contact_id' => $this->contacts->random()->id,
             'listing_id' => $listing->id,
             'user_id' => $this->admin->id,
         ], [
@@ -101,9 +92,19 @@ class InitialSeeder extends Seeder
         $this->admin = $admin;
         $admin->assignRole(Roles::OFFICE_ADMIN);
 
-        User::factory()
+        $this->users = User::factory()
             ->count(10)
             ->withAssignedRole()
+            ->create([
+                'tenant_id' => $this->tenant->id,
+            ]);
+    }
+
+    private function createContacts(): void
+    {
+        $this->contacts = Contact::factory()
+            ->count(20)
+            ->withAssignedOwner($this->users)
             ->create([
                 'tenant_id' => $this->tenant->id,
             ]);

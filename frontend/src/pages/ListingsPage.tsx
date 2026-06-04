@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction, type SyntheticEvent } from "react";
-import { Bath, BedDouble, ChevronLeft, ChevronRight, Home, MapPin, Pencil, Plus, Search, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction, type SyntheticEvent } from "react";
+import { Bath, BedDouble, ChevronLeft, ChevronRight, Home, MapPin, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import propertyPlaceholder from "@/assets/property-default.svg";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
@@ -9,12 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createListing, getListingsPage, updateListing, type ListingPayload } from "@/services/api";
+import {
+  ServerMultiSelect,
+  type ServerMultiSelectLoadParams,
+  type ServerMultiSelectLoadResult,
+  type ServerMultiSelectOption,
+} from "@/components/ui/server-multi-select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { createListing, getContactsPage, getListingsPage, updateListing, type ListingPayload } from "@/services/api";
 import { LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS, listingStatusLabel, listingTypeLabel } from "@/lib/listingOptions";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import type { Listing } from "@/types";
+import type { Contact, Listing } from "@/types";
 
 const PAGE_SIZE_OPTIONS = [8, 12, 16, 24];
 
@@ -31,10 +38,19 @@ type ListingDraft = {
   bedrooms: string;
   bathrooms: string;
   type: string;
+  contacts: Contact[];
+};
+
+type ContactOption = ServerMultiSelectOption & {
+  contact: Contact;
 };
 
 function listingImageUrl(listing: Listing) {
   return listing.documents.find((document) => document.type === "mainImage")?.url ?? propertyPlaceholder;
+}
+
+function contactName(contact: Contact) {
+  return `${contact.firstName} ${contact.lastName}`;
 }
 
 function handleImageFallback(event: SyntheticEvent<HTMLImageElement>) {
@@ -53,6 +69,7 @@ function emptyListingDraft(statusOptions: ListingOption[], typeOptions: ListingO
     bedrooms: "0",
     bathrooms: "0",
     type: String(typeOptions[0]?.value ?? ""),
+    contacts: [],
   };
 }
 
@@ -65,6 +82,7 @@ function draftFromListing(listing: Listing): ListingDraft {
     bedrooms: String(listing.bedrooms),
     bathrooms: String(listing.bathrooms),
     type: String(listing.type),
+    contacts: listing.contacts,
   };
 }
 
@@ -77,6 +95,16 @@ function payloadFromDraft(draft: ListingDraft): ListingPayload {
     bedrooms: Number(draft.bedrooms),
     bathrooms: Number(draft.bathrooms),
     type: Number(draft.type) as ListingPayload["type"],
+    contactIds: draft.contacts.map((contact) => contact.id),
+  };
+}
+
+function contactToOption(contact: Contact): ContactOption {
+  return {
+    value: contact.id,
+    label: contactName(contact),
+    description: contact.email,
+    contact,
   };
 }
 
@@ -88,7 +116,7 @@ type ListingFormFieldsProps = {
 };
 
 function ListingFormFields({ draft, statusOptions, typeOptions, setDraft }: ListingFormFieldsProps) {
-  const updateDraft = (field: keyof ListingDraft, value: string) => {
+  const updateDraft = (field: Exclude<keyof ListingDraft, "contacts">, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
   };
 
@@ -160,6 +188,78 @@ function ListingFormFields({ draft, statusOptions, typeOptions, setDraft }: List
   );
 }
 
+type ListingAssignmentFieldsProps = {
+  draft: ListingDraft;
+  loadContactOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ContactOption>>;
+  setDraft: Dispatch<SetStateAction<ListingDraft>>;
+};
+
+function ListingAssignmentFields({ draft, loadContactOptions, setDraft }: ListingAssignmentFieldsProps) {
+  const addContacts = (selectedOptions: ContactOption[]) => {
+    if (selectedOptions.length === 0) return;
+
+    setDraft((current) => {
+      const assignedIds = new Set(current.contacts.map((contact) => contact.id));
+      const nextContacts = selectedOptions
+        .map((option) => option.contact)
+        .filter((contact) => !assignedIds.has(contact.id));
+
+      if (nextContacts.length === 0) {
+        return current;
+      }
+
+      return { ...current, contacts: [...current.contacts, ...nextContacts] };
+    });
+  };
+
+  const removeContact = (contactId: string) => {
+    setDraft((current) => ({
+      ...current,
+      contacts: current.contacts.filter((contact) => contact.id !== contactId),
+    }));
+  };
+
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-2">
+        <Label htmlFor="listing-contact-assignment">Contacts</Label>
+        <ServerMultiSelect<ContactOption>
+          id="listing-contact-assignment"
+          value={[]}
+          onChange={addContacts}
+          loadOptions={loadContactOptions}
+          placeholder="Add contacts"
+          searchPlaceholder="Search contacts..."
+          emptyLabel="No contacts found."
+        />
+      </div>
+
+      <div className="rounded-md border bg-slate-50 p-3">
+        {draft.contacts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No contacts assigned.</p>
+        ) : (
+          <ul className="flex flex-wrap gap-2">
+            {draft.contacts.map((contact) => (
+              <li key={contact.id} className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900 ring-1 ring-border">
+                <span className="truncate">{contactName(contact)}</span>
+                <button
+                  type="button"
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
+                  aria-label={`Unassign ${contactName(contact)}`}
+                  title={`Unassign ${contactName(contact)}`}
+                  onClick={() => removeContact(contact.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ListingsPage() {
   const { can } = useAuthorization();
   const canUpdateListings = can(PERMISSIONS.listings.update);
@@ -167,6 +267,7 @@ export function ListingsPage() {
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
   const [formListing, setFormListing] = useState<Listing | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formTab, setFormTab] = useState("details");
   const [formDraft, setFormDraft] = useState<ListingDraft>(() => emptyListingDraft(LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -183,6 +284,33 @@ export function ListingsPage() {
   const statusOptions = LISTING_STATUS_OPTIONS;
   const typeOptions = LISTING_TYPE_OPTIONS;
   const [refreshKey, setRefreshKey] = useState(0);
+  const assignedContactIds = useMemo(() => new Set(formDraft.contacts.map((contact) => contact.id)), [formDraft.contacts]);
+
+  const loadContactOptions = useCallback(
+    async ({ search, page, pageSize, signal }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<ContactOption>> => {
+      const result = await getContactsPage(
+        {
+          page,
+          pageSize,
+          search,
+          sort: {
+            columnId: "contact",
+            direction: "asc",
+          },
+        },
+        { signal },
+      );
+
+      return {
+        options: result.data.map((contact) => ({
+          ...contactToOption(contact),
+          disabled: assignedContactIds.has(contact.id),
+        })),
+        hasMore: result.page < result.pageCount,
+      };
+    },
+    [assignedContactIds],
+  );
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -247,6 +375,7 @@ export function ListingsPage() {
     setSelectedListing(null);
     setFormError(null);
     setFormDraft(emptyListingDraft(statusOptions, typeOptions));
+    setFormTab("details");
     setIsFormOpen(true);
   };
 
@@ -255,6 +384,7 @@ export function ListingsPage() {
     setSelectedListing(null);
     setFormError(null);
     setFormDraft(draftFromListing(listing));
+    setFormTab("details");
     setIsFormOpen(true);
   };
 
@@ -494,6 +624,21 @@ export function ListingsPage() {
                   <p className="mt-1 font-medium">{selectedListing.bathrooms}</p>
                 </div>
               </div>
+
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <p className="text-xs uppercase text-muted-foreground">Assigned contacts</p>
+                {selectedListing.contacts.length === 0 ? (
+                  <p className="mt-1 text-sm font-medium text-slate-900">No contacts assigned</p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedListing.contacts.map((contact) => (
+                      <span key={contact.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900">
+                        {contactName(contact)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </DialogContent>
         ) : null}
@@ -508,12 +653,23 @@ export function ListingsPage() {
 
           <form className="grid gap-4" onSubmit={handleFormSubmit}>
             {formError ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{formError}</div> : null}
-            <ListingFormFields
-              draft={formDraft}
-              setDraft={setFormDraft}
-              statusOptions={statusOptions}
-              typeOptions={typeOptions}
-            />
+            <Tabs value={formTab} onValueChange={setFormTab}>
+              <TabsList className="flex h-auto flex-wrap justify-start">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="assignment">Assignment</TabsTrigger>
+              </TabsList>
+              <TabsContent value="details">
+                <ListingFormFields
+                  draft={formDraft}
+                  setDraft={setFormDraft}
+                  statusOptions={statusOptions}
+                  typeOptions={typeOptions}
+                />
+              </TabsContent>
+              <TabsContent value="assignment">
+                <ListingAssignmentFields draft={formDraft} loadContactOptions={loadContactOptions} setDraft={setFormDraft} />
+              </TabsContent>
+            </Tabs>
             <div className="flex justify-end gap-2">
               <DialogClose asChild>
                 <Button type="button" variant="outline">

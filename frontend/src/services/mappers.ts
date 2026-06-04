@@ -144,6 +144,7 @@ export function mapListing(listing: BackendListing): Listing {
     bathrooms: listing.bathrooms,
     type: Number(listing.property_type) as ListingType,
     documents: listing.documents?.map(mapDocument) ?? [],
+    contacts: listing.contacts?.map(mapContact) ?? [],
   };
 }
 

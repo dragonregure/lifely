@@ -91,6 +91,7 @@ export type BackendListing = {
   bathrooms: number;
   property_type: ListingType;
   documents?: BackendDocument[];
+  contacts?: BackendContact[];
 };
 
 export type BackendDeal = {

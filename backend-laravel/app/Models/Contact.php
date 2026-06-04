@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
@@ -46,5 +47,11 @@ class Contact extends Model
     public function pipelineDeals(): HasMany
     {
         return $this->hasMany(PipelineDeal::class);
+    }
+
+    public function listings(): BelongsToMany
+    {
+        return $this->belongsToMany(Listing::class, 'listing_contacts')
+            ->using(ListingContact::class);
     }
 }

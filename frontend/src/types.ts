@@ -114,6 +114,7 @@ export type Listing = {
   bathrooms: number;
   type: ListingType;
   documents: ListingDocument[];
+  contacts: Contact[];
 };
 
 export type PipelineDeal = {

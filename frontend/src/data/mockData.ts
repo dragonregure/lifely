@@ -146,6 +146,7 @@ export const listings: Listing[] = [
     bathrooms: 3,
     type: LISTING_TYPE.house,
     documents: [],
+    contacts: [contacts[0], contacts[5]],
   },
   {
     id: "listing-2",
@@ -158,6 +159,7 @@ export const listings: Listing[] = [
     bathrooms: 2,
     type: LISTING_TYPE.condo,
     documents: [],
+    contacts: [contacts[2]],
   },
   {
     id: "listing-3",
@@ -170,6 +172,7 @@ export const listings: Listing[] = [
     bathrooms: 3,
     type: LISTING_TYPE.townhome,
     documents: [],
+    contacts: [contacts[3]],
   },
   {
     id: "listing-4",
@@ -182,6 +185,7 @@ export const listings: Listing[] = [
     bathrooms: 0,
     type: LISTING_TYPE.land,
     documents: [],
+    contacts: [contacts[1]],
   },
 ];
 

@@ -256,6 +256,9 @@ components:
         documents:
           type: array
           items: { $ref: "#/components/schemas/Document" }
+        contacts:
+          type: array
+          items: { $ref: "#/components/schemas/Contact" }
         created_at: { type: string, format: date-time, nullable: true }
     PipelineDeal:
       type: object
@@ -487,6 +490,11 @@ components:
           nullable: true
           enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
           description: "1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use."
+        contact_ids:
+          type: array
+          nullable: true
+          items: { type: string, format: uuid }
+          description: Contact UUIDs to assign to this listing. Contacts must belong to the current tenant.
     ListingUpdatePayload:
       type: object
       properties:
@@ -503,6 +511,10 @@ components:
           type: integer
           enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
           description: "1=House, 2=Condo, 3=Townhome, 4=Apartment, 5=Studio, 6=Villa, 7=Duplex, 8=Multi-Family, 9=Land, 10=Farm, 11=Office, 12=Retail, 13=Warehouse, 14=Commercial, 15=Industrial, 16=Mixed Use."
+        contact_ids:
+          type: array
+          items: { type: string, format: uuid }
+          description: Full replacement list of assigned contact UUIDs. Send an empty array to unassign all contacts.
     PipelineStorePayload:
       type: object
       required: [contact_id, listing_id, user_id, value]

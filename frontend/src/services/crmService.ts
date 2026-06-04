@@ -36,6 +36,7 @@ export type ListingPayload = {
   bedrooms?: number;
   bathrooms?: number;
   type?: ListingType;
+  contactIds?: string[];
 };
 
 function toBackendContactPayload(payload: Partial<ContactPayload>) {
@@ -61,6 +62,7 @@ function toBackendListingPayload(payload: Partial<ListingPayload>) {
     ...(payload.bedrooms !== undefined ? { bedrooms: payload.bedrooms } : {}),
     ...(payload.bathrooms !== undefined ? { bathrooms: payload.bathrooms } : {}),
     ...(payload.type !== undefined ? { property_type: payload.type } : {}),
+    ...(payload.contactIds !== undefined ? { contact_ids: payload.contactIds } : {}),
   };
 }
 
