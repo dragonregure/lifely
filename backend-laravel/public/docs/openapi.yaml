@@ -688,7 +688,28 @@ paths:
     get:
       tags: [Tenant]
       summary: Office members
-      description: Requires `users.view`.
+      description: Requires `users.view`. Without pagination parameters this returns all members for existing session/bootstrap flows. With `page`, `per_page`, `search`, or sort parameters it returns a paginated member list for server-side selectors.
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+          description: Enables paginated mode and selects the page to return.
+        - in: query
+          name: per_page
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+          description: Number of members per page in paginated mode.
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Searches member name, email, and role in paginated mode.
+        - in: query
+          name: sort
+          schema: { type: string, enum: [name, email, role, created_at] }
+          description: Sort column in paginated mode.
+        - in: query
+          name: direction
+          schema: { type: string, enum: [asc, desc], default: asc }
+          description: Sort direction in paginated mode.
       responses:
         "200":
           description: Members for the current tenant.
@@ -700,6 +721,9 @@ paths:
                   data:
                     type: array
                     items: { $ref: "#/components/schemas/Member" }
+                  meta:
+                    type: object
+                    description: Present only in paginated mode.
         "403": { description: Missing `users.view` permission. }
   /me/permissions:
     get:

@@ -12,6 +12,7 @@ export {
   getListings,
   getListingsPage,
   getMembers,
+  getMembersPage,
   getPipelineDeals,
   getPipelineDealsPage,
   getSession,

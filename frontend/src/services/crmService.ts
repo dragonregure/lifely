@@ -94,6 +94,21 @@ export async function getMembers(options: Pick<RequestInit, "signal"> = {}) {
   return response.data.map(mapUser);
 }
 
+export async function getMembersPage(
+  params?: ServerDataTableParams,
+  options: Pick<RequestInit, "signal"> = {},
+): Promise<PaginatedResult<ReturnType<typeof mapUser>>> {
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendUser>>(`/members?${toQueryString(params)}`, options);
+
+  return {
+    data: response.data.map(mapUser),
+    page: response.meta.current_page,
+    pageSize: response.meta.per_page,
+    pageCount: response.meta.last_page,
+    total: response.meta.total,
+  };
+}
+
 export async function getContacts() {
   return (await getContactsPage({ page: 1, pageSize: 100 })).data;
 }
