@@ -1149,6 +1149,22 @@ paths:
         "200": { description: Tenant-scoped listing. }
         "403": { description: Missing `listings.view` permission. }
         "404": { description: Listing is outside current tenant scope or not found. }
+    put:
+      tags: [Listings]
+      summary: Update listing
+      description: Requires `listings.update`. Replaces any provided assignment arrays; accepts the same fields as partial update.
+      parameters:
+        - { $ref: "#/components/parameters/ListingId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingUpdatePayload" }
+      responses:
+        "200": { description: Listing updated. }
+        "403": { description: Missing `listings.update` permission. }
+        "404": { description: Listing is outside current tenant scope or not found. }
+        "422": { description: Validation failed. }
     patch:
       tags: [Listings]
       summary: Update listing

@@ -58,6 +58,12 @@ Use API Resources for response shape. Keep backend response fields snake_case. C
 
 The frontend maps snake_case API responses to camelCase domain objects in `frontend/src/services/mappers.ts`.
 
+## Optional Relation Includes
+
+Keep list responses lean by default. Endpoints that expose heavier or optional relations should use an allowlisted `include[]` query parameter, such as `GET /listings?include[]=documents&include[]=contacts&include[]=users`.
+
+Resources should wrap optional relation fields with `whenLoaded()` so omitted includes remove those keys from the response.
+
 ## Server-Side Tables
 
 Data-heavy list endpoints should support server-side table parameters:
