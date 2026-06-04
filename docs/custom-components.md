@@ -34,6 +34,20 @@ getContactsPage(query, { signal })
 
 The service should call `toQueryString(query)` and return `PaginatedResult<T>`.
 
+## ServerMultiSelect
+
+Location: `frontend/src/components/ui/server-multi-select.tsx`
+
+Use `ServerMultiSelect` for searchable selectors backed by paginated API data, such as member assignment pickers. The component owns search input, debouncing, selected chips, keyboard navigation, loading/error/empty states, and load-more pagination.
+
+Rules:
+
+- Keep selected values as full option objects with `value`, `label`, and optional `description`.
+- Implement `loadOptions({ search, page, pageSize, signal })` with a service function that returns paginated backend results.
+- Pass the provided abort `signal` through to the service request.
+- Use `minSearchLength` when opening the selector should not immediately fetch broad result sets.
+- Use `maxSelected` for single-owner or capped assignment flows instead of enforcing the cap only after submit.
+
 ## Dialogs
 
 Location: `frontend/src/components/dialogs`

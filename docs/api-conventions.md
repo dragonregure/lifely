@@ -25,7 +25,7 @@ Authorization: Bearer <access-token>
 Accept: application/json
 ```
 
-Tenant-scoped requests may use `X-Tenant-Id`; tenant mismatch is rejected.
+Tenant context resolves from `X-Tenant-Id`, `tenant_id`, then the authenticated user's tenant. Normal clients can rely on the authenticated user tenant; explicit tenant context is a compatibility override, and tenant mismatch is rejected.
 
 ## Controller Pattern
 
