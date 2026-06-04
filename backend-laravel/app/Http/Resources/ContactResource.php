@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Reference;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -11,6 +12,8 @@ class ContactResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $statusReference = $this->statusReference;
+
         return [
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
@@ -19,7 +22,8 @@ class ContactResource extends JsonResource
             'last_name' => $this->last_name,
             'email' => $this->email,
             'phone' => $this->phone,
-            'status' => $this->status,
+            'status_id' => $this->status_id,
+            'status' => $statusReference instanceof Reference ? $statusReference->value : null,
             'budget' => $this->budget === null ? null : (float) $this->budget,
             'source' => $this->source,
             'last_contacted_at' => $this->last_contacted_at instanceof CarbonInterface

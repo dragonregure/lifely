@@ -13,6 +13,9 @@ class Contact extends Model
 {
     use HasFactory, HasUuids;
 
+    public const STATUS_REFERENCE_GROUP = 'contact_status';
+    public const DEFAULT_STATUS_REFERENCE_KEY = 'new';
+
     protected $fillable = [
         'tenant_id',
         'owner_id',
@@ -20,7 +23,7 @@ class Contact extends Model
         'last_name',
         'email',
         'phone',
-        'status',
+        'status_id',
         'budget',
         'source',
         'last_contacted_at',
@@ -42,6 +45,11 @@ class Contact extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function statusReference(): BelongsTo
+    {
+        return $this->belongsTo(Reference::class, 'status_id');
     }
 
     public function pipelineDeals(): HasMany

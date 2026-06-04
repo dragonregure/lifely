@@ -14,7 +14,7 @@ import type { PaginatedResult, ServerDataTableParams } from "@/services/dataTabl
 import { toQueryString } from "@/services/dataTableParams";
 import { apiRequest } from "@/services/httpClient";
 import { mapActivity, mapCampaign, mapContact, mapDeal, mapListing, mapTenant, mapUser, mapUserAccess } from "@/services/mappers";
-import type { ContactStatus, ListingStatus, ListingType } from "@/types";
+import type { ListingStatus, ListingType } from "@/types";
 
 export type ContactPayload = {
   ownerId?: string | null;
@@ -22,7 +22,7 @@ export type ContactPayload = {
   lastName?: string;
   email?: string;
   phone?: string | null;
-  status?: ContactStatus;
+  statusId?: string;
   budget?: number | null;
   source?: string | null;
   lastContactedAt?: string | null;
@@ -48,7 +48,7 @@ function toBackendContactPayload(payload: Partial<ContactPayload>) {
     ...(payload.lastName !== undefined ? { last_name: payload.lastName } : {}),
     ...(payload.email !== undefined ? { email: payload.email } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "phone") ? { phone: payload.phone } : {}),
-    ...(payload.status !== undefined ? { status: payload.status } : {}),
+    ...(payload.statusId !== undefined ? { status_id: payload.statusId } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "budget") ? { budget: payload.budget } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "source") ? { source: payload.source } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "lastContactedAt") ? { last_contacted_at: payload.lastContactedAt } : {}),

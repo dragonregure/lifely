@@ -25,6 +25,7 @@ export { getDashboardSummary } from "@/services/reportingService";
 export {
   createReference,
   deleteReference,
+  getContactStatusOptions,
   getReferenceGroupOptions,
   getReferences,
   getReferencesPage,

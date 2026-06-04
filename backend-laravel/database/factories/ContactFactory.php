@@ -21,7 +21,12 @@ class ContactFactory extends Factory
      */
     public function definition(): array
     {
-        $status = Reference::where('group', 'contact_status')->get();
+        $statusId = Reference::query()
+            ->where('group', Contact::STATUS_REFERENCE_GROUP)
+            ->inRandomOrder()
+            ->firstOrFail()
+            ->getKey();
+
         return [
             'tenant_id' => Tenant::factory(),
             'email' => fake()->unique()->safeEmail(),
@@ -29,7 +34,7 @@ class ContactFactory extends Factory
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'phone' => fake()->phoneNumber(),
-            'status' => $status->random()->value,
+            'status_id' => $statusId,
             'budget' => fake()->numberBetween(100000, 1000000),
             'source' => 'Open house',
         ];
@@ -43,7 +48,7 @@ class ContactFactory extends Factory
             }
 
             return [
-                'owner_id' => $users->random()->id,
+                'owner_id' => $users->random()->getKey(),
             ];
         });
     }

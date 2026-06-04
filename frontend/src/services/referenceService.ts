@@ -63,6 +63,31 @@ export async function getReferenceGroupOptions() {
   return response.data;
 }
 
+export async function getContactStatusOptions(options: Pick<RequestInit, "signal"> = {}) {
+  const result = await getReferencesPage(
+    {
+      page: 1,
+      pageSize: 100,
+      filters: {
+        group: "contact_status",
+        status: "ACTIVE",
+      },
+      sort: {
+        columnId: "value",
+        direction: "asc",
+      },
+    },
+    options,
+  );
+
+  return result.data
+    .map((reference) => ({
+      label: String(reference.value ?? reference.key),
+      value: reference.id,
+    }))
+    .sort((left, right) => contactStatusSort(left.label) - contactStatusSort(right.label) || left.label.localeCompare(right.label));
+}
+
 export async function createReference(payload: ReferencePayload) {
   const response = await apiRequest<ApiEnvelope<BackendReference>>("/references", {
     method: "POST",
@@ -83,4 +108,11 @@ export async function updateReference(referenceId: string, payload: Partial<Refe
 
 export async function deleteReference(referenceId: string) {
   await apiRequest<void>(`/references/${referenceId}`, { method: "DELETE" });
+}
+
+function contactStatusSort(label: string) {
+  const order = ["New", "Qualified", "Viewing", "Negotiating", "Closed", "Dormant"];
+  const index = order.indexOf(label);
+
+  return index === -1 ? order.length : index;
 }

@@ -16,7 +16,9 @@ class InitialSeeder extends Seeder
 {
     private Tenant $tenant;
     private User $admin;
+    /** @var Collection<int, User> */
     private Collection $users;
+    /** @var Collection<int, Contact> */
     private Collection $contacts;
 
     /**

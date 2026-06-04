@@ -222,7 +222,8 @@ components:
         last_name: { type: string }
         email: { type: string, format: email }
         phone: { type: string, nullable: true }
-        status: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        status_id: { type: string, format: uuid, nullable: true, description: Reference UUID from the contact_status group. }
+        status: { type: string, nullable: true, example: New, description: Resolved contact_status reference value. }
         budget: { type: number, nullable: true }
         source: { type: string, nullable: true }
         last_contacted_at: { type: string, format: date-time, nullable: true }
@@ -463,7 +464,7 @@ components:
         last_name: { type: string, maxLength: 120 }
         email: { type: string, format: email, maxLength: 255 }
         phone: { type: string, nullable: true, maxLength: 40 }
-        status: { type: string, nullable: true, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        status_id: { type: string, format: uuid, description: Active reference UUID from the contact_status group. Defaults to the New status when omitted. }
         budget: { type: number, nullable: true, minimum: 0 }
         source: { type: string, nullable: true, maxLength: 120 }
         last_contacted_at: { type: string, format: date-time, nullable: true }
@@ -475,7 +476,7 @@ components:
         last_name: { type: string, maxLength: 120 }
         email: { type: string, format: email, maxLength: 255 }
         phone: { type: string, nullable: true, maxLength: 40 }
-        status: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
+        status_id: { type: string, format: uuid, description: Active reference UUID from the contact_status group. }
         budget: { type: number, nullable: true, minimum: 0 }
         source: { type: string, nullable: true, maxLength: 120 }
         last_contacted_at: { type: string, format: date-time, nullable: true }
@@ -1005,8 +1006,8 @@ paths:
         - { $ref: "#/components/parameters/Direction" }
         - in: query
           name: filter[status]
-          schema: { type: string, enum: [New, Qualified, Viewing, Negotiating, Closed, Dormant] }
-          description: Filter by contact status. Top-level `status` is also accepted.
+          schema: { type: string }
+          description: Filter by contact status reference UUID. Status labels are accepted for backwards compatibility. Top-level `status` is also accepted.
         - in: query
           name: filter[source]
           schema: { type: string }

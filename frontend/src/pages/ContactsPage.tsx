@@ -18,14 +18,22 @@ import {
   type ServerMultiSelectOption,
 } from "@/components/ui/server-multi-select";
 import { useAuth } from "@/context/AuthContext";
-import { createContact, deleteContact, getContactsPage, getMembersPage, updateContact, type ContactPayload } from "@/services/api";
+import {
+  createContact,
+  deleteContact,
+  getContactStatusOptions,
+  getContactsPage,
+  getMembersPage,
+  updateContact,
+  type ContactPayload,
+  type ReferenceOption,
+} from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import type { Contact, ContactStatus, User } from "@/types";
+import type { Contact, User } from "@/types";
 
-const editableStatuses: ContactStatus[] = ["New", "Qualified", "Viewing", "Negotiating", "Closed", "Dormant"];
 const inputClass =
   "h-10 rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring";
 
@@ -34,7 +42,7 @@ type ContactDraft = {
   lastName: string;
   email: string;
   phone: string;
-  status: ContactStatus;
+  statusId: string;
   budget: string;
   source: string;
   ownerId: string;
@@ -82,7 +90,7 @@ function payloadFromDraft(draft: ContactDraft): ContactPayload {
     lastName: draft.lastName.trim(),
     email: draft.email.trim(),
     phone: nullableText(draft.phone),
-    status: draft.status,
+    ...(draft.statusId ? { statusId: draft.statusId } : {}),
     budget: nullableNumber(draft.budget),
     source: nullableText(draft.source),
     lastContactedAt: nullableDate(draft.lastContactedAt),
@@ -95,19 +103,19 @@ function profilePayloadFromDraft(draft: ContactDraft): ContactPayload {
     lastName: draft.lastName.trim(),
     email: draft.email.trim(),
     phone: nullableText(draft.phone),
-    status: draft.status,
+    ...(draft.statusId ? { statusId: draft.statusId } : {}),
     budget: nullableNumber(draft.budget),
     source: nullableText(draft.source),
   };
 }
 
-function blankDraft(ownerId = ""): ContactDraft {
+function blankDraft(ownerId = "", statusId = ""): ContactDraft {
   return {
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    status: "New",
+    statusId,
     budget: "",
     source: "Website",
     ownerId,
@@ -121,12 +129,16 @@ function draftFromContact(contact: Contact): ContactDraft {
     lastName: contact.lastName,
     email: contact.email,
     phone: contact.phone,
-    status: contact.status,
+    statusId: contact.statusId ?? "",
     budget: String(contact.budget),
     source: contact.source,
     ownerId: contact.ownerId,
     lastContactedAt: toDateInputValue(contact.lastContactedAt),
   };
+}
+
+function updateDraft(draft: ContactDraft, patch: Partial<ContactDraft>) {
+  return { ...draft, ...patch };
 }
 
 function DetailField({ label, value }: { label: string; value: string }) {
@@ -167,6 +179,7 @@ export function ContactsPage() {
   const [assignmentDraft, setAssignmentDraft] = useState<ContactDraft>(() => blankDraft());
   const [assignmentOwnerDetails, setAssignmentOwnerDetails] = useState<User | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingContactAction | null>(null);
+  const [statusOptions, setStatusOptions] = useState<ReferenceOption[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -177,6 +190,35 @@ export function ContactsPage() {
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
   const canDeleteContacts = can(PERMISSIONS.contacts.delete);
+  const defaultStatusId = statusOptions.find((status) => status.label === "New")?.value ?? statusOptions[0]?.value ?? "";
+  const statusIdByLabel = useMemo(
+    () => new Map(statusOptions.map((status) => [status.label, status.value])),
+    [statusOptions],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getContactStatusOptions({ signal: controller.signal })
+      .then((options) => {
+        if (controller.signal.aborted) return;
+
+        setStatusOptions(options);
+      })
+      .catch((caught) => {
+        if (!isAbortError(caught)) {
+          setLoadError(caught instanceof Error ? caught.message : "Unable to load contact statuses.");
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!defaultStatusId) return;
+
+    setCreateDraft((draft) => (draft.statusId ? draft : updateDraft(draft, { statusId: defaultStatusId })));
+  }, [defaultStatusId]);
 
   const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
     setLoadError("");
@@ -216,7 +258,6 @@ export function ContactsPage() {
     setAssignmentOwnerDetails(members.find((user) => user.id === draft.ownerId) ?? null);
   }, [members, selectedContact]);
 
-  const updateDraft = (draft: ContactDraft, patch: Partial<ContactDraft>) => ({ ...draft, ...patch });
   const refreshContacts = () => setContactsRefreshKey((current) => current + 1);
 
   const loadMemberOptions = useCallback(
@@ -265,7 +306,7 @@ export function ContactsPage() {
     setCreateOpen(open);
 
     if (!open) {
-      setCreateDraft(blankDraft());
+      setCreateDraft(blankDraft("", defaultStatusId));
       setCreateOwnerDetails(null);
     }
   };
@@ -280,7 +321,7 @@ export function ContactsPage() {
     try {
       await createContact(payloadFromDraft(createDraft));
 
-      setCreateDraft(blankDraft());
+      setCreateDraft(blankDraft("", defaultStatusId));
       setCreateOwnerDetails(null);
       setCreateOpen(false);
       refreshContacts();
@@ -351,8 +392,14 @@ export function ContactsPage() {
           setSelectedContactId(null);
         }
       } else {
+        const nextStatusId = statusIdByLabel.get(pendingAction.type === "archive" ? "Dormant" : "New");
+
+        if (!nextStatusId) {
+          throw new Error("Contact status reference is unavailable.");
+        }
+
         const contact = await updateContact(pendingAction.contact.id, {
-          status: pendingAction.type === "archive" ? "Dormant" : "New",
+          statusId: nextStatusId,
         });
         setContacts((current) => current.map((item) => (item.id === pendingAction.contact.id ? contact : item)));
       }
@@ -436,12 +483,13 @@ export function ContactsPage() {
                 <select
                   id="profile-status"
                   className={inputClass}
-                  value={profileDraft.status}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { status: event.target.value as ContactStatus }))}
+                  value={profileDraft.statusId}
+                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { statusId: event.target.value }))}
                 >
-                  {editableStatuses.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
+                  {statusOptions.length === 0 && <option value="">Loading statuses...</option>}
+                  {statusOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
                     </option>
                   ))}
                 </select>
@@ -567,12 +615,13 @@ export function ContactsPage() {
             <select
               id="create-status"
               className={inputClass}
-              value={createDraft.status}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { status: event.target.value as ContactStatus }))}
+              value={createDraft.statusId}
+              onChange={(event) => setCreateDraft(updateDraft(createDraft, { statusId: event.target.value }))}
             >
-              {editableStatuses.map((item) => (
-                <option key={item} value={item}>
-                  {item}
+              {statusOptions.length === 0 && <option value="">Loading statuses...</option>}
+              {statusOptions.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
                 </option>
               ))}
             </select>
@@ -694,12 +743,12 @@ export function ContactsPage() {
         defaultValue: "all",
         options: [
           { label: "All statuses", value: "all" },
-          ...editableStatuses.map((item) => ({ label: item, value: item })),
+          ...statusOptions,
         ],
-        predicate: (contact, selectedValue) => selectedValue === "all" || contact.status === selectedValue,
+        predicate: (contact, selectedValue) => selectedValue === "all" || contact.statusId === selectedValue,
       },
     ],
-    [],
+    [statusOptions],
   );
 
   return (

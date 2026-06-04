@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\ContactRepositoryInterface;
 use App\Models\ActivityLog;
 use App\Models\Contact;
+use App\Models\Reference;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
@@ -41,13 +42,15 @@ class ContactApiTest extends TestCase
             public function all(string $tenantId, array $filters = []): Collection
             {
                 return collect([
-                    new Contact([
+                    tap(new Contact([
                         'tenant_id' => $tenantId,
                         'first_name' => 'Ethan',
                         'last_name' => 'Miller',
                         'email' => 'ethan@example.com',
-                        'status' => 'New',
-                    ]),
+                        'status_id' => '0197-contacts-new-status',
+                    ]), function (Contact $contact): void {
+                        $contact->setRelation('statusReference', new Reference(['value' => 'New']));
+                    }),
                 ]);
             }
 
@@ -96,6 +99,7 @@ class ContactApiTest extends TestCase
         $tenant = Tenant::factory()->create();
         $owner = User::factory()->create(['tenant_id' => $tenant->id]);
         $user = $this->actingUserWithPermissions($tenant, [Permissions::CONTACTS_CREATE]);
+        $newStatus = $this->contactStatus('new');
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
             ->postJson('/api/v1/contacts', [
@@ -104,19 +108,22 @@ class ContactApiTest extends TestCase
                 'last_name' => 'Stone',
                 'email' => 'nadia@example.com',
                 'phone' => '+62811111111',
-                'status' => 'New',
+                'status_id' => $newStatus->id,
                 'budget' => 450000,
                 'source' => 'Referral',
                 'last_contacted_at' => '2026-05-30T00:00:00Z',
             ])
             ->assertCreated()
             ->assertJsonPath('data.email', 'nadia@example.com')
+            ->assertJsonPath('data.status', 'New')
+            ->assertJsonPath('data.status_id', $newStatus->id)
             ->assertJsonPath('data.tenant_id', $tenant->id);
 
         $this->assertDatabaseHas('contacts', [
             'tenant_id' => $tenant->id,
             'owner_id' => $owner->id,
             'email' => 'nadia@example.com',
+            'status_id' => $newStatus->id,
         ]);
         $this->assertDatabaseHas('activity_logs', [
             'tenant_id' => $tenant->id,
@@ -132,20 +139,22 @@ class ContactApiTest extends TestCase
         $owner = User::factory()->create(['tenant_id' => $tenant->id]);
         $this->actingUserWithPermissions($tenant, [Permissions::CONTACTS_UPDATE]);
         $contact = $this->createContact($tenant, $owner);
+        $qualifiedStatus = $this->contactStatus('qualified');
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
             ->patchJson("/api/v1/contacts/{$contact->id}", [
-                'status' => 'Qualified',
+                'status_id' => $qualifiedStatus->id,
                 'budget' => 725000,
                 'source' => 'Open house',
             ])
             ->assertOk()
             ->assertJsonPath('data.status', 'Qualified')
+            ->assertJsonPath('data.status_id', $qualifiedStatus->id)
             ->assertJsonPath('data.source', 'Open house');
 
         $this->assertDatabaseHas('contacts', [
             'id' => $contact->id,
-            'status' => 'Qualified',
+            'status_id' => $qualifiedStatus->id,
             'source' => 'Open house',
         ]);
         $this->assertDatabaseHas('activity_logs', [
@@ -164,8 +173,8 @@ class ContactApiTest extends TestCase
         $this->assertIsArray($properties);
 
         /** @var array{changes: array<string, array{old: mixed, new: mixed}>} $properties */
-        $this->assertSame('New', $properties['changes']['status']['old']);
-        $this->assertSame('Qualified', $properties['changes']['status']['new']);
+        $this->assertSame($this->contactStatus('new')->id, $properties['changes']['status_id']['old']);
+        $this->assertSame($qualifiedStatus->id, $properties['changes']['status_id']['new']);
         $this->assertSame('Website', $properties['changes']['source']['old']);
         $this->assertSame('Open house', $properties['changes']['source']['new']);
     }
@@ -239,10 +248,19 @@ class ContactApiTest extends TestCase
             'last_name' => 'Miller',
             'email' => 'ethan@example.com',
             'phone' => '+62812345678',
-            'status' => 'New',
+            'status_id' => $this->contactStatus('new')->id,
             'budget' => 500000,
             'source' => 'Website',
             'last_contacted_at' => now(),
         ]);
+    }
+
+    private function contactStatus(string $key): Reference
+    {
+        return Reference::query()
+            ->whereNull('tenant_id')
+            ->where('group', Contact::STATUS_REFERENCE_GROUP)
+            ->where('reference_key', $key)
+            ->firstOrFail();
     }
 }

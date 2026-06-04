@@ -111,6 +111,7 @@ export function mapContact(contact: BackendContact): Contact {
     lastName: contact.last_name,
     email: contact.email,
     phone: contact.phone ?? "",
+    statusId: contact.status_id ?? null,
     status: contact.status,
     budget: Number(contact.budget ?? 0),
     source: contact.source ?? "",

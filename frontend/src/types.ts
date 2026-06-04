@@ -50,7 +50,7 @@ export type Reference = {
   updatedAt?: string | null;
 };
 
-export type ContactStatus = "New" | "Qualified" | "Viewing" | "Negotiating" | "Closed" | "Dormant";
+export type ContactStatus = string;
 
 export type ListingStatus = 1 | 2 | 3 | 4;
 
@@ -84,6 +84,7 @@ export type Contact = {
   lastName: string;
   email: string;
   phone: string;
+  statusId?: string | null;
   status: ContactStatus;
   budget: number;
   source: string;

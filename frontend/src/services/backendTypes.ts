@@ -61,6 +61,7 @@ export type BackendContact = {
   last_name: string;
   email: string;
   phone?: string | null;
+  status_id?: string | null;
   status: ContactStatus;
   budget?: number | null;
   source?: string | null;
