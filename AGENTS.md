@@ -54,6 +54,8 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Put validation, serialization, persistence, and UI concerns in their appropriate layers.
 - Backend authorization is the source of truth. Frontend RBAC is only for route and UI visibility.
 - Keep tenant-scoped database access explicitly constrained by `tenant_id` or documented system-scope rules.
+- APIs that can return heavy or optional relations should keep list responses lean by default and expose relation loading through a whitelisted `include[]` query parameter on the relevant single-model/detail endpoint.
+- Frontend callers should request relation includes only for flows that render or mutate relation-aware detail state; listing/table pages should use main model fields unless the UI explicitly needs relation data.
 - Server-side data tables should handle pagination, search, filtering, and sorting on the backend. Frontend tables should send query state instead of processing large datasets locally.
 - Update OpenAPI, frontend service types/mappers, and docs when public API request or response shapes change.
 
