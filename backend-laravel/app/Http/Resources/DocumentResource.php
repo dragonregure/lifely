@@ -16,6 +16,8 @@ class DocumentResource extends JsonResource
             'model' => $this->model,
             'model_id' => $this->model_id,
             'type' => $this->type,
+            'subtype' => $this->subtype,
+            'file_name' => $this->file_name,
             'order' => $this->order,
             'url' => $this->url,
             'created_at' => $this->created_at?->toISOString(),

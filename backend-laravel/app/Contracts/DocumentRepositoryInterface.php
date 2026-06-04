@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 interface DocumentRepositoryInterface
 {
-    public function allForModel(string $tenantId, string $model, string $modelId, ?string $type = null): Collection;
+    public function allForModel(string $tenantId, string $model, string $modelId, ?string $type = null, ?string $subtype = null, ?string $fileName = null): Collection;
 
     public function create(string $tenantId, array $data): Document;
 

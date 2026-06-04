@@ -16,6 +16,8 @@ class Document extends Model
         'model',
         'model_id',
         'type',
+        'subtype',
+        'file_name',
         'order',
         'url',
     ];

@@ -8,13 +8,15 @@ use Illuminate\Support\Collection;
 
 class DocumentRepository implements DocumentRepositoryInterface
 {
-    public function allForModel(string $tenantId, string $model, string $modelId, ?string $type = null): Collection
+    public function allForModel(string $tenantId, string $model, string $modelId, ?string $type = null, ?string $subtype = null, ?string $fileName = null): Collection
     {
         return Document::query()
             ->where('tenant_id', $tenantId)
             ->where('model', $model)
             ->where('model_id', $modelId)
             ->when($type, fn ($query) => $query->where('type', $type))
+            ->when($subtype, fn ($query) => $query->where('subtype', $subtype))
+            ->when($fileName, fn ($query) => $query->where('file_name', $fileName))
             ->orderBy('order')
             ->latest()
             ->get();
