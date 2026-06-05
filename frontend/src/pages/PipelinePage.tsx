@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { CalendarPlus, Plus } from "lucide-react";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
@@ -10,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getPipelineDeals } from "@/services/api";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
+import type { AppLayoutContext } from "@/components/AppLayout";
 import type { PipelineDeal, PipelineStage } from "@/types";
 
 const stages: PipelineStage[] = [
@@ -27,6 +29,8 @@ const stages: PipelineStage[] = [
 ];
 
 export function PipelinePage() {
+  const layoutContext = useOutletContext<AppLayoutContext | null>();
+  const isSidebarMinimized = layoutContext?.isSidebarMinimized ?? false;
   const [deals, setDeals] = useState<PipelineDeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -93,40 +97,48 @@ export function PipelinePage() {
       {isLoading ? (
         <LoadingState className="border bg-white" label="Loading pipeline" />
       ) : (
-      <div className="grid grid-flow-col auto-cols-[10rem] gap-2 overflow-x-auto pb-2 xl:grid-flow-row xl:grid-cols-9 xl:overflow-visible">
-        {grouped.map((column) => (
-          <div key={column.stage} className="min-w-0">
-            <div className="mb-2 flex items-center gap-2">
-              <h2 className="truncate text-sm font-semibold" title={column.stage}>
-                {column.stage}
-              </h2>
-              <span
-                className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs text-muted-foreground"
-                aria-label={`${column.stage} deal count`}
-              >
-                {column.deals.length}
-              </span>
+        <div
+          className={cn(
+            "grid grid-flow-col gap-2 overflow-x-auto pb-2 xl:grid-flow-row xl:grid-cols-9",
+            isSidebarMinimized ? "auto-cols-[11rem] xl:overflow-visible" : "auto-cols-[10rem] xl:overflow-x-auto",
+          )}
+        >
+          {grouped.map((column) => (
+            <div key={column.stage} className="min-w-0">
+              <div className={cn("mb-2 flex items-start gap-2", isSidebarMinimized && "min-h-10")}>
+                <h2
+                  className={cn("min-w-0 flex-1 text-sm font-semibold leading-tight", isSidebarMinimized ? "whitespace-normal break-words" : "truncate")}
+                  title={column.stage}
+                >
+                  {column.stage}
+                </h2>
+                <span
+                  className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs text-muted-foreground"
+                  aria-label={`${column.stage} deal count`}
+                >
+                  {column.deals.length}
+                </span>
+              </div>
+              <div className="grid gap-3">
+                {column.deals.map((deal) => {
+                  const contact = deal.contact;
+                  const listing = deal.listing;
+                  return (
+                    <Card key={deal.id} className="min-w-0 overflow-hidden shadow-sm">
+                      <CardContent className="min-w-0 p-3">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {contact?.firstName} {contact?.lastName}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-muted-foreground">{listing?.title ?? "Unassigned listing"}</p>
+                        <p className="mt-2 truncate text-sm font-semibold">{formatCurrency(deal.value)}</p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
             </div>
-            <div className="grid gap-3">
-              {column.deals.map((deal) => {
-                const contact = deal.contact;
-                const listing = deal.listing;
-                return (
-                  <Card key={deal.id} className="min-w-0 overflow-hidden shadow-sm">
-                    <CardContent className="min-w-0 p-3">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {contact?.firstName} {contact?.lastName}
-                      </p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">{listing?.title ?? "Unassigned listing"}</p>
-                      <p className="mt-2 truncate text-sm font-semibold">{formatCurrency(deal.value)}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       )}
     </div>
   );
