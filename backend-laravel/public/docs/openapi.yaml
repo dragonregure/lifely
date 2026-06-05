@@ -83,6 +83,24 @@ components:
         type: array
         items: { type: string, enum: [documents, contacts, users] }
       description: Optional listing relations to include. Omit this parameter for main listing fields only.
+    RoleIncludes:
+      in: query
+      name: include[]
+      style: form
+      explode: true
+      schema:
+        type: array
+        items: { type: string, enum: [permissions] }
+      description: Optional role relations to include. Omit this parameter for main role fields only.
+    PermissionIncludes:
+      in: query
+      name: include[]
+      style: form
+      explode: true
+      schema:
+        type: array
+        items: { type: string, enum: [roles] }
+      description: Optional permission relations to include. Omit this parameter for main permission fields only.
     PipelineId:
       in: path
       name: pipeline
@@ -192,6 +210,10 @@ components:
         id: { type: integer }
         name: { type: string, example: roles.view }
         guard_name: { type: string, example: web }
+        roles:
+          type: array
+          description: Present only when `roles` is requested through `include[]`.
+          items: { $ref: "#/components/schemas/Role" }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
     Role:
@@ -204,6 +226,7 @@ components:
         guard_name: { type: string, example: web }
         permissions:
           type: array
+          description: Present only when `permissions` is requested through `include[]`.
           items: { $ref: "#/components/schemas/Permission" }
         created_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time, nullable: true }
@@ -798,10 +821,12 @@ paths:
     get:
       tags: [Access Control]
       summary: List roles
-      description: "Requires `roles.view`. Returns system roles (`tenant_id: null`) and roles owned by the current tenant. Roles containing system-only permissions are hidden unless the caller has `roles.manage_system` or `system.bypass`."
+      description: "Requires `roles.view`. Returns main role fields for system roles (`tenant_id: null`) and roles owned by the current tenant. Roles containing system-only permissions are hidden unless the caller has `roles.manage_system` or `system.bypass`. Request `include[]=permissions` when assigned permissions are needed."
+      parameters:
+        - { $ref: "#/components/parameters/RoleIncludes" }
       responses:
         "200":
-          description: Roles with assigned permissions.
+          description: Roles.
           content:
             application/json:
               schema:
@@ -828,9 +853,10 @@ paths:
     get:
       tags: [Access Control]
       summary: Show role
-      description: Requires `roles.view`.
+      description: Requires `roles.view`. Returns main role fields only unless relation names are requested with `include[]`.
       parameters:
         - { $ref: "#/components/parameters/RoleId" }
+        - { $ref: "#/components/parameters/RoleIncludes" }
       responses:
         "200": { description: Role details. }
         "403": { description: Missing `roles.view` permission. }
@@ -879,7 +905,9 @@ paths:
     get:
       tags: [Access Control]
       summary: List permissions
-      description: Requires `permissions.view`. System-only permissions such as `system.bypass`, `roles.manage_system`, and `references.manage_system` are hidden unless the caller has `roles.manage_system` or `system.bypass`.
+      description: Requires `permissions.view`. Returns main permission fields only. System-only permissions such as `system.bypass`, `roles.manage_system`, and `references.manage_system` are hidden unless the caller has `roles.manage_system` or `system.bypass`. Request `include[]=roles` when assigned roles are needed.
+      parameters:
+        - { $ref: "#/components/parameters/PermissionIncludes" }
       responses:
         "200":
           description: Permissions.
@@ -909,9 +937,10 @@ paths:
     get:
       tags: [Access Control]
       summary: Show permission
-      description: Requires `permissions.view`.
+      description: Requires `permissions.view`. Returns main permission fields only unless relation names are requested with `include[]`.
       parameters:
         - { $ref: "#/components/parameters/PermissionId" }
+        - { $ref: "#/components/parameters/PermissionIncludes" }
       responses:
         "200": { description: Permission details. }
         "403": { description: Missing `permissions.view` permission. }

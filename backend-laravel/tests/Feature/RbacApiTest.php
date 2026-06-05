@@ -199,6 +199,38 @@ class RbacApiTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_role_responses_include_permissions_only_when_requested(): void
+    {
+        $this->actingOfficeAdmin();
+
+        $listResponse = $this->getJson('/api/v1/roles')
+            ->assertOk();
+
+        $officeAdmin = collect($listResponse->json('data'))->firstWhere('name', Roles::OFFICE_ADMIN);
+
+        $this->assertIsArray($officeAdmin);
+        $this->assertArrayNotHasKey('permissions', $officeAdmin);
+
+        $includedListResponse = $this->getJson('/api/v1/roles?include[]=permissions')
+            ->assertOk();
+
+        $includedOfficeAdmin = collect($includedListResponse->json('data'))->firstWhere('name', Roles::OFFICE_ADMIN);
+
+        $this->assertIsArray($includedOfficeAdmin);
+        $this->assertArrayHasKey('permissions', $includedOfficeAdmin);
+        $this->assertContains(Permissions::ROLES_VIEW, collect($includedOfficeAdmin['permissions'])->pluck('name')->all());
+
+        $role = Role::findByName(Roles::OFFICE_ADMIN, 'web');
+
+        $this->getJson("/api/v1/roles/{$role->id}")
+            ->assertOk()
+            ->assertJsonMissingPath('data.permissions');
+
+        $this->getJson("/api/v1/roles/{$role->id}?include[]=permissions")
+            ->assertOk()
+            ->assertJsonFragment(['name' => Permissions::ROLES_VIEW]);
+    }
+
     public function test_tenant_admin_cannot_modify_or_delete_system_roles(): void
     {
         $this->actingOfficeAdmin();
@@ -263,6 +295,38 @@ class RbacApiTest extends TestCase
         $this->assertContains(Permissions::SYSTEM_BYPASS, $systemPermissions);
         $this->assertContains(Permissions::ROLES_MANAGE_SYSTEM, $systemPermissions);
         $this->assertContains(Permissions::REFERENCES_MANAGE_SYSTEM, $systemPermissions);
+    }
+
+    public function test_permission_responses_include_roles_only_when_requested(): void
+    {
+        $this->actingOfficeAdmin();
+
+        $listResponse = $this->getJson('/api/v1/permissions')
+            ->assertOk();
+
+        $contactsView = collect($listResponse->json('data'))->firstWhere('name', Permissions::CONTACTS_VIEW);
+
+        $this->assertIsArray($contactsView);
+        $this->assertArrayNotHasKey('roles', $contactsView);
+
+        $includedListResponse = $this->getJson('/api/v1/permissions?include[]=roles')
+            ->assertOk();
+
+        $includedContactsView = collect($includedListResponse->json('data'))->firstWhere('name', Permissions::CONTACTS_VIEW);
+
+        $this->assertIsArray($includedContactsView);
+        $this->assertArrayHasKey('roles', $includedContactsView);
+        $this->assertContains(Roles::OFFICE_ADMIN, collect($includedContactsView['roles'])->pluck('name')->all());
+
+        $permission = Permission::findByName(Permissions::CONTACTS_VIEW, 'web');
+
+        $this->getJson("/api/v1/permissions/{$permission->id}")
+            ->assertOk()
+            ->assertJsonMissingPath('data.roles');
+
+        $this->getJson("/api/v1/permissions/{$permission->id}?include[]=roles")
+            ->assertOk()
+            ->assertJsonFragment(['name' => Roles::OFFICE_ADMIN]);
     }
 
     public function test_tenant_admin_cannot_assign_system_only_permissions_to_roles(): void

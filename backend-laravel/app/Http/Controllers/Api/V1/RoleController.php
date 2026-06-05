@@ -17,6 +17,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class RoleController extends BaseApiController
 {
+    protected const ALLOWED_INCLUDES = ['permissions'];
+
     public function __construct(private readonly RbacService $rbac)
     {
     }
@@ -33,7 +35,7 @@ class RoleController extends BaseApiController
                         $query->whereIn('name', Permissions::systemOnly());
                     });
                 })
-                ->with('permissions')
+                ->with($this->includes($request))
                 ->orderBy('tenant_id')
                 ->orderBy('name')
                 ->get()
@@ -54,7 +56,7 @@ class RoleController extends BaseApiController
         $model = $this->findRole($request, $role);
         $this->authorize('view', $model);
 
-        return new RoleResource($model->load('permissions'));
+        return new RoleResource($model->load($this->includes($request)));
     }
 
     public function update(UpdateRoleRequest $request, string $role): RoleResource

@@ -7,6 +7,8 @@ use App\Http\Requests\Rbac\UpdatePermissionRequest;
 use App\Http\Resources\PermissionResource;
 use App\Services\RbacService;
 use App\Support\Rbac\Permissions;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Request;
@@ -16,6 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class PermissionController extends BaseApiController
 {
+    protected const ALLOWED_INCLUDES = ['roles'];
+
     public function __construct(private readonly RbacService $rbac)
     {
     }
@@ -30,6 +34,8 @@ class PermissionController extends BaseApiController
             $query->whereNotIn('name', Permissions::systemOnly());
         }
 
+        $query->with($this->relations($request));
+
         return PermissionResource::collection($query->get());
     }
 
@@ -42,11 +48,11 @@ class PermissionController extends BaseApiController
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function show(Permission $permission): PermissionResource
+    public function show(Request $request, Permission $permission): PermissionResource
     {
         $this->authorize('view', $permission);
 
-        return new PermissionResource($permission);
+        return new PermissionResource($permission->load($this->relations($request)));
     }
 
     public function update(UpdatePermissionRequest $request, Permission $permission): PermissionResource
@@ -63,5 +69,24 @@ class PermissionController extends BaseApiController
         $this->rbac->deletePermission($permission);
 
         return response()->noContent();
+    }
+
+    private function relations(Request $request): array
+    {
+        if (! in_array('roles', $this->includes($request), true)) {
+            return [];
+        }
+
+        return [
+            'roles' => function (BelongsToMany $query) use ($request): void {
+                if (! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM)) {
+                    $query->whereDoesntHave('permissions', function (Builder $query): void {
+                        $query->whereIn('name', Permissions::systemOnly());
+                    });
+                }
+
+                $query->orderBy('tenant_id')->orderBy('name');
+            },
+        ];
     }
 }

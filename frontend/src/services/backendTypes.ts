@@ -144,6 +144,7 @@ export type BackendPermission = {
   id: number;
   name: string;
   guard_name: string;
+  roles?: BackendRole[];
 };
 
 export type BackendRole = {

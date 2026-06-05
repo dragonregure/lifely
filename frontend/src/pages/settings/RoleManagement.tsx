@@ -2,6 +2,7 @@ import { useMemo, useState, type Dispatch, type FormEvent, type SetStateAction }
 import { Eye, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { DataTable, type DataTableColumn, type DataTableFilter } from "@/components/data-table";
 import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
+import { LoadingState } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,7 @@ type RoleManagementProps = {
   handleUpdateRole: (role: AccessRole) => void;
   isLoading: boolean;
   isSaving: boolean;
+  loadRoleDetails: (roleId: number) => Promise<AccessRole>;
   newRole: RoleDraft;
   roleDrafts: Record<number, RoleDraft>;
   roles: AccessRole[];
@@ -45,6 +47,7 @@ export function RoleManagement({
   handleUpdateRole,
   isLoading,
   isSaving,
+  loadRoleDetails,
   newRole,
   roleDrafts,
   roles,
@@ -55,13 +58,15 @@ export function RoleManagement({
   const [pendingDelete, setPendingDelete] = useState<AccessRole | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedRoleDetail, setSelectedRoleDetail] = useState<AccessRole | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
 
-  const selectedRole = useMemo(() => roles.find((role) => role.id === selectedRoleId) ?? null, [roles, selectedRoleId]);
+  const selectedRoleSummary = useMemo(() => roles.find((role) => role.id === selectedRoleId) ?? null, [roles, selectedRoleId]);
+  const selectedRole = selectedRoleDetail ?? selectedRoleSummary;
   const selectedDraft = selectedRole ? roleDrafts[selectedRole.id] ?? roleToDraft(selectedRole) : null;
   const canModifySelectedRole = selectedRole ? canUpdateRoles && (!selectedRole.isSystem || canManageSystemRoles) : false;
   const canDeletePendingRole = pendingDelete ? canDeleteRoles && (!pendingDelete.isSystem || canManageSystemRoles) : false;
-
-  const permissionGroups = useMemo(() => Object.keys(groupedPermissions).sort((a, b) => a.localeCompare(b)), [groupedPermissions]);
 
   const roleColumns = useMemo<DataTableColumn<AccessRole>[]>(
     () => [
@@ -90,27 +95,8 @@ export function RoleManagement({
         sortable: true,
         sortValue: (role) => (role.isSystem ? "System" : "Tenant"),
       },
-      {
-        id: "permissions",
-        header: "Permissions",
-        cell: (role) => {
-          const draft = roleDrafts[role.id] ?? roleToDraft(role);
-
-          return (
-            <div className="flex flex-wrap gap-1">
-              {draft.permissions.slice(0, 4).map((permission) => (
-                <Badge key={permission} variant="muted">
-                  {permission}
-                </Badge>
-              ))}
-              {draft.permissions.length > 4 && <Badge variant="secondary">+{draft.permissions.length - 4}</Badge>}
-            </div>
-          );
-        },
-        searchValue: (role) => (roleDrafts[role.id] ?? roleToDraft(role)).permissions.join(" "),
-      },
     ],
-    [roleDrafts],
+    [],
   );
 
   const roleFilters = useMemo<DataTableFilter<AccessRole>[]>(
@@ -126,25 +112,8 @@ export function RoleManagement({
         ],
         predicate: (role, selectedValue) => selectedValue === "all" || (selectedValue === "system" ? role.isSystem : !role.isSystem),
       },
-      {
-        id: "permission_group",
-        label: "Permission group",
-        defaultValue: "all",
-        options: [
-          { label: "All permission groups", value: "all" },
-          ...permissionGroups.map((group) => ({ label: group, value: group })),
-        ],
-        predicate: (role, selectedValue) => {
-          if (selectedValue === "all") {
-            return true;
-          }
-
-          const draft = roleDrafts[role.id] ?? roleToDraft(role);
-          return draft.permissions.some((permission) => permission.startsWith(`${selectedValue}.`));
-        },
-      },
     ],
-    [permissionGroups, roleDrafts],
+    [],
   );
 
   const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -155,9 +124,20 @@ export function RoleManagement({
     }
   };
 
-  const openPreview = (role: AccessRole) => {
+  const openPreview = async (role: AccessRole) => {
     setSelectedRoleId(role.id);
+    setSelectedRoleDetail(null);
+    setDetailError("");
     setIsPreviewOpen(true);
+    setIsDetailLoading(true);
+
+    try {
+      setSelectedRoleDetail(await loadRoleDetails(role.id));
+    } catch (caught) {
+      setDetailError(caught instanceof Error ? caught.message : "Unable to load role details.");
+    } finally {
+      setIsDetailLoading(false);
+    }
   };
 
   const handleConfirmDelete = () => {
@@ -214,7 +194,7 @@ export function RoleManagement({
 
                 return (
                   <>
-                    <Button variant="outline" size="icon" title="Preview role" aria-label="Preview role" onClick={() => openPreview(role)}>
+                    <Button variant="outline" size="icon" title="Preview role" aria-label="Preview role" onClick={() => void openPreview(role)}>
                       <Eye className="h-4 w-4" />
                     </Button>
                     {(canRemoveRole || role.isSystem) && (
@@ -240,7 +220,7 @@ export function RoleManagement({
               initialPageSize={10}
               isLoading={isLoading}
               rowKey="id"
-              search={{ enabled: true, placeholder: "Search roles or permissions" }}
+              search={{ enabled: true, placeholder: "Search roles" }}
             />
           )}
         </CardContent>
@@ -252,7 +232,11 @@ export function RoleManagement({
             <DialogTitle>{selectedRole?.name ?? "Role"}</DialogTitle>
             <DialogDescription>Preview and update the selected role.</DialogDescription>
           </DialogHeader>
-          {selectedRole && selectedDraft ? (
+          {isDetailLoading ? (
+            <LoadingState label="Loading role details" />
+          ) : detailError ? (
+            <p className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{detailError}</p>
+          ) : selectedRole && selectedDraft ? (
             <RoleEditorCard
               canSave={canModifySelectedRole}
               draft={selectedDraft}

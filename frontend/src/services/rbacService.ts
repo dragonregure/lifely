@@ -11,13 +11,41 @@ type PermissionPayload = {
   name: string;
 };
 
+export type RoleInclude = "permissions";
+export type PermissionInclude = "roles";
+
+type RoleRequestOptions = Pick<RequestInit, "signal"> & {
+  include?: readonly RoleInclude[];
+};
+
+type PermissionRequestOptions = Pick<RequestInit, "signal"> & {
+  include?: readonly PermissionInclude[];
+};
+
 function tenantHeaders(tenantId?: string) {
   return tenantId ? { "X-Tenant-Id": tenantId } : undefined;
 }
 
-export async function getRoles() {
-  const response = await apiRequest<ApiEnvelope<BackendRole[]>>("/roles");
+function toIncludeQueryString(includes: readonly string[] = []) {
+  const query = new URLSearchParams();
+
+  includes.forEach((include) => query.append("include[]", include));
+
+  return query.toString();
+}
+
+export async function getRoles(options: RoleRequestOptions = {}) {
+  const { include = [], ...requestOptions } = options;
+  const queryString = toIncludeQueryString(include);
+  const response = await apiRequest<ApiEnvelope<BackendRole[]>>(`/roles${queryString ? `?${queryString}` : ""}`, requestOptions);
   return response.data.map(mapRole);
+}
+
+export async function getRole(roleId: number, options: RoleRequestOptions = {}) {
+  const { include = [], ...requestOptions } = options;
+  const queryString = toIncludeQueryString(include);
+  const response = await apiRequest<ApiEnvelope<BackendRole>>(`/roles/${roleId}${queryString ? `?${queryString}` : ""}`, requestOptions);
+  return mapRole(response.data);
 }
 
 export async function createRole(payload: RolePayload) {
@@ -50,8 +78,10 @@ export async function deleteRole(roleId: number) {
   await apiRequest<void>(`/roles/${roleId}`, { method: "DELETE" });
 }
 
-export async function getPermissions() {
-  const response = await apiRequest<ApiEnvelope<BackendPermission[]>>("/permissions");
+export async function getPermissions(options: PermissionRequestOptions = {}) {
+  const { include = [], ...requestOptions } = options;
+  const queryString = toIncludeQueryString(include);
+  const response = await apiRequest<ApiEnvelope<BackendPermission[]>>(`/permissions${queryString ? `?${queryString}` : ""}`, requestOptions);
   return response.data.map(mapPermission);
 }
 

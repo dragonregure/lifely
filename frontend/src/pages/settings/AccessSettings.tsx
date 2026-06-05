@@ -25,6 +25,7 @@ type AccessSettingsProps = Pick<
   | "handleUpdateRole"
   | "isLoading"
   | "isSaving"
+  | "loadRoleDetails"
   | "newPermission"
   | "newRole"
   | "permissionDrafts"
@@ -68,6 +69,7 @@ export function AccessSettings(props: AccessSettingsProps) {
             handleUpdateRole={props.handleUpdateRole}
             isLoading={props.isLoading}
             isSaving={props.isSaving}
+            loadRoleDetails={props.loadRoleDetails}
             newRole={props.newRole}
             roleDrafts={props.roleDrafts}
             roles={props.roles}

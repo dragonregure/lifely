@@ -5,6 +5,7 @@ import {
   createRole,
   deletePermission,
   deleteRole,
+  getRole,
   getMyPermissions,
   getPermissions,
   getRoles,
@@ -17,6 +18,17 @@ import { PERMISSIONS } from "@/rbac/permissions";
 import type { AccessRole, Permission, UserAccess } from "@/types";
 import type { PermissionDraft, RoleDraft, SettingsView } from "./settingsTypes";
 import { can, groupPermissionNames, permissionGroup } from "./settingsUtils";
+
+function roleToDraft(role: AccessRole): RoleDraft {
+  return {
+    name: role.name,
+    permissions: role.permissions.map((permission) => permission.name),
+  };
+}
+
+function isRbacListView(view: SettingsView) {
+  return view === "members" || view === "access";
+}
 
 export function useRbacSettings() {
   const { members, refreshSession, tenant, user } = useAuth();
@@ -35,6 +47,8 @@ export function useRbacSettings() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasLoadedRoles, setHasLoadedRoles] = useState(false);
+  const [hasLoadedPermissions, setHasLoadedPermissions] = useState(false);
 
   const selectedMember = useMemo(() => members.find((member) => member.id === selectedMemberId), [members, selectedMemberId]);
 
@@ -48,32 +62,85 @@ export function useRbacSettings() {
 
   const groupedEffectivePermissions = useMemo(() => groupPermissionNames(access?.permissions ?? []), [access]);
 
-  const applyAccessState = useCallback((nextAccess: UserAccess, nextRoles: AccessRole[], nextPermissions: Permission[]) => {
-    setAccess(nextAccess);
+  const canViewRolesFromAccess = useCallback((nextAccess: UserAccess | null) => can(nextAccess, PERMISSIONS.roles.view), []);
+  const canViewPermissionsFromAccess = useCallback((nextAccess: UserAccess | null) => can(nextAccess, PERMISSIONS.permissions.view), []);
+
+  const applyAccess = useCallback(
+    (nextAccess: UserAccess) => {
+      setAccess(nextAccess);
+
+      if (!canViewRolesFromAccess(nextAccess)) {
+        setRoles([]);
+        setRoleDrafts({});
+        setHasLoadedRoles(false);
+      }
+
+      if (!canViewPermissionsFromAccess(nextAccess)) {
+        setPermissions([]);
+        setPermissionDrafts({});
+        setHasLoadedPermissions(false);
+      }
+    },
+    [canViewPermissionsFromAccess, canViewRolesFromAccess],
+  );
+
+  const applyRoles = useCallback((nextRoles: AccessRole[]) => {
     setRoles(nextRoles);
-    setPermissions(nextPermissions);
-    setRoleDrafts(
+    setHasLoadedRoles(true);
+    setRoleDrafts((current) =>
       Object.fromEntries(
-        nextRoles.map((role) => [
-          role.id,
-          {
-            name: role.name,
-            permissions: role.permissions.map((permission) => permission.name),
-          },
-        ]),
+        Object.entries(current).filter(([roleId]) => nextRoles.some((role) => role.id === Number(roleId))),
       ),
     );
+  }, []);
+
+  const applyPermissions = useCallback((nextPermissions: Permission[]) => {
+    setPermissions(nextPermissions);
+    setHasLoadedPermissions(true);
     setPermissionDrafts(Object.fromEntries(nextPermissions.map((permission) => [permission.id, { name: permission.name }])));
   }, []);
 
+  const loadRbacLists = useCallback(
+    async (nextAccess: UserAccess, options: { force?: boolean } = {}) => {
+      const shouldLoadRoles = canViewRolesFromAccess(nextAccess) && (options.force || !hasLoadedRoles);
+      const shouldLoadPermissions = canViewPermissionsFromAccess(nextAccess) && (options.force || !hasLoadedPermissions);
+
+      const [nextRoles, nextPermissions] = await Promise.all([
+        shouldLoadRoles ? getRoles() : Promise.resolve<AccessRole[] | null>(null),
+        shouldLoadPermissions ? getPermissions() : Promise.resolve<Permission[] | null>(null),
+      ]);
+
+      if (nextRoles) {
+        applyRoles(nextRoles);
+      }
+
+      if (nextPermissions) {
+        applyPermissions(nextPermissions);
+      }
+    },
+    [applyPermissions, applyRoles, canViewPermissionsFromAccess, canViewRolesFromAccess, hasLoadedPermissions, hasLoadedRoles],
+  );
+
   const reloadRbac = useCallback(async () => {
     const nextAccess = await getMyPermissions();
-    const [nextRoles, nextPermissions] = await Promise.all([
-      nextAccess.permissions.includes(PERMISSIONS.roles.view) ? getRoles() : Promise.resolve([]),
-      nextAccess.permissions.includes(PERMISSIONS.permissions.view) ? getPermissions() : Promise.resolve([]),
-    ]);
-    applyAccessState(nextAccess, nextRoles, nextPermissions);
-  }, [applyAccessState]);
+    applyAccess(nextAccess);
+
+    if (isRbacListView(activeView)) {
+      await loadRbacLists(nextAccess, { force: true });
+    }
+  }, [activeView, applyAccess, loadRbacLists]);
+
+  const loadRoleDetails = useCallback(async (roleId: number) => {
+    const role = await getRole(roleId, { include: ["permissions"] });
+
+    setRoles((current) => current.map((item) => (item.id === role.id ? role : item)));
+    setRoleDrafts((current) => ({
+      ...current,
+      [role.id]: roleToDraft(role),
+    }));
+
+    return role;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -83,7 +150,11 @@ export function useRbacSettings() {
       setError("");
 
       try {
-        await reloadRbac();
+        const nextAccess = await getMyPermissions();
+
+        if (isMounted) {
+          applyAccess(nextAccess);
+        }
       } catch (caught) {
         if (!isMounted) return;
         setError(caught instanceof Error ? caught.message : "Unable to load access controls.");
@@ -97,7 +168,51 @@ export function useRbacSettings() {
     return () => {
       isMounted = false;
     };
-  }, [reloadRbac]);
+  }, [applyAccess]);
+
+  useEffect(() => {
+    if (!access || !isRbacListView(activeView)) {
+      return;
+    }
+
+    const shouldLoadRoles = canViewRolesFromAccess(access) && !hasLoadedRoles;
+    const shouldLoadPermissions = canViewPermissionsFromAccess(access) && !hasLoadedPermissions;
+
+    if (!shouldLoadRoles && !shouldLoadPermissions) {
+      return;
+    }
+
+    const currentAccess = access;
+    let isMounted = true;
+
+    async function loadRelatedSettingsData() {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        await loadRbacLists(currentAccess);
+      } catch (caught) {
+        if (!isMounted) return;
+        setError(caught instanceof Error ? caught.message : "Unable to load role and permission settings.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    void loadRelatedSettingsData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    access,
+    activeView,
+    canViewPermissionsFromAccess,
+    canViewRolesFromAccess,
+    hasLoadedPermissions,
+    hasLoadedRoles,
+    loadRbacLists,
+  ]);
 
   useEffect(() => {
     if (selectedMemberId || members.length === 0) return;
@@ -239,6 +354,7 @@ export function useRbacSettings() {
     handleUpdateRole,
     isLoading,
     isSaving,
+    loadRoleDetails,
     members,
     newPermission,
     newRole,

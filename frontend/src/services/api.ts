@@ -39,6 +39,7 @@ export {
   createRole,
   deletePermission,
   deleteRole,
+  getRole,
   getMyPermissions,
   getPermissions,
   getRoles,
@@ -47,3 +48,4 @@ export {
   updatePermission,
   updateRole,
 } from "@/services/rbacService";
+export type { PermissionInclude, RoleInclude } from "@/services/rbacService";
