@@ -314,12 +314,15 @@ components:
         listing_id: { type: string, format: uuid }
         user_id: { type: string, format: uuid }
         stage: { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
+        source_id: { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], description: "0=Manual Entry, 1=Website, 2=Listing Inquiry, 3=Social Media, 4=Referral, 5=Phone Call, 6=Messaging, 7=Email, 8=Paid Ads, 9=Portal, 10=Exhibition, 11=Integration." }
+        source: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
         is_active: { type: boolean, description: Active pipeline rows are true; archived rows are false. }
         value: { type: number, description: Derived from the related listing price. }
         next_task: { type: string, nullable: true }
         due_at: { type: string, format: date-time, nullable: true }
         contact: { $ref: "#/components/schemas/Contact" }
         listing: { $ref: "#/components/schemas/Listing" }
+        user: { $ref: "#/components/schemas/Member" }
         created_at: { type: string, format: date-time, nullable: true }
     ActivityLog:
       type: object
@@ -594,9 +597,27 @@ components:
             - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
             - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
           nullable: true
+        source:
+          oneOf:
+            - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+            - { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
+          nullable: true
         is_active: { type: boolean, default: true }
         next_task: { type: string, nullable: true, maxLength: 255 }
         due_at: { type: string, format: date-time, nullable: true }
+    PipelineUpdatePayload:
+      type: object
+      properties:
+        contact_id: { type: string, format: uuid, description: Editable only for manual-entry deals. }
+        listing_id: { type: string, format: uuid, description: Editable only for manual-entry deals. }
+        user_id: { type: string, format: uuid, description: "Requires `pipeline.change_assignee`; assigning the current user also allows `pipeline.assign_to_self`." }
+        stage:
+          oneOf:
+            - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
+            - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
+          description: Requires `pipeline.update` and the current user must be the assignee.
+        is_active: { type: boolean, description: Requires `pipeline.update` and the current user must be the assignee. }
+        next_task: { type: string, nullable: true, maxLength: 255, description: Requires `pipeline.update` and the current user must be the assignee. }
     PipelineStagePayload:
       type: object
       required: [stage]
@@ -1233,7 +1254,7 @@ paths:
         - { $ref: "#/components/parameters/Search" }
         - in: query
           name: sort
-          schema: { type: string, enum: [stage, value, next_task, due_at, created_at] }
+          schema: { type: string, enum: [stage, source, value, next_task, due_at, created_at] }
           description: Whitelisted sort key. Unknown values fall back to `created_at`.
         - { $ref: "#/components/parameters/Direction" }
         - in: query
@@ -1252,6 +1273,10 @@ paths:
           name: filter[listing_id]
           schema: { type: string, format: uuid }
           description: Filter by listing UUID. Top-level `listing_id` is also accepted.
+        - in: query
+          name: filter[source]
+          schema: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
+          description: Filter by readable source label. Top-level `source` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped pipeline deals. }
         "403": { description: Missing `pipeline.view` permission. }
@@ -1267,6 +1292,23 @@ paths:
       responses:
         "201": { description: Deal created. }
         "403": { description: Missing `pipeline.create` permission. }
+        "422": { description: Validation failed. }
+  /pipeline/{pipeline}:
+    patch:
+      tags: [Pipeline]
+      summary: Update pipeline overview
+      description: "Updates overview fields. Assignee changes require `pipeline.change_assignee`, or `pipeline.assign_to_self` when assigning the current user. Progress fields require `pipeline.update` and the current user must be the assignee. Contact/listing changes are limited to manual-entry deals."
+      parameters:
+        - { $ref: "#/components/parameters/PipelineId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PipelineUpdatePayload" }
+      responses:
+        "200": { description: Deal updated. }
+        "403": { description: Missing the required pipeline update or assignment permission. }
+        "404": { description: Pipeline deal is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
   /pipeline/{pipeline}/stage:
     patch:

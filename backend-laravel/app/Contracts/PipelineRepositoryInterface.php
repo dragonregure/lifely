@@ -13,7 +13,11 @@ interface PipelineRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
+    public function find(string $tenantId, string $pipelineId): ?Pipeline;
+
     public function create(string $tenantId, array $data): Pipeline;
+
+    public function update(string $tenantId, string $pipelineId, array $data): ?Pipeline;
 
     public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline;
 

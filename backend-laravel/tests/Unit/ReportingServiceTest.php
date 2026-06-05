@@ -65,9 +65,19 @@ class ReportingServiceTest extends TestCase
                 return new Paginator([], 0, $dataTable->perPage);
             }
 
+            public function find(string $tenantId, string $pipelineId): ?Pipeline
+            {
+                return null;
+            }
+
             public function create(string $tenantId, array $data): Pipeline
             {
                 return new Pipeline();
+            }
+
+            public function update(string $tenantId, string $pipelineId, array $data): ?Pipeline
+            {
+                return null;
             }
 
             public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline

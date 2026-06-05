@@ -44,6 +44,7 @@ Route::prefix('v1')->group(function (): void {
         Route::apiResource('listings', ListingController::class)->only(['index', 'store', 'show', 'update']);
         Route::get('pipeline', [PipelineController::class, 'index']);
         Route::post('pipeline', [PipelineController::class, 'store']);
+        Route::patch('pipeline/{pipeline}', [PipelineController::class, 'update']);
         Route::patch('pipeline/{pipeline}/stage', [PipelineController::class, 'updateStage']);
         Route::get('references/types', [ReferenceController::class, 'referenceTypes']);
         Route::get('references/groups', [ReferenceController::class, 'groups']);

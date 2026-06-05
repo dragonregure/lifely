@@ -33,6 +33,7 @@ class PipelineRepository implements PipelineRepositoryInterface
             ->with(['contact', 'listing', 'user']);
 
         $this->applyStageFilter($query, $dataTable);
+        $this->applySourceFilter($query, $dataTable);
         $this->applySearch($query, $dataTable);
 
         return EloquentDataTable::paginate(
@@ -46,6 +47,7 @@ class PipelineRepository implements PipelineRepositoryInterface
             ],
             [
                 'stage' => 'pipelines.stage',
+                'source' => 'pipelines.source',
                 'value' => 'listings.price',
                 'next_task' => 'pipelines.next_task',
                 'due_at' => 'pipelines.due_at',
@@ -60,10 +62,34 @@ class PipelineRepository implements PipelineRepositoryInterface
         $pipeline = Pipeline::query()->create($data + [
             'tenant_id' => $tenantId,
             'stage' => Pipeline::STAGE_NEW_LEAD,
+            'source' => Pipeline::SOURCE_MANUAL_ENTRY,
             'is_active' => true,
         ]);
 
         return $pipeline->load(['contact', 'listing', 'user']);
+    }
+
+    public function find(string $tenantId, string $pipelineId): ?Pipeline
+    {
+        return Pipeline::query()
+            ->where('tenant_id', $tenantId)
+            ->with(['contact', 'listing', 'user'])
+            ->find($pipelineId);
+    }
+
+    public function update(string $tenantId, string $pipelineId, array $data): ?Pipeline
+    {
+        $pipeline = Pipeline::query()
+            ->where('tenant_id', $tenantId)
+            ->find($pipelineId);
+
+        if (! $pipeline) {
+            return null;
+        }
+
+        $pipeline->update($data);
+
+        return $pipeline->refresh()->load(['contact', 'listing', 'user']);
     }
 
     public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
@@ -128,6 +154,18 @@ class PipelineRepository implements PipelineRepositoryInterface
     /**
      * @param  Builder<Pipeline>  $query
      */
+    private function applySourceFilter(Builder $query, DataTableQuery $dataTable): void
+    {
+        $source = Pipeline::sourceFromInput($dataTable->filter('source'));
+
+        if ($source !== null) {
+            $query->where('pipelines.source', $source);
+        }
+    }
+
+    /**
+     * @param  Builder<Pipeline>  $query
+     */
     private function applySearch(Builder $query, DataTableQuery $dataTable): void
     {
         if ($dataTable->search === null) {
@@ -138,12 +176,20 @@ class PipelineRepository implements PipelineRepositoryInterface
             ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($dataTable->search)))
             ->keys()
             ->all();
+        $matchingSources = collect(Pipeline::SOURCE_LABELS)
+            ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($dataTable->search)))
+            ->keys()
+            ->all();
 
-        $query->where(function (Builder $query) use ($dataTable, $matchingStages): void {
+        $query->where(function (Builder $query) use ($dataTable, $matchingStages, $matchingSources): void {
             $query->where('pipelines.next_task', 'like', '%'.$dataTable->search.'%');
 
             if ($matchingStages !== []) {
                 $query->orWhereIn('pipelines.stage', $matchingStages);
+            }
+
+            if ($matchingSources !== []) {
+                $query->orWhereIn('pipelines.source', $matchingSources);
             }
         });
     }

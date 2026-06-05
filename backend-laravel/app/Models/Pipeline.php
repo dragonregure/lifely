@@ -21,6 +21,19 @@ class Pipeline extends Model
     public const STAGE_CLOSED_LOST = 7;
     public const STAGE_DORMANT = 8;
 
+    public const SOURCE_MANUAL_ENTRY = 0;
+    public const SOURCE_WEBSITE = 1;
+    public const SOURCE_LISTING_INQUIRY = 2;
+    public const SOURCE_SOCIAL_MEDIA = 3;
+    public const SOURCE_REFERRAL = 4;
+    public const SOURCE_PHONE_CALL = 5;
+    public const SOURCE_MESSAGING = 6;
+    public const SOURCE_EMAIL = 7;
+    public const SOURCE_PAID_ADS = 8;
+    public const SOURCE_PORTAL = 9;
+    public const SOURCE_EXHIBITION = 10;
+    public const SOURCE_INTEGRATION = 11;
+
     public const STAGE_LABELS = [
         self::STAGE_NEW_LEAD => 'New Lead',
         self::STAGE_CONTACTED => 'Contacted',
@@ -31,6 +44,21 @@ class Pipeline extends Model
         self::STAGE_CLOSED_WON => 'Closed Won',
         self::STAGE_CLOSED_LOST => 'Closed Lost',
         self::STAGE_DORMANT => 'Dormant',
+    ];
+
+    public const SOURCE_LABELS = [
+        self::SOURCE_MANUAL_ENTRY => 'Manual Entry',
+        self::SOURCE_WEBSITE => 'Website',
+        self::SOURCE_LISTING_INQUIRY => 'Listing Inquiry',
+        self::SOURCE_SOCIAL_MEDIA => 'Social Media',
+        self::SOURCE_REFERRAL => 'Referral',
+        self::SOURCE_PHONE_CALL => 'Phone Call',
+        self::SOURCE_MESSAGING => 'Messaging',
+        self::SOURCE_EMAIL => 'Email',
+        self::SOURCE_PAID_ADS => 'Paid Ads',
+        self::SOURCE_PORTAL => 'Portal',
+        self::SOURCE_EXHIBITION => 'Exhibition',
+        self::SOURCE_INTEGRATION => 'Integration',
     ];
 
     /**
@@ -55,6 +83,7 @@ class Pipeline extends Model
         'listing_id',
         'user_id',
         'stage',
+        'source',
         'is_active',
         'next_task',
         'due_at',
@@ -64,6 +93,7 @@ class Pipeline extends Model
     {
         return [
             'stage' => 'integer',
+            'source' => 'integer',
             'is_active' => 'boolean',
             'due_at' => 'datetime',
         ];
@@ -80,6 +110,50 @@ class Pipeline extends Model
     public static function stageLabel(int $stage): string
     {
         return self::STAGE_LABELS[$stage] ?? self::STAGE_LABELS[self::STAGE_NEW_LEAD];
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public static function sourceValues(): array
+    {
+        return array_keys(self::SOURCE_LABELS);
+    }
+
+    public static function sourceLabel(int $source): string
+    {
+        return self::SOURCE_LABELS[$source] ?? self::SOURCE_LABELS[self::SOURCE_MANUAL_ENTRY];
+    }
+
+    public static function sourceFromInput(mixed $source): ?int
+    {
+        if (is_int($source)) {
+            return in_array($source, self::sourceValues(), true) ? $source : null;
+        }
+
+        if (! is_string($source)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim(preg_replace('/\s+/', ' ', $source) ?? $source));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (is_numeric($normalized)) {
+            $sourceValue = (int) $normalized;
+
+            return in_array($sourceValue, self::sourceValues(), true) ? $sourceValue : null;
+        }
+
+        foreach (self::SOURCE_LABELS as $value => $label) {
+            if (strtolower($label) === $normalized) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     public static function stageFromInput(mixed $stage): ?int

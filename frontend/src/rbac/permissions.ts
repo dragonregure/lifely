@@ -35,6 +35,8 @@ export const PERMISSIONS = {
     view: "pipeline.view",
     create: "pipeline.create",
     update: "pipeline.update",
+    changeAssignee: "pipeline.change_assignee",
+    assignToSelf: "pipeline.assign_to_self",
   },
   emailCampaigns: {
     view: "email_campaigns.view",

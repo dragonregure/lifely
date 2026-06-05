@@ -20,8 +20,9 @@ export {
   sendBulkEmailDraft,
   updateContact,
   updateListing,
+  updatePipelineDeal,
 } from "@/services/crmService";
-export type { ContactPayload, ListingInclude, ListingPayload } from "@/services/crmService";
+export type { ContactPayload, ListingInclude, ListingPayload, PipelineDealPayload } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
 export {
   createReference,

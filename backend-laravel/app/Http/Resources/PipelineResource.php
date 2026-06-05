@@ -19,6 +19,8 @@ class PipelineResource extends JsonResource
             'listing_id' => $this->listing_id,
             'user_id' => $this->user_id,
             'stage' => Pipeline::stageLabel((int) $this->stage),
+            'source_id' => (int) $this->source,
+            'source' => Pipeline::sourceLabel((int) $this->source),
             'is_active' => (bool) $this->is_active,
             'value' => $this->value(),
             'next_task' => $this->next_task,
@@ -27,6 +29,7 @@ class PipelineResource extends JsonResource
                 : $this->due_at,
             'contact' => new ContactResource($this->whenLoaded('contact')),
             'listing' => new ListingResource($this->whenLoaded('listing')),
+            'user' => new MemberResource($this->whenLoaded('user')),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

@@ -4,6 +4,7 @@ import type {
   EmailCampaign,
   ListingStatus,
   ListingType,
+  PipelineSource,
   PipelineStage,
   ReferenceValue,
   ReferenceStatus,
@@ -103,12 +104,15 @@ export type BackendDeal = {
   listing_id: string;
   user_id: string;
   stage: PipelineStage;
+  source_id: number;
+  source: PipelineSource;
   is_active: boolean;
   value: number;
   next_task?: string | null;
   due_at?: string | null;
   contact?: BackendContact | null;
   listing?: BackendListing | null;
+  user?: BackendUser | null;
 };
 
 export type BackendActivity = {

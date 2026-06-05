@@ -69,6 +69,20 @@ export type PipelineStage =
   | "Closed Lost"
   | "Dormant";
 
+export type PipelineSource =
+  | "Manual Entry"
+  | "Website"
+  | "Listing Inquiry"
+  | "Social Media"
+  | "Referral"
+  | "Phone Call"
+  | "Messaging"
+  | "Email"
+  | "Paid Ads"
+  | "Portal"
+  | "Exhibition"
+  | "Integration";
+
 export type Tenant = {
   id: string;
   name: string;
@@ -141,12 +155,15 @@ export type PipelineDeal = {
   listingId: string;
   userId: string;
   stage: PipelineStage;
+  sourceId: number;
+  source: PipelineSource;
   isActive: boolean;
   value: number;
   nextTask?: string | null;
   dueAt?: string | null;
   contact?: Contact | null;
   listing?: Listing | null;
+  user?: User | null;
 };
 
 export type ActivityLogProperties = {

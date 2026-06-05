@@ -19,14 +19,22 @@ class StorePipelineRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if (! $this->has('stage') || $this->input('stage') === null) {
+        if ($this->has('stage') && $this->input('stage') !== null) {
+            $stage = Pipeline::stageFromInput($this->input('stage'));
+
+            if ($stage !== null) {
+                $this->merge(['stage' => $stage]);
+            }
+        }
+
+        if (! $this->has('source') || $this->input('source') === null) {
             return;
         }
 
-        $stage = Pipeline::stageFromInput($this->input('stage'));
+        $source = Pipeline::sourceFromInput($this->input('source'));
 
-        if ($stage !== null) {
-            $this->merge(['stage' => $stage]);
+        if ($source !== null) {
+            $this->merge(['source' => $source]);
         }
     }
 
@@ -39,6 +47,7 @@ class StorePipelineRequest extends FormRequest
             'listing_id' => ['required', 'uuid', Rule::exists('listings', 'id')->where('tenant_id', $tenantId)],
             'user_id' => ['required', 'uuid', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
             'stage' => ['nullable', 'integer', Rule::in(Pipeline::stageValues())],
+            'source' => ['nullable', 'integer', Rule::in(Pipeline::sourceValues())],
             'is_active' => ['sometimes', 'boolean'],
             'next_task' => ['nullable', 'string', 'max:255'],
             'due_at' => ['nullable', 'date'],

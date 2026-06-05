@@ -33,6 +33,8 @@ final class Permissions
     public const PIPELINE_VIEW = 'pipeline.view';
     public const PIPELINE_CREATE = 'pipeline.create';
     public const PIPELINE_UPDATE = 'pipeline.update';
+    public const PIPELINE_CHANGE_ASSIGNEE = 'pipeline.change_assignee';
+    public const PIPELINE_ASSIGN_TO_SELF = 'pipeline.assign_to_self';
 
     public const EMAIL_CAMPAIGNS_VIEW = 'email_campaigns.view';
     public const EMAIL_CAMPAIGNS_CREATE = 'email_campaigns.create';
@@ -76,6 +78,8 @@ final class Permissions
             self::PIPELINE_VIEW,
             self::PIPELINE_CREATE,
             self::PIPELINE_UPDATE,
+            self::PIPELINE_CHANGE_ASSIGNEE,
+            self::PIPELINE_ASSIGN_TO_SELF,
             self::EMAIL_CAMPAIGNS_VIEW,
             self::EMAIL_CAMPAIGNS_CREATE,
             self::ACTIVITY_LOGS_VIEW,

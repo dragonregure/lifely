@@ -163,12 +163,15 @@ export function mapDeal(deal: BackendDeal): PipelineDeal {
     listingId: deal.listing_id,
     userId: deal.user_id,
     stage: deal.stage,
+    sourceId: deal.source_id,
+    source: deal.source,
     isActive: deal.is_active,
     value: Number(deal.value),
     nextTask: deal.next_task,
     dueAt: deal.due_at,
     contact: deal.contact ? mapContact(deal.contact) : null,
     listing: deal.listing ? mapListing(deal.listing) : null,
+    user: deal.user ? mapUser(deal.user) : null,
   };
 }
 

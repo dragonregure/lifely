@@ -41,6 +41,15 @@ export type ListingPayload = {
   primaryOwnerUserId?: string | null;
 };
 
+export type PipelineDealPayload = {
+  contactId?: string;
+  listingId?: string;
+  userId?: string;
+  stage?: string;
+  isActive?: boolean;
+  nextTask?: string | null;
+};
+
 export type ListingInclude = "documents" | "contacts" | "users";
 
 type ListingRequestOptions = Pick<RequestInit, "signal"> & {
@@ -77,6 +86,17 @@ function toBackendListingPayload(payload: Partial<ListingPayload>) {
     ...(payload.contactIds !== undefined ? { contact_ids: payload.contactIds } : {}),
     ...(payload.userIds !== undefined ? { user_ids: payload.userIds } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "primaryOwnerUserId") ? { primary_owner_user_id: payload.primaryOwnerUserId } : {}),
+  };
+}
+
+function toBackendPipelineDealPayload(payload: Partial<PipelineDealPayload>) {
+  return {
+    ...(payload.contactId !== undefined ? { contact_id: payload.contactId } : {}),
+    ...(payload.listingId !== undefined ? { listing_id: payload.listingId } : {}),
+    ...(payload.userId !== undefined ? { user_id: payload.userId } : {}),
+    ...(payload.stage !== undefined ? { stage: payload.stage } : {}),
+    ...(payload.isActive !== undefined ? { is_active: payload.isActive } : {}),
+    ...(Object.prototype.hasOwnProperty.call(payload, "nextTask") ? { next_task: payload.nextTask } : {}),
   };
 }
 
@@ -243,6 +263,15 @@ export async function getPipelineDealsPage(
     pageCount: response.meta.last_page,
     total: response.meta.total,
   };
+}
+
+export async function updatePipelineDeal(dealId: string, payload: Partial<PipelineDealPayload>) {
+  const response = await apiRequest<ApiEnvelope<BackendDeal>>(`/pipeline/${dealId}`, {
+    method: "PATCH",
+    body: JSON.stringify(toBackendPipelineDealPayload(payload)),
+  });
+
+  return mapDeal(response.data);
 }
 
 export async function getActivityLogs() {
