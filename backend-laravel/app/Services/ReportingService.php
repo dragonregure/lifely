@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Contracts\ContactRepositoryInterface;
 use App\Contracts\PipelineRepositoryInterface;
 use App\Contracts\ReportingServiceInterface;
+use App\Models\Pipeline;
 
 class ReportingService implements ReportingServiceInterface
 {
@@ -32,7 +33,7 @@ class ReportingService implements ReportingServiceInterface
             'pipeline_by_stage' => $this->pipeline
                 ->valueByStage($tenantId)
                 ->map(fn ($row) => [
-                    'stage' => $row->stage,
+                    'stage' => Pipeline::stageLabel((int) $row->stage),
                     'deals' => (int) $row->deals,
                     'value' => (float) $row->value,
                 ])

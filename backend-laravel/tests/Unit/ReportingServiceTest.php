@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use App\Contracts\ContactRepositoryInterface;
 use App\Contracts\PipelineRepositoryInterface;
 use App\Models\Contact;
-use App\Models\PipelineDeal;
+use App\Models\Pipeline;
 use App\Services\ReportingService;
 use App\Support\DataTables\DataTableQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -65,12 +65,12 @@ class ReportingServiceTest extends TestCase
                 return new Paginator([], 0, $dataTable->perPage);
             }
 
-            public function create(string $tenantId, array $data): PipelineDeal
+            public function create(string $tenantId, array $data): Pipeline
             {
-                return new PipelineDeal();
+                return new Pipeline();
             }
 
-            public function updateStage(string $tenantId, string $dealId, string $stage): ?PipelineDeal
+            public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
             {
                 return null;
             }
@@ -87,7 +87,7 @@ class ReportingServiceTest extends TestCase
 
             public function valueByStage(string $tenantId): Collection
             {
-                return collect([(object) ['stage' => 'Viewing', 'deals' => 2, 'value' => 800000]]);
+                return collect([(object) ['stage' => Pipeline::STAGE_VIEWING_SCHEDULED, 'deals' => 2, 'value' => 800000]]);
             }
         };
 
@@ -97,6 +97,6 @@ class ReportingServiceTest extends TestCase
         $this->assertSame(5, $summary['pending_tasks']);
         $this->assertSame(1200000.0, $summary['pipeline_value']);
         $this->assertSame(25.0, $summary['win_rate']);
-        $this->assertSame('Viewing', $summary['pipeline_by_stage'][0]['stage']);
+        $this->assertSame('Viewing Scheduled', $summary['pipeline_by_stage'][0]['stage']);
     }
 }

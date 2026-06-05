@@ -52,9 +52,9 @@ class Contact extends Model
         return $this->belongsTo(Reference::class, 'status_id');
     }
 
-    public function pipelineDeals(): HasMany
+    public function pipelines(): HasMany
     {
-        return $this->hasMany(PipelineDeal::class);
+        return $this->hasMany(Pipeline::class);
     }
 
     public function listings(): BelongsToMany

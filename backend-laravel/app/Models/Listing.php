@@ -92,9 +92,9 @@ class Listing extends Model
         return $this->belongsTo(Tenant::class);
     }
 
-    public function pipelineDeals(): HasMany
+    public function pipelines(): HasMany
     {
-        return $this->hasMany(PipelineDeal::class);
+        return $this->hasMany(Pipeline::class);
     }
 
     public function contacts(): BelongsToMany

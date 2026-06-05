@@ -2,7 +2,7 @@
 
 namespace App\Contracts;
 
-use App\Models\PipelineDeal;
+use App\Models\Pipeline;
 use App\Support\DataTables\DataTableQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -13,9 +13,9 @@ interface PipelineRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
-    public function create(string $tenantId, array $data): PipelineDeal;
+    public function create(string $tenantId, array $data): Pipeline;
 
-    public function updateStage(string $tenantId, string $dealId, string $stage): ?PipelineDeal;
+    public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline;
 
     public function pendingTaskCount(string $tenantId): int;
 

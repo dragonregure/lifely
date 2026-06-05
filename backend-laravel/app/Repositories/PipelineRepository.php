@@ -3,9 +3,10 @@
 namespace App\Repositories;
 
 use App\Contracts\PipelineRepositoryInterface;
-use App\Models\PipelineDeal;
+use App\Models\Pipeline;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -13,8 +14,8 @@ class PipelineRepository implements PipelineRepositoryInterface
 {
     public function all(string $tenantId): Collection
     {
-        return PipelineDeal::query()
-            ->where('tenant_id', $tenantId)
+        return Pipeline::query()
+            ->where('pipelines.tenant_id', $tenantId)
             ->with(['contact', 'listing', 'user'])
             ->latest()
             ->get();
@@ -22,48 +23,67 @@ class PipelineRepository implements PipelineRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
     {
+        $query = Pipeline::query()
+            ->select('pipelines.*')
+            ->leftJoin('listings', function ($join) use ($tenantId): void {
+                $join->on('listings.id', '=', 'pipelines.listing_id')
+                    ->where('listings.tenant_id', '=', $tenantId);
+            })
+            ->where('pipelines.tenant_id', $tenantId)
+            ->with(['contact', 'listing', 'user']);
+
+        $this->applyStageFilter($query, $dataTable);
+        $this->applySearch($query, $dataTable);
+
         return EloquentDataTable::paginate(
-            PipelineDeal::query()
-                ->where('tenant_id', $tenantId)
-                ->with(['contact', 'listing', 'user']),
+            $query,
             $dataTable,
-            ['stage', 'next_task'],
-            ['stage' => 'stage', 'user_id' => 'user_id', 'contact_id' => 'contact_id', 'listing_id' => 'listing_id'],
+            [],
             [
-                'stage' => 'stage',
-                'value' => 'value',
-                'next_task' => 'next_task',
-                'due_at' => 'due_at',
-                'created_at' => 'created_at',
-            ]
+                'user_id' => 'pipelines.user_id',
+                'contact_id' => 'pipelines.contact_id',
+                'listing_id' => 'pipelines.listing_id',
+            ],
+            [
+                'stage' => 'pipelines.stage',
+                'value' => 'listings.price',
+                'next_task' => 'pipelines.next_task',
+                'due_at' => 'pipelines.due_at',
+                'created_at' => 'pipelines.created_at',
+            ],
+            'pipelines.created_at'
         );
     }
 
-    public function create(string $tenantId, array $data): PipelineDeal
+    public function create(string $tenantId, array $data): Pipeline
     {
-        $deal = PipelineDeal::query()->create($data + ['tenant_id' => $tenantId]);
+        $pipeline = Pipeline::query()->create($data + [
+            'tenant_id' => $tenantId,
+            'stage' => Pipeline::STAGE_NEW_LEAD,
+            'is_active' => true,
+        ]);
 
-        return $deal->load(['contact', 'listing', 'user']);
+        return $pipeline->load(['contact', 'listing', 'user']);
     }
 
-    public function updateStage(string $tenantId, string $dealId, string $stage): ?PipelineDeal
+    public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
     {
-        $deal = PipelineDeal::query()
+        $pipeline = Pipeline::query()
             ->where('tenant_id', $tenantId)
-            ->find($dealId);
+            ->find($pipelineId);
 
-        if (! $deal) {
+        if (! $pipeline) {
             return null;
         }
 
-        $deal->update(['stage' => $stage]);
+        $pipeline->update(['stage' => $stage]);
 
-        return $deal->refresh()->load(['contact', 'listing', 'user']);
+        return $pipeline->refresh()->load(['contact', 'listing', 'user']);
     }
 
     public function pendingTaskCount(string $tenantId): int
     {
-        return PipelineDeal::query()
+        return Pipeline::query()
             ->where('tenant_id', $tenantId)
             ->whereNotNull('next_task')
             ->count();
@@ -71,17 +91,60 @@ class PipelineRepository implements PipelineRepositoryInterface
 
     public function totalValue(string $tenantId): float
     {
-        return (float) PipelineDeal::query()
-            ->where('tenant_id', $tenantId)
-            ->sum('value');
+        return (float) Pipeline::query()
+            ->join('listings', function ($join) use ($tenantId): void {
+                $join->on('listings.id', '=', 'pipelines.listing_id')
+                    ->where('listings.tenant_id', '=', $tenantId);
+            })
+            ->where('pipelines.tenant_id', $tenantId)
+            ->sum('listings.price');
     }
 
     public function valueByStage(string $tenantId): Collection
     {
-        return PipelineDeal::query()
-            ->where('tenant_id', $tenantId)
-            ->selectRaw('stage, count(*) as deals, sum(value) as value')
-            ->groupBy('stage')
+        return Pipeline::query()
+            ->join('listings', function ($join) use ($tenantId): void {
+                $join->on('listings.id', '=', 'pipelines.listing_id')
+                    ->where('listings.tenant_id', '=', $tenantId);
+            })
+            ->where('pipelines.tenant_id', $tenantId)
+            ->selectRaw('pipelines.stage, count(*) as deals, sum(listings.price) as value')
+            ->groupBy('pipelines.stage')
             ->get();
+    }
+
+    /**
+     * @param  Builder<Pipeline>  $query
+     */
+    private function applyStageFilter(Builder $query, DataTableQuery $dataTable): void
+    {
+        $stage = Pipeline::stageFromInput($dataTable->filter('stage'));
+
+        if ($stage !== null) {
+            $query->where('pipelines.stage', $stage);
+        }
+    }
+
+    /**
+     * @param  Builder<Pipeline>  $query
+     */
+    private function applySearch(Builder $query, DataTableQuery $dataTable): void
+    {
+        if ($dataTable->search === null) {
+            return;
+        }
+
+        $matchingStages = collect(Pipeline::STAGE_LABELS)
+            ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($dataTable->search)))
+            ->keys()
+            ->all();
+
+        $query->where(function (Builder $query) use ($dataTable, $matchingStages): void {
+            $query->where('pipelines.next_task', 'like', '%'.$dataTable->search.'%');
+
+            if ($matchingStages !== []) {
+                $query->orWhereIn('pipelines.stage', $matchingStages);
+            }
+        });
     }
 }

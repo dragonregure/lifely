@@ -58,7 +58,16 @@ export type ListingStatus = 1 | 2 | 3 | 4;
 
 export type ListingType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
-export type PipelineStage = "New lead" | "Contacted" | "Viewing" | "Offer" | "Closing";
+export type PipelineStage =
+  | "New Lead"
+  | "Contacted"
+  | "Qualified"
+  | "Viewing Scheduled"
+  | "Viewed"
+  | "Negotiating"
+  | "Closed Won"
+  | "Closed Lost"
+  | "Dormant";
 
 export type Tenant = {
   id: string;
@@ -132,6 +141,7 @@ export type PipelineDeal = {
   listingId: string;
   userId: string;
   stage: PipelineStage;
+  isActive: boolean;
   value: number;
   nextTask?: string | null;
   dueAt?: string | null;

@@ -14,14 +14,14 @@ use App\Contracts\TenantRepositoryInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
 use App\Models\Listing;
-use App\Models\PipelineDeal;
+use App\Models\Pipeline;
 use App\Models\Reference;
 use App\Models\Role;
 use App\Models\User;
 use App\Observers\ContactActivityObserver;
 use App\Observers\EmailCampaignActivityObserver;
 use App\Observers\ListingActivityObserver;
-use App\Observers\PipelineDealActivityObserver;
+use App\Observers\PipelineActivityObserver;
 use App\Policies\PermissionPolicy;
 use App\Policies\ReferencePolicy;
 use App\Policies\RolePolicy;
@@ -66,7 +66,7 @@ class AppServiceProvider extends ServiceProvider
         Contact::observe(ContactActivityObserver::class);
         EmailCampaign::observe(EmailCampaignActivityObserver::class);
         Listing::observe(ListingActivityObserver::class);
-        PipelineDeal::observe(PipelineDealActivityObserver::class);
+        Pipeline::observe(PipelineActivityObserver::class);
 
         Gate::before(fn (User $user): ?bool => $user->hasSystemBypass() ? true : null);
 

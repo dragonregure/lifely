@@ -2,12 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Pipeline;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin \App\Models\PipelineDeal */
-class PipelineDealResource extends JsonResource
+/** @mixin Pipeline */
+class PipelineResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -17,8 +18,9 @@ class PipelineDealResource extends JsonResource
             'contact_id' => $this->contact_id,
             'listing_id' => $this->listing_id,
             'user_id' => $this->user_id,
-            'stage' => $this->stage,
-            'value' => (float) $this->value,
+            'stage' => Pipeline::stageLabel((int) $this->stage),
+            'is_active' => (bool) $this->is_active,
+            'value' => $this->value(),
             'next_task' => $this->next_task,
             'due_at' => $this->due_at instanceof CarbonInterface
                 ? $this->due_at->toISOString()

@@ -43,11 +43,15 @@ class ReferenceSeeder extends Seeder
             ['group' => 'contact_status', 'reference_key' => 'negotiating', 'value' => 'Negotiating'],
             ['group' => 'contact_status', 'reference_key' => 'closed', 'value' => 'Closed'],
             ['group' => 'contact_status', 'reference_key' => 'dormant', 'value' => 'Dormant'],
-            ['group' => 'pipeline_stage', 'reference_key' => 'new_lead', 'value' => 'New lead'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'new_lead', 'value' => 'New Lead'],
             ['group' => 'pipeline_stage', 'reference_key' => 'contacted', 'value' => 'Contacted'],
-            ['group' => 'pipeline_stage', 'reference_key' => 'viewing', 'value' => 'Viewing'],
-            ['group' => 'pipeline_stage', 'reference_key' => 'offer', 'value' => 'Offer'],
-            ['group' => 'pipeline_stage', 'reference_key' => 'closing', 'value' => 'Closing'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'qualified', 'value' => 'Qualified'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'viewing_scheduled', 'value' => 'Viewing Scheduled'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'viewed', 'value' => 'Viewed'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'negotiating', 'value' => 'Negotiating'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'closed_won', 'value' => 'Closed Won'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'closed_lost', 'value' => 'Closed Lost'],
+            ['group' => 'pipeline_stage', 'reference_key' => 'dormant', 'value' => 'Dormant'],
         ];
     }
 }

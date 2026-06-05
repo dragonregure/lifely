@@ -305,7 +305,7 @@ components:
           description: Present only when `users` is requested through `include[]`. User assignments include `is_primary_owner` for the selected primary owner.
           items: { $ref: "#/components/schemas/Member" }
         created_at: { type: string, format: date-time, nullable: true }
-    PipelineDeal:
+    Pipeline:
       type: object
       properties:
         id: { type: string, format: uuid }
@@ -313,8 +313,9 @@ components:
         contact_id: { type: string, format: uuid }
         listing_id: { type: string, format: uuid }
         user_id: { type: string, format: uuid }
-        stage: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
-        value: { type: number }
+        stage: { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
+        is_active: { type: boolean, description: Active pipeline rows are true; archived rows are false. }
+        value: { type: number, description: Derived from the related listing price. }
         next_task: { type: string, nullable: true }
         due_at: { type: string, format: date-time, nullable: true }
         contact: { $ref: "#/components/schemas/Contact" }
@@ -583,20 +584,27 @@ components:
           description: Assigned user UUID to mark as the primary owner. Must be included in `user_ids` when provided.
     PipelineStorePayload:
       type: object
-      required: [contact_id, listing_id, user_id, value]
+      required: [contact_id, listing_id, user_id]
       properties:
         contact_id: { type: string, format: uuid }
         listing_id: { type: string, format: uuid }
         user_id: { type: string, format: uuid }
-        stage: { type: string, nullable: true, enum: [New lead, Contacted, Viewing, Offer, Closing] }
-        value: { type: number, minimum: 0 }
+        stage:
+          oneOf:
+            - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
+            - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
+          nullable: true
+        is_active: { type: boolean, default: true }
         next_task: { type: string, nullable: true, maxLength: 255 }
         due_at: { type: string, format: date-time, nullable: true }
     PipelineStagePayload:
       type: object
       required: [stage]
       properties:
-        stage: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
+        stage:
+          oneOf:
+            - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
+            - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
     ReferenceStorePayload:
       type: object
       required: [group, key]
@@ -1230,8 +1238,8 @@ paths:
         - { $ref: "#/components/parameters/Direction" }
         - in: query
           name: filter[stage]
-          schema: { type: string, enum: [New lead, Contacted, Viewing, Offer, Closing] }
-          description: Filter by stage. Top-level `stage` is also accepted.
+          schema: { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
+          description: Filter by readable stage label. Top-level `stage` is also accepted.
         - in: query
           name: filter[user_id]
           schema: { type: string, format: uuid }

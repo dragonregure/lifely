@@ -14,7 +14,17 @@ import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import type { PipelineDeal, PipelineStage } from "@/types";
 
-const stages: PipelineStage[] = ["New lead", "Contacted", "Viewing", "Offer", "Closing"];
+const stages: PipelineStage[] = [
+  "New Lead",
+  "Contacted",
+  "Qualified",
+  "Viewing Scheduled",
+  "Viewed",
+  "Negotiating",
+  "Closed Won",
+  "Closed Lost",
+  "Dormant",
+];
 
 export function PipelinePage() {
   const [deals, setDeals] = useState<PipelineDeal[]>([]);
@@ -83,11 +93,13 @@ export function PipelinePage() {
       {isLoading ? (
         <LoadingState className="border bg-white" label="Loading pipeline" />
       ) : (
-      <div className="grid grid-flow-col auto-cols-[12rem] gap-3 overflow-x-auto pb-2 xl:grid-flow-row xl:grid-cols-5">
+      <div className="grid grid-flow-col auto-cols-[10rem] gap-2 overflow-x-auto pb-2 xl:grid-flow-row xl:grid-cols-9 xl:overflow-visible">
         {grouped.map((column) => (
           <div key={column.stage} className="min-w-0">
             <div className="mb-2 flex items-center gap-2">
-              <h2 className="truncate text-sm font-semibold">{column.stage}</h2>
+              <h2 className="truncate text-sm font-semibold" title={column.stage}>
+                {column.stage}
+              </h2>
               <span
                 className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs text-muted-foreground"
                 aria-label={`${column.stage} deal count`}
@@ -100,13 +112,13 @@ export function PipelinePage() {
                 const contact = deal.contact;
                 const listing = deal.listing;
                 return (
-                  <Card key={deal.id} className="shadow-sm">
-                    <CardContent className="p-3">
+                  <Card key={deal.id} className="min-w-0 overflow-hidden shadow-sm">
+                    <CardContent className="min-w-0 p-3">
                       <p className="truncate text-sm font-semibold text-slate-900">
                         {contact?.firstName} {contact?.lastName}
                       </p>
                       <p className="mt-1 truncate text-xs text-muted-foreground">{listing?.title ?? "Unassigned listing"}</p>
-                      <p className="mt-2 text-sm font-semibold">{formatCurrency(deal.value)}</p>
+                      <p className="mt-2 truncate text-sm font-semibold">{formatCurrency(deal.value)}</p>
                     </CardContent>
                   </Card>
                 );

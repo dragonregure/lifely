@@ -163,6 +163,7 @@ export function mapDeal(deal: BackendDeal): PipelineDeal {
     listingId: deal.listing_id,
     userId: deal.user_id,
     stage: deal.stage,
+    isActive: deal.is_active,
     value: Number(deal.value),
     nextTask: deal.next_task,
     dueAt: deal.due_at,

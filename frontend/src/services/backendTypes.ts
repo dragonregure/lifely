@@ -103,6 +103,7 @@ export type BackendDeal = {
   listing_id: string;
   user_id: string;
   stage: PipelineStage;
+  is_active: boolean;
   value: number;
   next_task?: string | null;
   due_at?: string | null;

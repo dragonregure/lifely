@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Contracts\PipelineRepositoryInterface;
-use App\Http\Requests\StorePipelineDealRequest;
+use App\Http\Requests\StorePipelineRequest;
 use App\Http\Requests\UpdatePipelineStageRequest;
-use App\Http\Resources\PipelineDealResource;
+use App\Http\Resources\PipelineResource;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
@@ -24,22 +24,22 @@ class PipelineController extends BaseApiController
     {
         $this->authorize(Permissions::PIPELINE_VIEW);
 
-        return PipelineDealResource::collection($this->pipeline->paginate(
+        return PipelineResource::collection($this->pipeline->paginate(
             $this->tenantId($request),
             DataTableQuery::fromRequest($request, ['stage', 'user_id', 'contact_id', 'listing_id'])
         ));
     }
 
-    public function store(StorePipelineDealRequest $request): JsonResponse
+    public function store(StorePipelineRequest $request): JsonResponse
     {
         $this->authorize(Permissions::PIPELINE_CREATE);
 
-        return (new PipelineDealResource($this->pipeline->create($this->tenantId($request), $request->validated())))
+        return (new PipelineResource($this->pipeline->create($this->tenantId($request), $request->validated())))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function updateStage(UpdatePipelineStageRequest $request, string $pipeline): PipelineDealResource
+    public function updateStage(UpdatePipelineStageRequest $request, string $pipeline): PipelineResource
     {
         $this->authorize(Permissions::PIPELINE_UPDATE);
 
@@ -49,6 +49,6 @@ class PipelineController extends BaseApiController
             throw new NotFoundHttpException('Pipeline deal not found.');
         }
 
-        return new PipelineDealResource($deal);
+        return new PipelineResource($deal);
     }
 }

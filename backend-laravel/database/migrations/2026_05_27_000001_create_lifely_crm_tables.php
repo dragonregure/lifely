@@ -44,8 +44,8 @@ return new class extends Migration
             $table->foreignUuid('contact_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('listing_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('user_id')->constrained()->cascadeOnDelete();
-            $table->string('stage')->default('New lead');
-            $table->decimal('value', 12, 2);
+            $table->unsignedTinyInteger('stage')->default(0);
+            $table->boolean('is_active')->default(true);
             $table->string('next_task')->nullable();
             $table->timestamp('due_at')->nullable();
             $table->timestamps();
