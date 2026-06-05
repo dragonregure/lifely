@@ -4,27 +4,18 @@ namespace App\Http\Requests;
 
 use App\Models\Pipeline;
 use App\Support\Rbac\Permissions;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdatePipelineStageRequest extends FormRequest
+class UpdatePipelineStageRequest extends PipelineMutationRequest
 {
     public function authorize(): bool
     {
         return $this->user()?->can(Permissions::PIPELINE_UPDATE) ?? false;
     }
 
-    protected function prepareForValidation(): void
+    protected function passedValidation(): void
     {
-        if (! $this->has('stage')) {
-            return;
-        }
-
-        $stage = Pipeline::stageFromInput($this->input('stage'));
-
-        if ($stage !== null) {
-            $this->merge(['stage' => $stage]);
-        }
+        $this->authorizePipelineUpdate($this->validated());
     }
 
     public function rules(): array

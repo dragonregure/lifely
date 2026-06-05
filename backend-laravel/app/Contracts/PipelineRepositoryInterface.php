@@ -11,7 +11,7 @@ interface PipelineRepositoryInterface
 {
     public function all(string $tenantId): Collection;
 
-    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
+    public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator;
 
     public function find(string $tenantId, string $pipelineId): ?Pipeline;
 

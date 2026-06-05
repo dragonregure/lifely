@@ -27,19 +27,11 @@ class RoleController extends BaseApiController
     {
         $this->authorize('viewAny', Role::class);
 
-        return RoleResource::collection(
-            Role::query()
-                ->visibleToTenant($this->tenantId($request))
-                ->when(! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM), function ($query): void {
-                    $query->whereDoesntHave('permissions', function ($query): void {
-                        $query->whereIn('name', Permissions::systemOnly());
-                    });
-                })
-                ->with($this->includes($request))
-                ->orderBy('tenant_id')
-                ->orderBy('name')
-                ->get()
-        );
+        return RoleResource::collection($this->rbac->roles(
+            $this->tenantId($request),
+            $this->canManageSystemRoles($request),
+            $this->includes($request)
+        ));
     }
 
     public function store(StoreRoleRequest $request): JsonResponse
@@ -56,7 +48,7 @@ class RoleController extends BaseApiController
         $model = $this->findRole($request, $role);
         $this->authorize('view', $model);
 
-        return new RoleResource($model->load($this->includes($request)));
+        return new RoleResource($model);
     }
 
     public function update(UpdateRoleRequest $request, string $role): RoleResource
@@ -79,19 +71,22 @@ class RoleController extends BaseApiController
 
     private function findRole(Request $request, string $role): Role
     {
-        $model = Role::query()
-            ->visibleToTenant($this->tenantId($request))
-            ->when(! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM), function ($query): void {
-                $query->whereDoesntHave('permissions', function ($query): void {
-                    $query->whereIn('name', Permissions::systemOnly());
-                });
-            })
-            ->find($role);
+        $model = $this->rbac->findRole(
+            $this->tenantId($request),
+            $role,
+            $this->canManageSystemRoles($request),
+            $this->includes($request)
+        );
 
         if (! $model) {
             throw new NotFoundHttpException('Role not found.');
         }
 
         return $model;
+    }
+
+    private function canManageSystemRoles(Request $request): bool
+    {
+        return $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM) ?? false;
     }
 }

@@ -2,16 +2,12 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\ResolvesTenantForValidation;
 use App\Models\Pipeline;
 use App\Support\Rbac\Permissions;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class UpdatePipelineRequest extends FormRequest
+class UpdatePipelineRequest extends PipelineMutationRequest
 {
-    use ResolvesTenantForValidation;
-
     public function authorize(): bool
     {
         $user = $this->user();
@@ -22,17 +18,9 @@ class UpdatePipelineRequest extends FormRequest
             || false;
     }
 
-    protected function prepareForValidation(): void
+    protected function passedValidation(): void
     {
-        if (! $this->has('stage')) {
-            return;
-        }
-
-        $stage = Pipeline::stageFromInput($this->input('stage'));
-
-        if ($stage !== null) {
-            $this->merge(['stage' => $stage]);
-        }
+        $this->authorizePipelineUpdate($this->validated());
     }
 
     public function rules(): array

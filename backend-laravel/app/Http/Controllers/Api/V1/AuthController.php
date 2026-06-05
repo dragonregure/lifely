@@ -9,59 +9,36 @@ use App\Http\Requests\Auth\RefreshTokenRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\UpdatePasswordRequest;
 use App\Http\Resources\AuthUserResource;
-use App\Models\Role;
-use App\Models\Tenant;
-use App\Models\User;
-use App\Support\Rbac\Roles;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly AuthService $auth)
+    {
+    }
+
     public function register(RegisterRequest $request): JsonResponse
     {
-        $payload = DB::transaction(function () use ($request): array {
-            $tenant = Tenant::query()->create([
-                'name' => $request->validated('tenant_name'),
-            ]);
-
-            $user = User::query()->create([
-                'tenant_id' => $tenant->id,
-                'role' => Roles::OFFICE_ADMIN,
-                'name' => $request->validated('name'),
-                'email' => $request->validated('email'),
-                'password' => Hash::make($request->validated('password')),
-            ])->load('tenant');
-
-            Role::findOrCreate(Roles::OFFICE_ADMIN, 'web');
-            $user->assignRole(Roles::OFFICE_ADMIN);
-
-            return $this->tokenPayload($user, $request->validated('device_name', 'api'));
-        });
-
-        return response()->json(['data' => $payload], Response::HTTP_CREATED);
+        return response()->json(['data' => $this->tokenResponse($this->auth->register($request->validated()))], Response::HTTP_CREATED);
     }
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::query()
-            ->where('email', $request->validated('email'))
-            ->first();
+        $payload = $this->auth->login(
+            $request->validated('email'),
+            $request->validated('password'),
+            $request->validated('device_name', 'api')
+        );
 
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+        if ($payload === null) {
             return response()->json(['message' => 'Invalid credentials.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        if (Hash::needsRehash($user->password)) {
-            $user->forceFill(['password' => Hash::make($request->validated('password'))])->save();
-        }
-
         return response()->json([
-            'data' => $this->tokenPayload($user->load('tenant'), $request->validated('device_name', 'api')),
+            'data' => $this->tokenResponse($payload),
         ]);
     }
 
@@ -76,88 +53,62 @@ class AuthController extends Controller
 
     public function refresh(RefreshTokenRequest $request): JsonResponse
     {
-        $token = PersonalAccessToken::findToken($request->validated('refresh_token'));
+        $payload = $this->auth->refresh(
+            $request->validated('refresh_token'),
+            $request->validated('device_name', 'api')
+        );
 
-        if (! $token || ! $token->can('refresh') || $this->isExpired($token)) {
+        if ($payload === null) {
             return response()->json(['message' => 'Invalid refresh token.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $user = $token->tokenable;
-
-        if (! $user instanceof User) {
-            return response()->json(['message' => 'Invalid refresh token.'], Response::HTTP_UNAUTHORIZED);
-        }
-
-        $token->delete();
-
-        return response()->json([
-            'data' => $this->tokenPayload($user->load('tenant'), $request->validated('device_name', 'api')),
-        ]);
+        return response()->json(['data' => $this->tokenResponse($payload)]);
     }
 
     public function logout(LogoutRequest $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
-
-        if ($request->filled('refresh_token')) {
-            $refreshToken = PersonalAccessToken::findToken($request->validated('refresh_token'));
-
-            if ($refreshToken?->tokenable?->is($request->user())) {
-                $refreshToken->delete();
-            }
-        }
+        $this->auth->logout($request->user(), $request->validated('refresh_token'));
 
         return response()->json(['message' => 'Logged out.']);
     }
 
     public function revokeAll(Request $request): JsonResponse
     {
-        $request->user()->tokens()->delete();
+        $this->auth->revokeAll($request->user());
 
         return response()->json(['message' => 'All tokens revoked.']);
     }
 
     public function updatePassword(UpdatePasswordRequest $request): JsonResponse
     {
-        if (! Hash::check($request->validated('current_password'), $request->user()->password)) {
+        $updated = $this->auth->updatePassword(
+            $request->user(),
+            $request->validated('current_password'),
+            $request->validated('password')
+        );
+
+        if (! $updated) {
             return response()->json(['message' => 'Current password is incorrect.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-
-        $request->user()->forceFill([
-            'password' => Hash::make($request->validated('password')),
-        ])->save();
-
-        $request->user()->tokens()->delete();
 
         return response()->json(['message' => 'Password updated. Sign in again with the new password.']);
     }
 
-    private function tokenPayload(User $user, string $deviceName): array
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function tokenResponse(array $payload): array
     {
-        $accessToken = $user->createToken(
-            "{$deviceName}:access",
-            ['access'],
-            now()->addMinutes(config('lifely_auth.access_token_minutes'))
-        );
-
-        $refreshToken = $user->createToken(
-            "{$deviceName}:refresh",
-            ['refresh'],
-            now()->addDays(config('lifely_auth.refresh_token_days'))
-        );
+        $user = $payload['user'];
 
         return [
             'token_type' => 'Bearer',
-            'access_token' => $accessToken->plainTextToken,
-            'access_expires_at' => $accessToken->accessToken->expires_at?->toISOString(),
-            'refresh_token' => $refreshToken->plainTextToken,
-            'refresh_expires_at' => $refreshToken->accessToken->expires_at?->toISOString(),
+            'access_token' => $payload['access_token'],
+            'access_expires_at' => $payload['access_expires_at'],
+            'refresh_token' => $payload['refresh_token'],
+            'refresh_expires_at' => $payload['refresh_expires_at'],
             'user' => new AuthUserResource($user),
         ];
-    }
-
-    private function isExpired(PersonalAccessToken $token): bool
-    {
-        return $token->expires_at !== null && $token->expires_at->isPast();
     }
 }

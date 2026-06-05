@@ -7,14 +7,13 @@ use App\Http\Requests\Rbac\UpdatePermissionRequest;
 use App\Http\Resources\PermissionResource;
 use App\Services\RbacService;
 use App\Support\Rbac\Permissions;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Spatie\Permission\Models\Permission;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PermissionController extends BaseApiController
 {
@@ -28,15 +27,10 @@ class PermissionController extends BaseApiController
     {
         $this->authorize('viewAny', Permission::class);
 
-        $query = Permission::query()->orderBy('name');
-
-        if (! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM)) {
-            $query->whereNotIn('name', Permissions::systemOnly());
-        }
-
-        $query->with($this->relations($request));
-
-        return PermissionResource::collection($query->get());
+        return PermissionResource::collection($this->rbac->permissions(
+            $this->canManageSystemRoles($request),
+            $this->includes($request)
+        ));
     }
 
     public function store(StorePermissionRequest $request): JsonResponse
@@ -52,7 +46,17 @@ class PermissionController extends BaseApiController
     {
         $this->authorize('view', $permission);
 
-        return new PermissionResource($permission->load($this->relations($request)));
+        $permission = $this->rbac->permissionWithRelations(
+            $permission,
+            $this->canManageSystemRoles($request),
+            $this->includes($request)
+        );
+
+        if (! $permission) {
+            throw new NotFoundHttpException('Permission not found.');
+        }
+
+        return new PermissionResource($permission);
     }
 
     public function update(UpdatePermissionRequest $request, Permission $permission): PermissionResource
@@ -71,22 +75,8 @@ class PermissionController extends BaseApiController
         return response()->noContent();
     }
 
-    private function relations(Request $request): array
+    private function canManageSystemRoles(Request $request): bool
     {
-        if (! in_array('roles', $this->includes($request), true)) {
-            return [];
-        }
-
-        return [
-            'roles' => function (BelongsToMany $query) use ($request): void {
-                if (! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM)) {
-                    $query->whereDoesntHave('permissions', function (Builder $query): void {
-                        $query->whereIn('name', Permissions::systemOnly());
-                    });
-                }
-
-                $query->orderBy('tenant_id')->orderBy('name');
-            },
-        ];
+        return $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM) ?? false;
     }
 }

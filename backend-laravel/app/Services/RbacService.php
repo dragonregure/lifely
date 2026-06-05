@@ -6,6 +6,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
 use App\Support\Rbac\Roles;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
@@ -14,6 +17,49 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RbacService
 {
+    public function roles(string $tenantId, bool $canManageSystem, array $includes = []): Collection
+    {
+        $query = Role::query()->visibleToTenant($tenantId);
+
+        $this->applySystemOnlyRoleVisibility($query, $canManageSystem);
+
+        return $query
+            ->with(array_intersect(['permissions'], $includes))
+            ->orderBy('tenant_id')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function findRole(string $tenantId, string $roleId, bool $canManageSystem, array $includes = []): ?Role
+    {
+        $query = Role::query()->visibleToTenant($tenantId);
+
+        $this->applySystemOnlyRoleVisibility($query, $canManageSystem);
+
+        return $query
+            ->with(array_intersect(['permissions'], $includes))
+            ->find($roleId);
+    }
+
+    public function permissions(bool $canManageSystem, array $includes = []): Collection
+    {
+        $query = Permission::query()->orderBy('name');
+
+        $this->applySystemOnlyPermissionVisibility($query, $canManageSystem);
+        $query->with($this->permissionRelations($canManageSystem, $includes));
+
+        return $query->get();
+    }
+
+    public function permissionWithRelations(Permission $permission, bool $canManageSystem, array $includes = []): ?Permission
+    {
+        if (! $canManageSystem && in_array($permission->name, Permissions::systemOnly(), true)) {
+            return null;
+        }
+
+        return $permission->load($this->permissionRelations($canManageSystem, $includes));
+    }
+
     public function createRole(string $tenantId, array $data): Role
     {
         $data['tenant_id'] = $this->tenantIdFromPayload($tenantId, $data, $tenantId);
@@ -30,7 +76,7 @@ class RbacService
             $this->syncRolePermissions($role, $data['permissions'] ?? []);
             $this->forgetCache();
 
-            return $role->load('permissions');
+            return $role;
         });
     }
 
@@ -63,7 +109,7 @@ class RbacService
 
             $this->forgetCache();
 
-            return $role->load('permissions');
+            return $role->refresh();
         });
     }
 
@@ -180,6 +226,44 @@ class RbacService
         }
 
         return $roles->all();
+    }
+
+    /**
+     * @param  Builder<Role>  $query
+     */
+    private function applySystemOnlyRoleVisibility(Builder|BelongsToMany $query, bool $canManageSystem): void
+    {
+        if ($canManageSystem) {
+            return;
+        }
+
+        $query->whereDoesntHave('permissions', function (Builder $query): void {
+            $query->whereIn('name', Permissions::systemOnly());
+        });
+    }
+
+    /**
+     * @param  Builder<Permission>  $query
+     */
+    private function applySystemOnlyPermissionVisibility(Builder $query, bool $canManageSystem): void
+    {
+        if (! $canManageSystem) {
+            $query->whereNotIn('name', Permissions::systemOnly());
+        }
+    }
+
+    private function permissionRelations(bool $canManageSystem, array $includes): array
+    {
+        if (! in_array('roles', $includes, true)) {
+            return [];
+        }
+
+        return [
+            'roles' => function (BelongsToMany $query) use ($canManageSystem): void {
+                $this->applySystemOnlyRoleVisibility($query, $canManageSystem);
+                $query->orderBy('tenant_id')->orderBy('name');
+            },
+        ];
     }
 
     private function tenantIdFromPayload(string $currentTenantId, array $data, ?string $defaultTenantId): ?string

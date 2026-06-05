@@ -8,6 +8,7 @@ use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 
 class PipelineRepository implements PipelineRepositoryInterface
@@ -16,21 +17,21 @@ class PipelineRepository implements PipelineRepositoryInterface
     {
         return Pipeline::query()
             ->where('pipelines.tenant_id', $tenantId)
-            ->with(['contact', 'listing', 'user'])
             ->latest()
             ->get();
     }
 
-    public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+    public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
     {
         $query = Pipeline::query()
             ->select('pipelines.*')
-            ->leftJoin('listings', function ($join) use ($tenantId): void {
+            ->addSelect('listings.price as listing_value')
+            ->leftJoin('listings', function (JoinClause $join) use ($tenantId): void {
                 $join->on('listings.id', '=', 'pipelines.listing_id')
                     ->where('listings.tenant_id', '=', $tenantId);
             })
             ->where('pipelines.tenant_id', $tenantId)
-            ->with(['contact', 'listing', 'user']);
+            ->with($this->relations($tenantId, $includes));
 
         $this->applyStageFilter($query, $dataTable);
         $this->applySourceFilter($query, $dataTable);
@@ -66,14 +67,13 @@ class PipelineRepository implements PipelineRepositoryInterface
             'is_active' => true,
         ]);
 
-        return $pipeline->load(['contact', 'listing', 'user']);
+        return $pipeline;
     }
 
     public function find(string $tenantId, string $pipelineId): ?Pipeline
     {
         return Pipeline::query()
             ->where('tenant_id', $tenantId)
-            ->with(['contact', 'listing', 'user'])
             ->find($pipelineId);
     }
 
@@ -89,7 +89,7 @@ class PipelineRepository implements PipelineRepositoryInterface
 
         $pipeline->update($data);
 
-        return $pipeline->refresh()->load(['contact', 'listing', 'user']);
+        return $pipeline->refresh();
     }
 
     public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
@@ -104,7 +104,7 @@ class PipelineRepository implements PipelineRepositoryInterface
 
         $pipeline->update(['stage' => $stage]);
 
-        return $pipeline->refresh()->load(['contact', 'listing', 'user']);
+        return $pipeline->refresh();
     }
 
     public function pendingTaskCount(string $tenantId): int
@@ -192,5 +192,16 @@ class PipelineRepository implements PipelineRepositoryInterface
                 $query->orWhereIn('pipelines.source', $matchingSources);
             }
         });
+    }
+
+    private function relations(string $tenantId, array $includes): array
+    {
+        $relations = [
+            'contact' => fn ($query) => $query->where('tenant_id', $tenantId)->with('statusReference'),
+            'listing' => fn ($query) => $query->where('tenant_id', $tenantId),
+            'user' => fn ($query) => $query->where('tenant_id', $tenantId),
+        ];
+
+        return array_intersect_key($relations, array_flip($includes));
     }
 }

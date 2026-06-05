@@ -22,7 +22,7 @@ class PipelineResource extends JsonResource
             'source_id' => (int) $this->source,
             'source' => Pipeline::sourceLabel((int) $this->source),
             'is_active' => (bool) $this->is_active,
-            'value' => $this->value(),
+            'value' => $this->listingValue(),
             'next_task' => $this->next_task,
             'due_at' => $this->due_at instanceof CarbonInterface
                 ? $this->due_at->toISOString()
@@ -32,5 +32,14 @@ class PipelineResource extends JsonResource
             'user' => new MemberResource($this->whenLoaded('user')),
             'created_at' => $this->created_at?->toISOString(),
         ];
+    }
+
+    private function listingValue(): float
+    {
+        if (array_key_exists('listing_value', $this->resource->getAttributes())) {
+            return (float) ($this->resource->getAttribute('listing_value') ?? 0);
+        }
+
+        return $this->value();
     }
 }

@@ -66,7 +66,17 @@ class PipelineApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.0.stage', 'Qualified')
             ->assertJsonPath('data.0.source', 'Manual Entry')
-            ->assertJsonPath('data.0.value', 875000);
+            ->assertJsonPath('data.0.value', 875000)
+            ->assertJsonMissingPath('data.0.contact')
+            ->assertJsonMissingPath('data.0.listing')
+            ->assertJsonMissingPath('data.0.user');
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/pipeline?include[]=contact&include[]=listing&include[]=user')
+            ->assertOk()
+            ->assertJsonPath('data.0.contact.email', 'ethan.pipeline@example.com')
+            ->assertJsonPath('data.0.listing.title', 'Harbor View Residence')
+            ->assertJsonPath('data.0.user_id', $actor->id);
     }
 
     public function test_authorized_user_can_update_pipeline_stage_with_integer_storage(): void

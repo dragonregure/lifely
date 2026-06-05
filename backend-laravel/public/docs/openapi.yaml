@@ -101,6 +101,15 @@ components:
         type: array
         items: { type: string, enum: [roles] }
       description: Optional permission relations to include. Omit this parameter for main permission fields only.
+    PipelineIncludes:
+      in: query
+      name: include[]
+      style: form
+      explode: true
+      schema:
+        type: array
+        items: { type: string, enum: [contact, listing, user] }
+      description: Optional pipeline relations to include. Omit this parameter for main pipeline fields only.
     PipelineId:
       in: path
       name: pipeline
@@ -320,9 +329,15 @@ components:
         value: { type: number, description: Derived from the related listing price. }
         next_task: { type: string, nullable: true }
         due_at: { type: string, format: date-time, nullable: true }
-        contact: { $ref: "#/components/schemas/Contact" }
-        listing: { $ref: "#/components/schemas/Listing" }
-        user: { $ref: "#/components/schemas/Member" }
+        contact:
+          description: Present only when `contact` is requested through `include[]`.
+          allOf: [{ $ref: "#/components/schemas/Contact" }]
+        listing:
+          description: Present only when `listing` is requested through `include[]`.
+          allOf: [{ $ref: "#/components/schemas/Listing" }]
+        user:
+          description: Present only when `user` is requested through `include[]`.
+          allOf: [{ $ref: "#/components/schemas/Member" }]
         created_at: { type: string, format: date-time, nullable: true }
     ActivityLog:
       type: object
@@ -1277,6 +1292,7 @@ paths:
           name: filter[source]
           schema: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
           description: Filter by readable source label. Top-level `source` is also accepted.
+        - { $ref: "#/components/parameters/PipelineIncludes" }
       responses:
         "200": { description: Paginated tenant-scoped pipeline deals. }
         "403": { description: Missing `pipeline.view` permission. }

@@ -2,40 +2,15 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\ResolvesTenantForValidation;
 use App\Models\Pipeline;
 use App\Support\Rbac\Permissions;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StorePipelineRequest extends FormRequest
+class StorePipelineRequest extends PipelineMutationRequest
 {
-    use ResolvesTenantForValidation;
-
     public function authorize(): bool
     {
         return $this->user()?->can(Permissions::PIPELINE_CREATE) ?? false;
-    }
-
-    protected function prepareForValidation(): void
-    {
-        if ($this->has('stage') && $this->input('stage') !== null) {
-            $stage = Pipeline::stageFromInput($this->input('stage'));
-
-            if ($stage !== null) {
-                $this->merge(['stage' => $stage]);
-            }
-        }
-
-        if (! $this->has('source') || $this->input('source') === null) {
-            return;
-        }
-
-        $source = Pipeline::sourceFromInput($this->input('source'));
-
-        if ($source !== null) {
-            $this->merge(['source' => $source]);
-        }
     }
 
     public function rules(): array

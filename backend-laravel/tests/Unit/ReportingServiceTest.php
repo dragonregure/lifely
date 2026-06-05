@@ -23,7 +23,7 @@ class ReportingServiceTest extends TestCase
                 return collect();
             }
 
-            public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+            public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
             {
                 return new Paginator([], 0, $dataTable->perPage);
             }
@@ -60,7 +60,7 @@ class ReportingServiceTest extends TestCase
                 return collect();
             }
 
-            public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator
+            public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
             {
                 return new Paginator([], 0, $dataTable->perPage);
             }
