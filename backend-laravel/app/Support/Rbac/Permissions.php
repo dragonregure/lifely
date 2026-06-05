@@ -10,6 +10,7 @@ final class Permissions
     public const ROLES_CREATE = 'roles.create';
     public const ROLES_UPDATE = 'roles.update';
     public const ROLES_DELETE = 'roles.delete';
+    public const ROLES_MANAGE_SYSTEM = 'roles.manage_system';
 
     public const PERMISSIONS_VIEW = 'permissions.view';
     public const PERMISSIONS_CREATE = 'permissions.create';
@@ -57,6 +58,7 @@ final class Permissions
             self::ROLES_CREATE,
             self::ROLES_UPDATE,
             self::ROLES_DELETE,
+            self::ROLES_MANAGE_SYSTEM,
             self::PERMISSIONS_VIEW,
             self::PERMISSIONS_CREATE,
             self::PERMISSIONS_UPDATE,
@@ -94,6 +96,7 @@ final class Permissions
     {
         return [
             self::SYSTEM_BYPASS,
+            self::ROLES_MANAGE_SYSTEM,
             self::PERMISSIONS_CREATE,
             self::PERMISSIONS_UPDATE,
             self::PERMISSIONS_DELETE,
@@ -119,6 +122,7 @@ final class Permissions
             self::ROLES_CREATE,
             self::ROLES_UPDATE,
             self::ROLES_DELETE,
+            self::ROLES_MANAGE_SYSTEM,
             self::PERMISSIONS_VIEW,
             self::PERMISSIONS_CREATE,
             self::PERMISSIONS_UPDATE,
@@ -135,6 +139,7 @@ final class Permissions
     public static function tenantAdminProtected(): array
     {
         return array_values(array_diff(self::protected(), [
+            self::ROLES_MANAGE_SYSTEM,
             self::PERMISSIONS_CREATE,
             self::PERMISSIONS_UPDATE,
             self::PERMISSIONS_DELETE,

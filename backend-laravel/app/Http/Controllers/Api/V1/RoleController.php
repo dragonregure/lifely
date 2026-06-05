@@ -7,6 +7,7 @@ use App\Http\Requests\Rbac\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
 use App\Services\RbacService;
+use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -27,6 +28,11 @@ class RoleController extends BaseApiController
         return RoleResource::collection(
             Role::query()
                 ->visibleToTenant($this->tenantId($request))
+                ->when(! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM), function ($query): void {
+                    $query->whereDoesntHave('permissions', function ($query): void {
+                        $query->whereIn('name', Permissions::systemOnly());
+                    });
+                })
                 ->with('permissions')
                 ->orderBy('tenant_id')
                 ->orderBy('name')
@@ -73,6 +79,11 @@ class RoleController extends BaseApiController
     {
         $model = Role::query()
             ->visibleToTenant($this->tenantId($request))
+            ->when(! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM), function ($query): void {
+                $query->whereDoesntHave('permissions', function ($query): void {
+                    $query->whereIn('name', Permissions::systemOnly());
+                });
+            })
             ->find($role);
 
         if (! $model) {

@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
-use App\Models\Role;
 
 class RolePolicy
 {
@@ -30,7 +30,7 @@ class RolePolicy
         }
 
         if ($role->is_system) {
-            return $user->hasSystemBypass();
+            return $user->can(Permissions::ROLES_MANAGE_SYSTEM);
         }
 
         return $user->can(Permissions::ROLES_UPDATE);
@@ -43,7 +43,7 @@ class RolePolicy
         }
 
         if ($role->is_system) {
-            return $user->hasSystemBypass();
+            return $user->can(Permissions::ROLES_MANAGE_SYSTEM);
         }
 
         return $user->can(Permissions::ROLES_DELETE);

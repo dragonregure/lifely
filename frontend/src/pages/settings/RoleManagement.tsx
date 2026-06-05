@@ -1,14 +1,18 @@
-import type { Dispatch, FormEvent, SetStateAction } from "react";
-import { Save, ShieldCheck, Trash2 } from "lucide-react";
-import { LoadingState } from "@/components/Loading";
+import { useMemo, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { Eye, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { DataTable, type DataTableColumn, type DataTableFilter } from "@/components/data-table";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { AccessRole, Permission } from "@/types";
 import type { RoleDraft } from "./settingsTypes";
 import { toggleValue } from "./settingsUtils";
+
+const SYSTEM_ROLE_READONLY_MESSAGE = "You cannot modify system role.";
 
 type RoleManagementProps = {
   canCreateRoles: boolean;
@@ -47,140 +51,347 @@ export function RoleManagement({
   setNewRole,
   setRoleDrafts,
 }: RoleManagementProps) {
-  return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Create role</CardTitle>
-          <CardDescription>Assign any subset of permissions when creating the role.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-4" onSubmit={handleCreateRole}>
-            <div className="grid gap-2">
-              <Label htmlFor="new-role-name">Role name</Label>
-              <Input
-                id="new-role-name"
-                placeholder="Sales Manager"
-                value={newRole.name}
-                disabled={!canCreateRoles}
-                onChange={(event) => setNewRole((draft) => ({ ...draft, name: event.target.value }))}
-              />
-            </div>
-            <div className="grid max-h-80 gap-4 overflow-auto pr-1">
-              {isLoading ? <LoadingState label="Loading permissions" /> : Object.entries(groupedPermissions).map(([group, groupPermissions]) => (
-                <div key={group} className="rounded-md border p-3">
-                  <p className="mb-2 text-sm font-semibold capitalize">{group}</p>
-                  <div className="grid gap-2">
-                    {groupPermissions.map((permission) => (
-                      <label key={permission.id} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={newRole.permissions.includes(permission.name)}
-                          disabled={!canCreateRoles}
-                          onChange={() => setNewRole((draft) => ({ ...draft, permissions: toggleValue(draft.permissions, permission.name) }))}
-                        />
-                        <span>{permission.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button className="w-fit" disabled={!canCreateRoles || !newRole.name.trim()} isLoading={isSaving} loadingLabel="Saving role">
-              {!isSaving && <ShieldCheck className="h-4 w-4" />}
-              Create role
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+  const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<AccessRole | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  const selectedRole = useMemo(() => roles.find((role) => role.id === selectedRoleId) ?? null, [roles, selectedRoleId]);
+  const selectedDraft = selectedRole ? roleDrafts[selectedRole.id] ?? roleToDraft(selectedRole) : null;
+  const canModifySelectedRole = selectedRole ? canUpdateRoles && (!selectedRole.isSystem || canManageSystemRoles) : false;
+  const canDeletePendingRole = pendingDelete ? canDeleteRoles && (!pendingDelete.isSystem || canManageSystemRoles) : false;
+
+  const permissionGroups = useMemo(() => Object.keys(groupedPermissions).sort((a, b) => a.localeCompare(b)), [groupedPermissions]);
+
+  const roleColumns = useMemo<DataTableColumn<AccessRole>[]>(
+    () => [
+      {
+        id: "role",
+        header: "Role",
+        cell: (role) => (
+          <div className="grid gap-1">
+            <span className="font-medium">{role.name}</span>
+            <span className="text-xs text-muted-foreground">{role.guardName}</span>
+          </div>
+        ),
+        searchValue: (role) => role.name,
+        sortable: true,
+        sortValue: (role) => role.name,
+      },
+      {
+        id: "scope",
+        header: "Scope",
+        cell: (role) => (
+          <Badge variant={role.isSystem ? "secondary" : "muted"}>
+            {role.isSystem ? "System" : "Tenant"}
+          </Badge>
+        ),
+        searchValue: (role) => (role.isSystem ? "system" : "tenant"),
+        sortable: true,
+        sortValue: (role) => (role.isSystem ? "System" : "Tenant"),
+      },
+      {
+        id: "permissions",
+        header: "Permissions",
+        cell: (role) => {
+          const draft = roleDrafts[role.id] ?? roleToDraft(role);
+
+          return (
+            <div className="flex flex-wrap gap-1">
+              {draft.permissions.slice(0, 4).map((permission) => (
+                <Badge key={permission} variant="muted">
+                  {permission}
+                </Badge>
+              ))}
+              {draft.permissions.length > 4 && <Badge variant="secondary">+{draft.permissions.length - 4}</Badge>}
+            </div>
+          );
+        },
+        searchValue: (role) => (roleDrafts[role.id] ?? roleToDraft(role)).permissions.join(" "),
+      },
+    ],
+    [roleDrafts],
+  );
+
+  const roleFilters = useMemo<DataTableFilter<AccessRole>[]>(
+    () => [
+      {
+        id: "scope",
+        label: "Scope",
+        defaultValue: "all",
+        options: [
+          { label: "All scopes", value: "all" },
+          { label: "Tenant roles", value: "tenant" },
+          { label: "System roles", value: "system" },
+        ],
+        predicate: (role, selectedValue) => selectedValue === "all" || (selectedValue === "system" ? role.isSystem : !role.isSystem),
+      },
+      {
+        id: "permission_group",
+        label: "Permission group",
+        defaultValue: "all",
+        options: [
+          { label: "All permission groups", value: "all" },
+          ...permissionGroups.map((group) => ({ label: group, value: group })),
+        ],
+        predicate: (role, selectedValue) => {
+          if (selectedValue === "all") {
+            return true;
+          }
+
+          const draft = roleDrafts[role.id] ?? roleToDraft(role);
+          return draft.permissions.some((permission) => permission.startsWith(`${selectedValue}.`));
+        },
+      },
+    ],
+    [permissionGroups, roleDrafts],
+  );
+
+  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
+    handleCreateRole(event);
+
+    if (newRole.name.trim()) {
+      setIsCreateOpen(false);
+    }
+  };
+
+  const openPreview = (role: AccessRole) => {
+    setSelectedRoleId(role.id);
+    setIsPreviewOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!pendingDelete || !canDeletePendingRole) return;
+
+    handleDeleteRole(pendingDelete);
+
+    if (selectedRoleId === pendingDelete.id) {
+      setSelectedRoleId(null);
+      setIsPreviewOpen(false);
+    }
+  };
+
+  return (
+    <div className="grid gap-4">
       <Card>
-        <CardHeader>
-          <CardTitle>Existing roles</CardTitle>
-          <CardDescription>Edit role names and permission membership. Save each role independently.</CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div className="min-w-0">
+            <CardTitle>Roles</CardTitle>
+            <CardDescription>Search, filter, preview, and manage tenant role permission sets.</CardDescription>
+          </div>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="ml-auto shrink-0" disabled={!canCreateRoles}>
+                <Plus className="h-4 w-4" />
+                Create role
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create role</DialogTitle>
+                <DialogDescription>Assign available permissions before saving the tenant role.</DialogDescription>
+              </DialogHeader>
+              <RoleEditorCard
+                canSave={canCreateRoles}
+                draft={newRole}
+                groupedPermissions={groupedPermissions}
+                isSaving={isSaving}
+                mode="create"
+                onDraftChange={setNewRole}
+                onSubmit={handleCreateSubmit}
+              />
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           {!canViewRoles && !isLoading ? (
             <p className="rounded-md border bg-slate-50 p-4 text-sm text-muted-foreground">You do not have permission to view roles.</p>
-          ) : isLoading ? (
-            <LoadingState label="Loading roles" />
           ) : (
-            <div className="grid gap-4">
-              {roles.map((role) => {
-                const draft = roleDrafts[role.id] ?? { name: role.name, permissions: role.permissions.map((permission) => permission.name) };
-                const canModifyRole = canUpdateRoles && (!role.isSystem || canManageSystemRoles);
+            <DataTable
+              actions={(role) => {
                 const canRemoveRole = canDeleteRoles && (!role.isSystem || canManageSystemRoles);
+                const deleteTooltip = role.isSystem && !canManageSystemRoles ? SYSTEM_ROLE_READONLY_MESSAGE : "Delete role";
 
                 return (
-                  <div key={role.id} className="rounded-md border p-4">
-                    <div className="grid gap-3 lg:grid-cols-[18rem_1fr_auto]">
-                      <div className="grid gap-2">
-                        <Input
-                          value={draft.name}
-                          disabled={!canModifyRole}
-                          onChange={(event) =>
-                            setRoleDrafts((current) => ({
-                              ...current,
-                              [role.id]: { ...draft, name: event.target.value },
-                            }))
-                          }
-                        />
-                        <Badge className="w-fit" variant={role.isSystem ? "secondary" : "muted"}>
-                          {role.isSystem ? "System" : "Tenant"}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {draft.permissions.slice(0, 8).map((permission) => (
-                          <Badge key={permission} variant="muted">
-                            {permission}
-                          </Badge>
-                        ))}
-                        {draft.permissions.length > 8 && <Badge variant="secondary">+{draft.permissions.length - 8}</Badge>}
-                      </div>
-                      <div className="flex gap-2 lg:justify-end">
-                        <Button size="icon" variant="outline" disabled={!canModifyRole} isLoading={isSaving} onClick={() => handleUpdateRole(role)} title="Update role">
-                          {!isSaving && <Save className="h-4 w-4" />}
+                  <>
+                    <Button variant="outline" size="icon" title="Preview role" aria-label="Preview role" onClick={() => openPreview(role)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {(canRemoveRole || role.isSystem) && (
+                      <span className="inline-flex" title={deleteTooltip}>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          aria-label={deleteTooltip}
+                          disabled={!canRemoveRole}
+                          onClick={() => setPendingDelete(role)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="outline" disabled={!canRemoveRole} isLoading={isSaving} onClick={() => handleDeleteRole(role)} title="Delete role">
-                          {!isSaving && <Trash2 className="h-4 w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      {Object.entries(groupedPermissions).map(([group, groupPermissions]) => (
-                        <div key={group} className="rounded-md border bg-slate-50 p-3">
-                          <p className="mb-2 text-sm font-semibold capitalize">{group}</p>
-                          <div className="grid gap-2">
-                            {groupPermissions.map((permission) => (
-                              <label key={permission.id} className="flex items-center gap-2 text-xs">
-                                <input
-                                  type="checkbox"
-                                  checked={draft.permissions.includes(permission.name)}
-                                  disabled={!canModifyRole}
-                                  onChange={() =>
-                                    setRoleDrafts((current) => ({
-                                      ...current,
-                                      [role.id]: {
-                                        ...draft,
-                                        permissions: toggleValue(draft.permissions, permission.name),
-                                      },
-                                    }))
-                                  }
-                                />
-                                <span>{permission.name}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                      </span>
+                    )}
+                  </>
                 );
-              })}
-            </div>
+              }}
+              columns={roleColumns}
+              data={roles}
+              emptyMessage={isLoading ? "Loading roles..." : "No roles found."}
+              filters={roleFilters}
+              initialPageSize={10}
+              isLoading={isLoading}
+              rowKey="id"
+              search={{ enabled: true, placeholder: "Search roles or permissions" }}
+            />
           )}
         </CardContent>
       </Card>
-    </>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedRole?.name ?? "Role"}</DialogTitle>
+            <DialogDescription>Preview and update the selected role.</DialogDescription>
+          </DialogHeader>
+          {selectedRole && selectedDraft ? (
+            <RoleEditorCard
+              canSave={canModifySelectedRole}
+              draft={selectedDraft}
+              groupedPermissions={groupedPermissions}
+              isSaving={isSaving}
+              mode="update"
+              onDraftChange={(draft: RoleDraft) =>
+                setRoleDrafts((current) => ({
+                  ...current,
+                  [selectedRole.id]: draft,
+                }))
+              }
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleUpdateRole(selectedRole);
+                setIsPreviewOpen(false);
+              }}
+              readOnlyReason={selectedRole.isSystem && !canModifySelectedRole ? SYSTEM_ROLE_READONLY_MESSAGE : undefined}
+              role={selectedRole}
+            />
+          ) : (
+            <p className="rounded-md border bg-slate-50 p-4 text-sm text-muted-foreground">Select a role to preview its permissions.</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {pendingDelete && (
+        <ConfirmationDialog
+          title="Delete role"
+          description={`${pendingDelete.name} will be removed from ${pendingDelete.isSystem ? "system" : "tenant"} roles.`}
+          confirmLabel="Delete"
+          isSubmitting={isSaving}
+          variant="destructive"
+          open={Boolean(pendingDelete)}
+          onOpenChange={(open) => {
+            if (!open) setPendingDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
+    </div>
   );
+}
+
+type RoleEditorCardProps = {
+  canSave: boolean;
+  draft: RoleDraft;
+  groupedPermissions: Record<string, Permission[]>;
+  isSaving: boolean;
+  mode: "create" | "update";
+  onDraftChange: Dispatch<SetStateAction<RoleDraft>> | ((draft: RoleDraft) => void);
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  readOnlyReason?: string;
+  role?: AccessRole;
+};
+
+function RoleEditorCard({
+  canSave,
+  draft,
+  groupedPermissions,
+  isSaving,
+  mode,
+  onDraftChange,
+  onSubmit,
+  readOnlyReason,
+  role,
+}: RoleEditorCardProps) {
+  const title = mode === "create" ? "Role card" : role?.name ?? "Role card";
+  const description = mode === "create" ? "Create a tenant role from available permissions." : "Modify the role name and permission set.";
+
+  const updateDraft = (nextDraft: RoleDraft) => {
+    onDraftChange(nextDraft);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-sky-700" />
+              {title}
+            </CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+          {role && (
+            <Badge variant={role.isSystem ? "secondary" : "muted"}>
+              {role.isSystem ? "System" : "Tenant"}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <form className="grid gap-4" onSubmit={onSubmit}>
+          <div className="grid gap-2">
+            <Label htmlFor={`${mode}-role-name`}>Role name</Label>
+            <Input
+              id={`${mode}-role-name`}
+              placeholder="Sales Manager"
+              value={draft.name}
+              disabled={!canSave}
+              onChange={(event) => updateDraft({ ...draft, name: event.target.value })}
+            />
+          </div>
+          <div className="grid max-h-[28rem] gap-4 overflow-auto pr-1">
+            {Object.entries(groupedPermissions).map(([group, groupPermissions]) => (
+              <div key={group} className="rounded-md border bg-slate-50 p-3">
+                <p className="mb-2 text-sm font-semibold capitalize">{group}</p>
+                <div className="grid gap-2">
+                  {groupPermissions.map((permission) => (
+                    <label key={permission.id} className="flex items-center gap-2 text-xs" title={!canSave ? readOnlyReason : undefined}>
+                      <input
+                        type="checkbox"
+                        checked={draft.permissions.includes(permission.name)}
+                        disabled={!canSave}
+                        onChange={() => updateDraft({ ...draft, permissions: toggleValue(draft.permissions, permission.name) })}
+                      />
+                      <span>{permission.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button disabled={!canSave || !draft.name.trim()} isLoading={isSaving} loadingLabel={mode === "create" ? "Creating role" : "Saving role"}>
+              {!isSaving && <Save className="h-4 w-4" />}
+              {mode === "create" ? "Create role" : "Save role"}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function roleToDraft(role: AccessRole): RoleDraft {
+  return {
+    name: role.name,
+    permissions: role.permissions.map((permission) => permission.name),
+  };
 }

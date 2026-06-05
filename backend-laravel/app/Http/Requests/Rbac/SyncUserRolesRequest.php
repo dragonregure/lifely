@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rbac;
 
 use App\Models\Role;
+use App\Support\Rbac\Permissions;
 use App\Support\TenantResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
@@ -43,6 +44,24 @@ class SyncUserRolesRequest extends FormRequest
 
             if ($availableCount !== count($roleNames)) {
                 $validator->errors()->add('roles', 'One or more selected roles are not available to this tenant.');
+            }
+
+            if ($this->user()?->can(Permissions::ROLES_MANAGE_SYSTEM)) {
+                return;
+            }
+
+            $blockedRoles = Role::query()
+                ->visibleToTenant($tenantId)
+                ->where('guard_name', $this->input('guard_name', 'web'))
+                ->whereIn('name', $roleNames)
+                ->whereHas('permissions', function ($query): void {
+                    $query->whereIn('name', Permissions::systemOnly());
+                })
+                ->pluck('name')
+                ->all();
+
+            if ($blockedRoles !== []) {
+                $validator->errors()->add('roles', 'System roles require roles.manage_system.');
             }
         });
     }

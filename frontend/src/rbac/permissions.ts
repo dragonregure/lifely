@@ -7,6 +7,7 @@ export const PERMISSIONS = {
     create: "roles.create",
     update: "roles.update",
     delete: "roles.delete",
+    manageSystem: "roles.manage_system",
   },
   permissions: {
     view: "permissions.view",

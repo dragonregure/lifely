@@ -220,7 +220,7 @@ export function useRbacSettings() {
     canDeletePermissions: can(access, PERMISSIONS.system.bypass),
     canDeleteRoles: can(access, PERMISSIONS.roles.delete),
     canManageSystemReferences: can(access, PERMISSIONS.references.manageSystem),
-    canManageSystemRoles: can(access, PERMISSIONS.system.bypass),
+    canManageSystemRoles: can(access, PERMISSIONS.roles.manageSystem),
     canViewReferences: can(access, PERMISSIONS.references.view),
     canUpdatePermissions: can(access, PERMISSIONS.system.bypass),
     canUpdateRoles: can(access, PERMISSIONS.roles.update),

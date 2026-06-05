@@ -179,15 +179,24 @@ class RbacApiTest extends TestCase
             'guard_name' => 'web',
         ]);
 
-        $this->getJson('/api/v1/roles')
+        $response = $this->getJson('/api/v1/roles')
             ->assertOk()
             ->assertJsonFragment(['name' => Roles::OFFICE_ADMIN, 'is_system' => true])
             ->assertJsonFragment(['name' => 'Tenant Concierge', 'tenant_id' => $this->tenant->id])
             ->assertJsonMissing(['name' => 'Hidden Concierge']);
 
+        $roleNames = collect($response->json('data'))->pluck('name')->all();
+
+        $this->assertNotContains(Roles::SYSTEM_ADMIN, $roleNames);
+
         $this->getJson("/api/v1/roles/{$visibleTenantRole->id}")
             ->assertOk()
             ->assertJsonPath('data.name', 'Tenant Concierge');
+
+        $systemAdminRole = Role::findByName(Roles::SYSTEM_ADMIN, 'web');
+
+        $this->getJson("/api/v1/roles/{$systemAdminRole->id}")
+            ->assertNotFound();
     }
 
     public function test_tenant_admin_cannot_modify_or_delete_system_roles(): void
@@ -201,6 +210,84 @@ class RbacApiTest extends TestCase
 
         $this->deleteJson("/api/v1/roles/{$salesRole->id}")
             ->assertForbidden();
+    }
+
+    public function test_roles_manage_system_permission_allows_system_role_management(): void
+    {
+        $admin = $this->actingOfficeAdmin();
+        $admin->givePermissionTo(Permissions::ROLES_MANAGE_SYSTEM);
+
+        $create = $this->postJson('/api/v1/roles', [
+            'name' => 'System Operator',
+            'tenant_id' => null,
+            'guard_name' => 'web',
+            'permissions' => [Permissions::ROLES_MANAGE_SYSTEM],
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.tenant_id', null)
+            ->assertJsonPath('data.is_system', true);
+
+        $roleId = $create->json('data.id');
+
+        $this->patchJson("/api/v1/roles/{$roleId}", [
+            'name' => 'System Operator Updated',
+            'permissions' => [Permissions::REFERENCES_MANAGE_SYSTEM],
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.name', 'System Operator Updated');
+
+        $this->deleteJson("/api/v1/roles/{$roleId}")
+            ->assertNoContent();
+    }
+
+    public function test_permission_index_hides_system_only_permissions_from_tenant_admins(): void
+    {
+        $this->actingOfficeAdmin();
+
+        $tenantResponse = $this->getJson('/api/v1/permissions')
+            ->assertOk();
+
+        $tenantPermissions = collect($tenantResponse->json('data'))->pluck('name')->all();
+
+        $this->assertNotContains(Permissions::SYSTEM_BYPASS, $tenantPermissions);
+        $this->assertNotContains(Permissions::ROLES_MANAGE_SYSTEM, $tenantPermissions);
+        $this->assertNotContains(Permissions::REFERENCES_MANAGE_SYSTEM, $tenantPermissions);
+
+        $this->actingSystemAdmin();
+
+        $systemResponse = $this->getJson('/api/v1/permissions')
+            ->assertOk();
+
+        $systemPermissions = collect($systemResponse->json('data'))->pluck('name')->all();
+
+        $this->assertContains(Permissions::SYSTEM_BYPASS, $systemPermissions);
+        $this->assertContains(Permissions::ROLES_MANAGE_SYSTEM, $systemPermissions);
+        $this->assertContains(Permissions::REFERENCES_MANAGE_SYSTEM, $systemPermissions);
+    }
+
+    public function test_tenant_admin_cannot_assign_system_only_permissions_to_roles(): void
+    {
+        $this->actingOfficeAdmin();
+
+        $this->postJson('/api/v1/roles', [
+            'name' => 'Escalated Tenant Role',
+            'guard_name' => 'web',
+            'permissions' => [Permissions::SYSTEM_BYPASS],
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('permissions');
+
+        $role = Role::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Tenant Operator',
+            'guard_name' => 'web',
+        ]);
+
+        $this->patchJson("/api/v1/roles/{$role->id}", [
+            'permissions' => [Permissions::REFERENCES_MANAGE_SYSTEM],
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('permissions');
     }
 
     public function test_role_assignment_rejects_roles_outside_the_current_tenant_scope(): void
@@ -220,6 +307,21 @@ class RbacApiTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('roles');
+    }
+
+    public function test_tenant_admin_cannot_assign_system_permission_roles_to_users(): void
+    {
+        $this->actingOfficeAdmin();
+        $target = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => Roles::SIMPLE_AGENT]);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->putJson("/api/v1/users/{$target->id}/roles", [
+                'roles' => [Roles::SYSTEM_ADMIN],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('roles');
+
+        $this->assertFalse($target->fresh()->hasRole(Roles::SYSTEM_ADMIN));
     }
 
     public function test_authorized_user_can_sync_direct_permissions_to_a_user(): void
@@ -264,14 +366,19 @@ class RbacApiTest extends TestCase
             ->assertUnprocessable();
     }
 
-    public function test_tenant_admin_cannot_assign_permission_cud_capabilities_directly(): void
+    public function test_tenant_admin_cannot_assign_system_only_permissions_directly(): void
     {
         $this->actingOfficeAdmin();
         $target = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => Roles::SIMPLE_AGENT]);
 
         $this->withHeader('X-Tenant-Id', $this->tenant->id)
             ->putJson("/api/v1/users/{$target->id}/permissions", [
-                'permissions' => [Permissions::PERMISSIONS_CREATE],
+                'permissions' => [
+                    Permissions::PERMISSIONS_CREATE,
+                    Permissions::ROLES_MANAGE_SYSTEM,
+                    Permissions::REFERENCES_MANAGE_SYSTEM,
+                    Permissions::SYSTEM_BYPASS,
+                ],
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('permissions');
@@ -292,6 +399,9 @@ class RbacApiTest extends TestCase
         $this->assertNotContains(Permissions::PERMISSIONS_CREATE, $permissions);
         $this->assertNotContains(Permissions::PERMISSIONS_UPDATE, $permissions);
         $this->assertNotContains(Permissions::PERMISSIONS_DELETE, $permissions);
+        $this->assertNotContains(Permissions::ROLES_MANAGE_SYSTEM, $permissions);
+        $this->assertNotContains(Permissions::REFERENCES_MANAGE_SYSTEM, $permissions);
+        $this->assertNotContains(Permissions::SYSTEM_BYPASS, $permissions);
     }
 
     private function actingOfficeAdmin(): User

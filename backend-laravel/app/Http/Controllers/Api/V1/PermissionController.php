@@ -6,8 +6,10 @@ use App\Http\Requests\Rbac\StorePermissionRequest;
 use App\Http\Requests\Rbac\UpdatePermissionRequest;
 use App\Http\Resources\PermissionResource;
 use App\Services\RbacService;
+use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Spatie\Permission\Models\Permission;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,11 +20,17 @@ class PermissionController extends BaseApiController
     {
     }
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Permission::class);
 
-        return PermissionResource::collection(Permission::query()->orderBy('name')->get());
+        $query = Permission::query()->orderBy('name');
+
+        if (! $request->user()?->can(Permissions::ROLES_MANAGE_SYSTEM)) {
+            $query->whereNotIn('name', Permissions::systemOnly());
+        }
+
+        return PermissionResource::collection($query->get());
     }
 
     public function store(StorePermissionRequest $request): JsonResponse

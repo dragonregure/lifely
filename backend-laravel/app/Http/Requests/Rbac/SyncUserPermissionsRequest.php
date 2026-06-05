@@ -26,7 +26,7 @@ class SyncUserPermissionsRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($this->user()?->hasSystemBypass()) {
+            if ($this->user()?->can(Permissions::ROLES_MANAGE_SYSTEM)) {
                 return;
             }
 
@@ -36,14 +36,10 @@ class SyncUserPermissionsRequest extends FormRequest
                 return;
             }
 
-            $blocked = array_intersect($permissions, [
-                Permissions::PERMISSIONS_CREATE,
-                Permissions::PERMISSIONS_UPDATE,
-                Permissions::PERMISSIONS_DELETE,
-            ]);
+            $blocked = array_intersect($permissions, Permissions::systemOnly());
 
             if ($blocked !== []) {
-                $validator->errors()->add('permissions', 'Permission create, update, and delete capabilities are system-owned.');
+                $validator->errors()->add('permissions', 'System permissions require roles.manage_system.');
             }
         });
     }
