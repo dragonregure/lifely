@@ -51,6 +51,7 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Prefer existing project conventions, modules, and structure before creating new abstractions, directories, services, repositories, hooks, utilities, or patterns.
 - Do not introduce new architectural patterns unless there is a clear and documented benefit.
 - Preserve multi-tenant data boundaries and authentication behavior.
+- Because Lifely is already in production, never modify existing migrations to change database schema or seed data; add a new migration instead.
 - Put validation, serialization, persistence, and UI concerns in their appropriate layers.
 - Backend authorization is the source of truth. Frontend RBAC is only for route and UI visibility.
 - Keep tenant-scoped database access explicitly constrained by `tenant_id` or documented system-scope rules.
