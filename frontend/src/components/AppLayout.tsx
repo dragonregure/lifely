@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { LoadingInline } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -9,11 +9,15 @@ import { useAuth } from "@/context/AuthContext";
 import { NAVIGATION_ITEMS } from "@/rbac/accessMatrix";
 import { useAuthorization } from "@/rbac/useAuthorization";
 
-function Brand() {
+export type AppLayoutContext = {
+  isSidebarMinimized: boolean;
+};
+
+function Brand({ isMinimized = false }: { isMinimized?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className={cn("flex items-center gap-3", isMinimized && "justify-center")}>
       <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-sm font-bold text-white">L</div>
-      <div className="min-w-0">
+      <div className={cn("min-w-0", isMinimized && "sr-only")}>
         <p className="truncate text-sm font-semibold">Lifely</p>
         <p className="truncate text-xs text-muted-foreground">Real estate CRM</p>
       </div>
@@ -21,7 +25,7 @@ function Brand() {
   );
 }
 
-function NavigationLinks({ onSelect }: { onSelect?: () => void }) {
+function NavigationLinks({ isMinimized = false, onSelect }: { isMinimized?: boolean; onSelect?: () => void }) {
   const { canAny } = useAuthorization();
   const visibleNavigation = NAVIGATION_ITEMS.filter((item) => !item.anyOf || canAny(item.anyOf));
 
@@ -32,15 +36,18 @@ function NavigationLinks({ onSelect }: { onSelect?: () => void }) {
           key={item.href}
           to={item.href}
           onClick={onSelect}
+          title={isMinimized ? item.label : undefined}
+          aria-label={isMinimized ? item.label : undefined}
           className={({ isActive }) =>
             cn(
               "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-sky-50 hover:text-slate-950",
+              isMinimized && "justify-center px-0",
               isActive && "bg-sky-100 text-sky-800",
             )
           }
         >
           <item.icon className="h-4 w-4 shrink-0" />
-          <span className="truncate">{item.label}</span>
+          <span className={cn("truncate", isMinimized && "sr-only")}>{item.label}</span>
         </NavLink>
       ))}
     </nav>
@@ -49,9 +56,11 @@ function NavigationLinks({ onSelect }: { onSelect?: () => void }) {
 
 export function AppLayout() {
   const [open, setOpen] = useState(false);
+  const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const auth = useAuth();
   const { tenant, user } = auth;
   const navigate = useNavigate();
+  const sidebarToggleLabel = isSidebarMinimized ? "Expand sidebar" : "Minimize sidebar";
 
   const handleLogout = async () => {
     await auth.logout();
@@ -60,19 +69,47 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r bg-white lg:block">
-        <div className="flex h-full flex-col gap-6 p-5">
-          <Brand />
-          <NavigationLinks />
-          <div className="mt-auto rounded-lg border bg-slate-50 p-4">
-            <p className="text-xs font-medium uppercase text-muted-foreground">Tenant</p>
-            <p className="mt-1 truncate text-sm font-semibold">{tenant?.name ?? <LoadingInline label="Loading office" />}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{tenant?.plan ?? "Growth"} plan</p>
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 hidden border-r bg-white transition-[width] duration-200 lg:block",
+          isSidebarMinimized ? "w-20" : "w-64",
+        )}
+      >
+        <div className={cn("flex h-full flex-col gap-6 p-5", isSidebarMinimized && "items-stretch gap-5 p-3")}>
+          <div className={cn("flex items-center gap-2", isSidebarMinimized ? "flex-col" : "justify-between")}>
+            <Brand isMinimized={isSidebarMinimized} />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={sidebarToggleLabel}
+              title={sidebarToggleLabel}
+              onClick={() => setIsSidebarMinimized((current) => !current)}
+            >
+              {isSidebarMinimized ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
+          </div>
+          <NavigationLinks isMinimized={isSidebarMinimized} />
+          <div
+            className={cn(
+              "mt-auto rounded-lg border bg-slate-50 p-4",
+              isSidebarMinimized && "grid min-h-12 place-items-center p-2 text-center",
+            )}
+            title={tenant?.name}
+          >
+            {isSidebarMinimized ? (
+              <p className="text-xs font-semibold text-slate-700">{tenant?.name?.slice(0, 2).toUpperCase() ?? "..."}</p>
+            ) : (
+              <>
+                <p className="text-xs font-medium uppercase text-muted-foreground">Tenant</p>
+                <p className="mt-1 truncate text-sm font-semibold">{tenant?.name ?? <LoadingInline label="Loading office" />}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{tenant?.plan ?? "Growth"} plan</p>
+              </>
+            )}
           </div>
         </div>
       </aside>
 
-      <div className="lg:pl-64">
+      <div className={cn("transition-[padding] duration-200", isSidebarMinimized ? "lg:pl-20" : "lg:pl-64")}>
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-white/95 px-4 backdrop-blur md:px-6">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -102,8 +139,8 @@ export function AppLayout() {
             <LogOut className="h-4 w-4" />
           </Button>
         </header>
-        <main className="mx-auto w-full max-w-7xl p-4 md:p-6">
-          <Outlet />
+        <main className={cn("w-full p-4 md:p-6", isSidebarMinimized ? "max-w-none" : "mx-auto max-w-7xl")}>
+          <Outlet context={{ isSidebarMinimized } satisfies AppLayoutContext} />
         </main>
       </div>
     </div>
