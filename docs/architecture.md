@@ -37,7 +37,9 @@ Lifely is a decoupled, multi-tenant real estate CRM. The repository has a Larave
 
 ## Tenant Model
 
-Most CRM records are tenant-owned with `tenant_id`. Backend queries must explicitly scope tenant-owned resources to the current tenant. The Reference module supports both tenant references and system references. System references have `tenant_id = null`; only users with the relevant system permission can manipulate system-scoped data.
+Most CRM records are tenant-owned with `tenant_id`. Backend queries must explicitly scope tenant-owned resources to the current tenant.
+
+References and roles can be tenant-scoped or system-scoped. System-scoped rows use `tenant_id = null`; only users with the relevant system permission can manipulate system-scoped data. Tenant-facing role queries should return system roles plus current-tenant roles while hiding roles that carry system-only permissions unless the caller has system role management access.
 
 ## Activity Logging
 

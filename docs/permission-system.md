@@ -31,7 +31,11 @@ Default roles include:
 - Marketing Coordinator
 - Transaction Coordinator
 
-`System Admin` receives all permissions, including `system.bypass` and system-reference management. `Office Admin` and `Master` receive tenant-admin permissions, excluding system-only permissions.
+Roles can be system-scoped (`tenant_id = null`) or tenant-scoped. Tenant users can see system roles plus roles owned by their tenant; roles that contain system-only permissions are hidden unless the caller has `roles.manage_system` or `system.bypass`.
+
+`System Admin` receives all permissions, including `system.bypass`, `roles.manage_system`, and system-reference management. `Office Admin` and `Master` receive tenant-admin permissions, excluding system-only permissions.
+
+Use `roles.manage_system` when a workflow needs to create, update, delete, view, or assign system roles or system-only role permissions. Permission create, update, and delete operations are system-owned and require system-bypass access.
 
 ## System Bypass
 
@@ -43,6 +47,7 @@ Default roles include:
 - Office Admin role deletion is protected.
 - The last Office Admin cannot be removed.
 - Protected/admin permissions cannot be deleted when that would break RBAC administration.
+- Tenant admins cannot assign system-only permissions directly or through roles.
 - System references require the system reference permission, not a direct role-name check.
 
 ## Frontend Files
@@ -64,6 +69,8 @@ RBAC endpoints are under `/api/v1` and require Sanctum access tokens:
 - `apiResource /permissions`
 - `PUT /users/{user}/roles`
 - `PUT /users/{user}/permissions`
+
+Role and permission list/detail endpoints keep relation payloads lean by default. Request `include[]=permissions` on roles or `include[]=roles` on permissions only when the UI needs assigned relation data.
 
 Role and permission mutations must clear Spatie permission cache.
 
