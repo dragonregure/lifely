@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
@@ -10,7 +11,6 @@ use Database\Seeders\RbacSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
@@ -37,7 +37,10 @@ class RbacApiTest extends TestCase
             'name' => 'Customer Success',
             'guard_name' => 'web',
             'permissions' => [Permissions::CONTACTS_VIEW],
-        ])->assertCreated();
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.tenant_id', $this->tenant->id)
+            ->assertJsonPath('data.is_system', false);
 
         $roleId = $create->json('data.id');
 
@@ -82,13 +85,17 @@ class RbacApiTest extends TestCase
 
         $this->postJson('/api/v1/roles', [
             'name' => 'Bypass Managed Role',
+            'tenant_id' => null,
             'guard_name' => 'web',
-        ])->assertCreated();
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.tenant_id', null)
+            ->assertJsonPath('data.is_system', true);
     }
 
-    public function test_authorized_user_can_manage_permissions(): void
+    public function test_system_bypass_user_can_manage_permissions(): void
     {
-        $this->actingOfficeAdmin();
+        $this->actingSystemAdmin();
 
         $create = $this->postJson('/api/v1/permissions', [
             'name' => 'custom.workflow',
@@ -113,6 +120,26 @@ class RbacApiTest extends TestCase
         $this->assertDatabaseMissing('permissions', ['id' => $permissionId]);
     }
 
+    public function test_tenant_admin_cannot_create_update_or_delete_permissions(): void
+    {
+        $this->actingOfficeAdmin();
+        $permission = Permission::findByName(Permissions::CONTACTS_VIEW, 'web');
+
+        $this->getJson('/api/v1/permissions')->assertOk();
+
+        $this->postJson('/api/v1/permissions', [
+            'name' => 'blocked.permission',
+            'guard_name' => 'web',
+        ])->assertForbidden();
+
+        $this->patchJson("/api/v1/permissions/{$permission->id}", [
+            'name' => 'blocked.permission.update',
+        ])->assertForbidden();
+
+        $this->deleteJson("/api/v1/permissions/{$permission->id}")
+            ->assertForbidden();
+    }
+
     public function test_unauthorized_user_cannot_manage_permissions(): void
     {
         $this->actingSimpleAgent();
@@ -135,6 +162,64 @@ class RbacApiTest extends TestCase
             ->assertJsonPath('data.roles.0', Roles::SALES);
 
         $this->assertTrue($target->fresh()->hasRole(Roles::SALES));
+    }
+
+    public function test_tenant_can_access_system_and_own_roles_only(): void
+    {
+        $this->actingOfficeAdmin();
+        $visibleTenantRole = Role::query()->create([
+            'tenant_id' => $this->tenant->id,
+            'name' => 'Tenant Concierge',
+            'guard_name' => 'web',
+        ]);
+        $otherTenant = Tenant::factory()->create();
+        Role::query()->create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Hidden Concierge',
+            'guard_name' => 'web',
+        ]);
+
+        $this->getJson('/api/v1/roles')
+            ->assertOk()
+            ->assertJsonFragment(['name' => Roles::OFFICE_ADMIN, 'is_system' => true])
+            ->assertJsonFragment(['name' => 'Tenant Concierge', 'tenant_id' => $this->tenant->id])
+            ->assertJsonMissing(['name' => 'Hidden Concierge']);
+
+        $this->getJson("/api/v1/roles/{$visibleTenantRole->id}")
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Tenant Concierge');
+    }
+
+    public function test_tenant_admin_cannot_modify_or_delete_system_roles(): void
+    {
+        $this->actingOfficeAdmin();
+        $salesRole = Role::findByName(Roles::SALES, 'web');
+
+        $this->patchJson("/api/v1/roles/{$salesRole->id}", [
+            'name' => 'Sales Updated',
+        ])->assertForbidden();
+
+        $this->deleteJson("/api/v1/roles/{$salesRole->id}")
+            ->assertForbidden();
+    }
+
+    public function test_role_assignment_rejects_roles_outside_the_current_tenant_scope(): void
+    {
+        $this->actingOfficeAdmin();
+        $otherTenant = Tenant::factory()->create();
+        Role::query()->create([
+            'tenant_id' => $otherTenant->id,
+            'name' => 'Other Tenant Operator',
+            'guard_name' => 'web',
+        ]);
+        $target = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => Roles::SIMPLE_AGENT]);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->putJson("/api/v1/users/{$target->id}/roles", [
+                'roles' => ['Other Tenant Operator'],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('roles');
     }
 
     public function test_authorized_user_can_sync_direct_permissions_to_a_user(): void
@@ -168,7 +253,7 @@ class RbacApiTest extends TestCase
 
     public function test_protects_office_admin_role_and_admin_permissions_from_deletion(): void
     {
-        $this->actingOfficeAdmin();
+        $this->actingSystemAdmin();
         $officeAdminRole = Role::findByName(Roles::OFFICE_ADMIN, 'web');
         $protectedPermission = Permission::findByName(Permissions::ROLES_VIEW, 'web');
 
@@ -179,14 +264,34 @@ class RbacApiTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_tenant_admin_cannot_assign_permission_cud_capabilities_directly(): void
+    {
+        $this->actingOfficeAdmin();
+        $target = User::factory()->create(['tenant_id' => $this->tenant->id, 'role' => Roles::SIMPLE_AGENT]);
+
+        $this->withHeader('X-Tenant-Id', $this->tenant->id)
+            ->putJson("/api/v1/users/{$target->id}/permissions", [
+                'permissions' => [Permissions::PERMISSIONS_CREATE],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('permissions');
+    }
+
     public function test_authenticated_user_permissions_response_supports_the_spa(): void
     {
         $this->actingOfficeAdmin();
 
-        $this->getJson('/api/v1/me/permissions')
+        $response = $this->getJson('/api/v1/me/permissions')
             ->assertOk()
             ->assertJsonPath('data.roles.0', Roles::OFFICE_ADMIN)
             ->assertJsonFragment(['roles.view']);
+
+        $permissions = $response->json('data.permissions');
+
+        $this->assertIsArray($permissions);
+        $this->assertNotContains(Permissions::PERMISSIONS_CREATE, $permissions);
+        $this->assertNotContains(Permissions::PERMISSIONS_UPDATE, $permissions);
+        $this->assertNotContains(Permissions::PERMISSIONS_DELETE, $permissions);
     }
 
     private function actingOfficeAdmin(): User
@@ -197,6 +302,19 @@ class RbacApiTest extends TestCase
         ]);
 
         $admin->assignRole(Roles::OFFICE_ADMIN);
+        Sanctum::actingAs($admin, ['access']);
+
+        return $admin;
+    }
+
+    private function actingSystemAdmin(): User
+    {
+        $admin = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'role' => Roles::SYSTEM_ADMIN,
+        ]);
+
+        $admin->assignRole(Roles::SYSTEM_ADMIN);
         Sanctum::actingAs($admin, ['access']);
 
         return $admin;

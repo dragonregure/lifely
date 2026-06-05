@@ -94,6 +94,9 @@ final class Permissions
     {
         return [
             self::SYSTEM_BYPASS,
+            self::PERMISSIONS_CREATE,
+            self::PERMISSIONS_UPDATE,
+            self::PERMISSIONS_DELETE,
             self::REFERENCES_MANAGE_SYSTEM,
         ];
     }
@@ -124,5 +127,17 @@ final class Permissions
             self::USERS_ASSIGN_ROLES,
             self::USERS_ASSIGN_PERMISSIONS,
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function tenantAdminProtected(): array
+    {
+        return array_values(array_diff(self::protected(), [
+            self::PERMISSIONS_CREATE,
+            self::PERMISSIONS_UPDATE,
+            self::PERMISSIONS_DELETE,
+        ]));
     }
 }

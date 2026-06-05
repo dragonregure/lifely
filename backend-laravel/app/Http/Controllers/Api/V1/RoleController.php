@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\Rbac\StoreRoleRequest;
 use App\Http\Requests\Rbac\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
+use App\Models\Role;
 use App\Services\RbacService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response as HttpResponse;
-use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class RoleController extends BaseApiController
 {
@@ -18,42 +20,65 @@ class RoleController extends BaseApiController
     {
     }
 
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Role::class);
 
-        return RoleResource::collection(Role::query()->with('permissions')->orderBy('name')->get());
+        return RoleResource::collection(
+            Role::query()
+                ->visibleToTenant($this->tenantId($request))
+                ->with('permissions')
+                ->orderBy('tenant_id')
+                ->orderBy('name')
+                ->get()
+        );
     }
 
     public function store(StoreRoleRequest $request): JsonResponse
     {
         $this->authorize('create', Role::class);
 
-        return (new RoleResource($this->rbac->createRole($request->validated())))
+        return (new RoleResource($this->rbac->createRole($this->tenantId($request), $request->validated())))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
     }
 
-    public function show(Role $role): RoleResource
+    public function show(Request $request, string $role): RoleResource
     {
-        $this->authorize('view', $role);
+        $model = $this->findRole($request, $role);
+        $this->authorize('view', $model);
 
-        return new RoleResource($role->load('permissions'));
+        return new RoleResource($model->load('permissions'));
     }
 
-    public function update(UpdateRoleRequest $request, Role $role): RoleResource
+    public function update(UpdateRoleRequest $request, string $role): RoleResource
     {
-        $this->authorize('update', $role);
+        $model = $this->findRole($request, $role);
+        $this->authorize('update', $model);
 
-        return new RoleResource($this->rbac->updateRole($role, $request->validated()));
+        return new RoleResource($this->rbac->updateRole($this->tenantId($request), $model, $request->validated()));
     }
 
-    public function destroy(Role $role): HttpResponse
+    public function destroy(Request $request, string $role): HttpResponse
     {
-        $this->authorize('delete', $role);
+        $model = $this->findRole($request, $role);
+        $this->authorize('delete', $model);
 
-        $this->rbac->deleteRole($role);
+        $this->rbac->deleteRole($model);
 
         return response()->noContent();
+    }
+
+    private function findRole(Request $request, string $role): Role
+    {
+        $model = Role::query()
+            ->visibleToTenant($this->tenantId($request))
+            ->find($role);
+
+        if (! $model) {
+            throw new NotFoundHttpException('Role not found.');
+        }
+
+        return $model;
     }
 }

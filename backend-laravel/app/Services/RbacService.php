@@ -2,22 +2,27 @@
 
 namespace App\Services;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
 use App\Support\Rbac\Roles;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RbacService
 {
-    public function createRole(array $data): Role
+    public function createRole(string $tenantId, array $data): Role
     {
+        $data['tenant_id'] = $this->tenantIdFromPayload($tenantId, $data, $tenantId);
+
         return DB::transaction(function () use ($data): Role {
+            $this->ensureUniqueRole($data['tenant_id'], $data['name'], $data['guard_name'] ?? 'web');
+
             $role = Role::query()->create([
+                'tenant_id' => $data['tenant_id'],
                 'name' => $data['name'],
                 'guard_name' => $data['guard_name'] ?? 'web',
             ]);
@@ -29,16 +34,27 @@ class RbacService
         });
     }
 
-    public function updateRole(Role $role, array $data): Role
+    public function updateRole(string $tenantId, Role $role, array $data): Role
     {
-        return DB::transaction(function () use ($role, $data): Role {
+        return DB::transaction(function () use ($role, $data, $tenantId): Role {
             if ($role->name === Roles::protectedAdmin() && isset($data['name']) && $data['name'] !== $role->name) {
                 throw new HttpException(422, 'The Office Admin role name cannot be changed.');
             }
 
+            if (array_key_exists('tenant_id', $data)) {
+                $data['tenant_id'] = $this->tenantIdFromPayload($tenantId, $data, $role->tenant_id);
+            }
+
+            $nextTenantId = $data['tenant_id'] ?? $role->tenant_id;
+            $nextName = $data['name'] ?? $role->name;
+            $nextGuardName = $data['guard_name'] ?? $role->guard_name;
+
+            $this->ensureUniqueRole($nextTenantId, $nextName, $nextGuardName, $role->id);
+
             $role->fill([
-                'name' => $data['name'] ?? $role->name,
-                'guard_name' => $data['guard_name'] ?? $role->guard_name,
+                'tenant_id' => $nextTenantId,
+                'name' => $nextName,
+                'guard_name' => $nextGuardName,
             ])->save();
 
             if (array_key_exists('permissions', $data)) {
@@ -111,12 +127,15 @@ class RbacService
         });
     }
 
-    public function syncUserRoles(User $user, array $roleNames): User
+    public function syncUserRoles(string $tenantId, User $user, array $roleNames): User
     {
-        return DB::transaction(function () use ($user, $roleNames): User {
+        return DB::transaction(function () use ($user, $roleNames, $tenantId): User {
+            $this->ensureUserBelongsToTenant($tenantId, $user);
             $this->ensureOfficeAdminCanBeRemoved($user, $roleNames);
 
-            $user->syncRoles($roleNames);
+            $roles = $this->rolesVisibleToTenant($tenantId, $roleNames);
+
+            $user->syncRoles($roles);
             $user->forceFill(['role' => $roleNames[0] ?? Roles::SIMPLE_AGENT])->save();
             $this->forgetCache();
 
@@ -124,9 +143,10 @@ class RbacService
         });
     }
 
-    public function syncUserPermissions(User $user, array $permissionNames): User
+    public function syncUserPermissions(string $tenantId, User $user, array $permissionNames): User
     {
-        return DB::transaction(function () use ($user, $permissionNames): User {
+        return DB::transaction(function () use ($user, $permissionNames, $tenantId): User {
+            $this->ensureUserBelongsToTenant($tenantId, $user);
             $user->syncPermissions($permissionNames);
             $this->forgetCache();
 
@@ -137,10 +157,60 @@ class RbacService
     private function syncRolePermissions(Role $role, array $permissionNames): void
     {
         if ($role->name === Roles::protectedAdmin()) {
-            $permissionNames = array_values(array_unique(array_merge($permissionNames, Permissions::protected())));
+            $permissionNames = array_values(array_unique(array_merge($permissionNames, Permissions::tenantAdminProtected())));
         }
 
         $role->syncPermissions($permissionNames);
+    }
+
+    private function rolesVisibleToTenant(string $tenantId, array $roleNames): array
+    {
+        $roles = Role::query()
+            ->visibleToTenant($tenantId)
+            ->whereIn('name', $roleNames)
+            ->get();
+
+        $foundNames = $roles->pluck('name')->all();
+        $missing = array_values(array_diff($roleNames, $foundNames));
+
+        if ($missing !== []) {
+            throw ValidationException::withMessages([
+                'roles' => ['One or more selected roles are not available to this tenant.'],
+            ]);
+        }
+
+        return $roles->all();
+    }
+
+    private function tenantIdFromPayload(string $currentTenantId, array $data, ?string $defaultTenantId): ?string
+    {
+        $tenantId = array_key_exists('tenant_id', $data) ? $data['tenant_id'] : $defaultTenantId;
+
+        if ($tenantId !== null && $tenantId !== $currentTenantId) {
+            throw new HttpException(403, 'Role tenant does not match the current tenant context.');
+        }
+
+        return $tenantId;
+    }
+
+    private function ensureUniqueRole(?string $tenantId, string $name, string $guardName, ?int $ignoreId = null): void
+    {
+        $exists = Role::query()
+            ->where('name', $name)
+            ->where('guard_name', $guardName)
+            ->when($tenantId === null, fn ($query) => $query, function ($query) use ($tenantId): void {
+                $query->where(function ($query) use ($tenantId): void {
+                    $query->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
+                });
+            })
+            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'name' => ['A role with this name already exists for this role scope.'],
+            ]);
+        }
     }
 
     private function ensureOfficeAdminCanBeRemoved(User $user, array $newRoleNames): void
@@ -153,6 +223,13 @@ class RbacService
             throw ValidationException::withMessages([
                 'roles' => ['At least one Office Admin must remain active.'],
             ]);
+        }
+    }
+
+    private function ensureUserBelongsToTenant(string $tenantId, User $user): void
+    {
+        if ($user->tenant_id !== $tenantId) {
+            throw new HttpException(403, 'User does not belong to the current tenant context.');
         }
     }
 

@@ -46,30 +46,31 @@ export function PermissionManagement({
 }: PermissionManagementProps) {
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Create permission</CardTitle>
-          <CardDescription>Use dot notation so permissions stay scannable.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form className="grid gap-4" onSubmit={handleCreatePermission}>
-            <div className="grid gap-2">
-              <Label htmlFor="new-permission-name">Permission name</Label>
-              <Input
-                id="new-permission-name"
-                placeholder="reports.export"
-                value={newPermission}
-                disabled={!canCreatePermissions}
-                onChange={(event) => setNewPermission(event.target.value)}
-              />
-            </div>
-            <Button className="w-fit" disabled={!canCreatePermissions || !newPermission.trim()} isLoading={isSaving} loadingLabel="Saving permission">
-              {!isSaving && <KeyRound className="h-4 w-4" />}
-              Create permission
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {canCreatePermissions && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create permission</CardTitle>
+            <CardDescription>Use dot notation so permissions stay scannable.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-4" onSubmit={handleCreatePermission}>
+              <div className="grid gap-2">
+                <Label htmlFor="new-permission-name">Permission name</Label>
+                <Input
+                  id="new-permission-name"
+                  placeholder="reports.export"
+                  value={newPermission}
+                  onChange={(event) => setNewPermission(event.target.value)}
+                />
+              </div>
+              <Button className="w-fit" disabled={!newPermission.trim()} isLoading={isSaving} loadingLabel="Saving permission">
+                {!isSaving && <KeyRound className="h-4 w-4" />}
+                Create permission
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -88,7 +89,7 @@ export function PermissionManagement({
                   <TableRow>
                     <TableHead>Permission</TableHead>
                     <TableHead>Group</TableHead>
-                    <TableHead className="w-44 text-right">Actions</TableHead>
+                    {(canUpdatePermissions || canDeletePermissions) && <TableHead className="w-44 text-right">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -111,16 +112,18 @@ export function PermissionManagement({
                         <TableCell>
                           <Badge variant="muted">{permissionGroup(permission.name)}</Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex justify-end gap-2">
-                            <Button size="icon" variant="outline" disabled={!canUpdatePermissions} isLoading={isSaving} onClick={() => handleUpdatePermission(permission)} title="Update permission">
-                              {!isSaving && <Save className="h-4 w-4" />}
-                            </Button>
-                            <Button size="icon" variant="outline" disabled={!canDeletePermissions} isLoading={isSaving} onClick={() => handleDeletePermission(permission)} title="Delete permission">
-                              {!isSaving && <Trash2 className="h-4 w-4" />}
-                            </Button>
-                          </div>
-                        </TableCell>
+                        {(canUpdatePermissions || canDeletePermissions) && (
+                          <TableCell>
+                            <div className="flex justify-end gap-2">
+                              <Button size="icon" variant="outline" disabled={!canUpdatePermissions} isLoading={isSaving} onClick={() => handleUpdatePermission(permission)} title="Update permission">
+                                {!isSaving && <Save className="h-4 w-4" />}
+                              </Button>
+                              <Button size="icon" variant="outline" disabled={!canDeletePermissions} isLoading={isSaving} onClick={() => handleDeletePermission(permission)} title="Delete permission">
+                                {!isSaving && <Trash2 className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}

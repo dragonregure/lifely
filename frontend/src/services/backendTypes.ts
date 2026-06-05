@@ -148,6 +148,8 @@ export type BackendPermission = {
 
 export type BackendRole = {
   id: number;
+  tenant_id: string | null;
+  is_system: boolean;
   name: Role;
   guard_name: string;
   permissions?: BackendPermission[];

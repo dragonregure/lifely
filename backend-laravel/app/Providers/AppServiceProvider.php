@@ -16,6 +16,7 @@ use App\Models\EmailCampaign;
 use App\Models\Listing;
 use App\Models\PipelineDeal;
 use App\Models\Reference;
+use App\Models\Role;
 use App\Models\User;
 use App\Observers\ContactActivityObserver;
 use App\Observers\EmailCampaignActivityObserver;
@@ -38,7 +39,6 @@ use App\Support\Rbac\Permissions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {

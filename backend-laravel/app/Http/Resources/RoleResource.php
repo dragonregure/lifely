@@ -2,9 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Spatie\Permission\Models\Role;
 
 /** @mixin Role */
 class RoleResource extends JsonResource
@@ -13,6 +13,8 @@ class RoleResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'is_system' => $this->is_system,
             'name' => $this->name,
             'guard_name' => $this->guard_name,
             'permissions' => PermissionResource::collection($this->whenLoaded('permissions')),

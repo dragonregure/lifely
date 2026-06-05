@@ -21,7 +21,7 @@ class UserAccessController extends BaseApiController
         $this->authorize('assignRoles', $user);
         $this->ensureSameTenant($request, $user);
 
-        return new MemberResource($this->rbac->syncUserRoles($user, $request->validated('roles')));
+        return new MemberResource($this->rbac->syncUserRoles($this->tenantId($request), $user, $request->validated('roles')));
     }
 
     public function syncPermissions(SyncUserPermissionsRequest $request, User $user): MemberResource
@@ -29,7 +29,7 @@ class UserAccessController extends BaseApiController
         $this->authorize('assignPermissions', $user);
         $this->ensureSameTenant($request, $user);
 
-        return new MemberResource($this->rbac->syncUserPermissions($user, $request->validated('permissions')));
+        return new MemberResource($this->rbac->syncUserPermissions($this->tenantId($request), $user, $request->validated('permissions')));
     }
 
     public function mePermissions(Request $request): UserPermissionsResource

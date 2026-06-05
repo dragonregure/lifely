@@ -18,6 +18,8 @@ export type Permission = {
 
 export type AccessRole = {
   id: number;
+  tenantId: string | null;
+  isSystem: boolean;
   name: Role;
   guardName: string;
   permissions: Permission[];

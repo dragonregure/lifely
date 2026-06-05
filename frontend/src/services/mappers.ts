@@ -71,6 +71,8 @@ export function mapPermission(permission: BackendPermission): Permission {
 export function mapRole(role: BackendRole): AccessRole {
   return {
     id: role.id,
+    tenantId: role.tenant_id,
+    isSystem: role.is_system,
     name: role.name,
     guardName: role.guard_name,
     permissions: role.permissions?.map(mapPermission) ?? [],

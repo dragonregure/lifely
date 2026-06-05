@@ -20,16 +20,16 @@ class PermissionPolicy
 
     public function create(User $user): bool
     {
-        return $user->can(Permissions::PERMISSIONS_CREATE);
+        return $user->hasSystemBypass();
     }
 
     public function update(User $user, Permission $permission): bool
     {
-        return $user->can(Permissions::PERMISSIONS_UPDATE);
+        return $user->hasSystemBypass();
     }
 
     public function delete(User $user, Permission $permission): bool
     {
-        return $user->can(Permissions::PERMISSIONS_DELETE);
+        return $user->hasSystemBypass();
     }
 }

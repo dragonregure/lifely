@@ -13,6 +13,7 @@ import { toggleValue } from "./settingsUtils";
 type RoleManagementProps = {
   canCreateRoles: boolean;
   canDeleteRoles: boolean;
+  canManageSystemRoles: boolean;
   canUpdateRoles: boolean;
   canViewRoles: boolean;
   groupedPermissions: Record<string, Permission[]>;
@@ -31,6 +32,7 @@ type RoleManagementProps = {
 export function RoleManagement({
   canCreateRoles,
   canDeleteRoles,
+  canManageSystemRoles,
   canUpdateRoles,
   canViewRoles,
   groupedPermissions,
@@ -106,19 +108,27 @@ export function RoleManagement({
             <div className="grid gap-4">
               {roles.map((role) => {
                 const draft = roleDrafts[role.id] ?? { name: role.name, permissions: role.permissions.map((permission) => permission.name) };
+                const canModifyRole = canUpdateRoles && (!role.isSystem || canManageSystemRoles);
+                const canRemoveRole = canDeleteRoles && (!role.isSystem || canManageSystemRoles);
+
                 return (
                   <div key={role.id} className="rounded-md border p-4">
                     <div className="grid gap-3 lg:grid-cols-[18rem_1fr_auto]">
-                      <Input
-                        value={draft.name}
-                        disabled={!canUpdateRoles}
-                        onChange={(event) =>
-                          setRoleDrafts((current) => ({
-                            ...current,
-                            [role.id]: { ...draft, name: event.target.value },
-                          }))
-                        }
-                      />
+                      <div className="grid gap-2">
+                        <Input
+                          value={draft.name}
+                          disabled={!canModifyRole}
+                          onChange={(event) =>
+                            setRoleDrafts((current) => ({
+                              ...current,
+                              [role.id]: { ...draft, name: event.target.value },
+                            }))
+                          }
+                        />
+                        <Badge className="w-fit" variant={role.isSystem ? "secondary" : "muted"}>
+                          {role.isSystem ? "System" : "Tenant"}
+                        </Badge>
+                      </div>
                       <div className="flex flex-wrap gap-1">
                         {draft.permissions.slice(0, 8).map((permission) => (
                           <Badge key={permission} variant="muted">
@@ -128,10 +138,10 @@ export function RoleManagement({
                         {draft.permissions.length > 8 && <Badge variant="secondary">+{draft.permissions.length - 8}</Badge>}
                       </div>
                       <div className="flex gap-2 lg:justify-end">
-                        <Button size="icon" variant="outline" disabled={!canUpdateRoles} isLoading={isSaving} onClick={() => handleUpdateRole(role)} title="Update role">
+                        <Button size="icon" variant="outline" disabled={!canModifyRole} isLoading={isSaving} onClick={() => handleUpdateRole(role)} title="Update role">
                           {!isSaving && <Save className="h-4 w-4" />}
                         </Button>
-                        <Button size="icon" variant="outline" disabled={!canDeleteRoles} isLoading={isSaving} onClick={() => handleDeleteRole(role)} title="Delete role">
+                        <Button size="icon" variant="outline" disabled={!canRemoveRole} isLoading={isSaving} onClick={() => handleDeleteRole(role)} title="Delete role">
                           {!isSaving && <Trash2 className="h-4 w-4" />}
                         </Button>
                       </div>
@@ -146,7 +156,7 @@ export function RoleManagement({
                                 <input
                                   type="checkbox"
                                   checked={draft.permissions.includes(permission.name)}
-                                  disabled={!canUpdateRoles}
+                                  disabled={!canModifyRole}
                                   onChange={() =>
                                     setRoleDrafts((current) => ({
                                       ...current,
