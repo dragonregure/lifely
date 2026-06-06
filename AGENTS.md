@@ -57,7 +57,9 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Keep tenant-scoped database access explicitly constrained by `tenant_id` or documented system-scope rules.
 - APIs that can return heavy or optional relations should keep responses lean by default and expose relation loading through a whitelisted `include[]` query parameter on endpoints that explicitly support relation payloads.
 - Frontend callers should request relation includes only for flows that render or mutate relation-aware state; listing/table pages should use main model fields unless the UI explicitly needs relation data.
+- Frontend UI should use shared primitives for repeated controls such as selects, checkboxes, search fields, filter menus, and pagination instead of hand-rolled class strings.
 - Server-side data tables should handle pagination, search, filtering, and sorting on the backend. Frontend tables should send query state instead of processing large datasets locally.
+- Frontend "get all" service helpers that wrap paginated APIs must page through all available pages or expose pagination; do not silently return only the first page.
 - Update OpenAPI, frontend service types/mappers, and docs when public API request or response shapes change.
 
 ## Verification

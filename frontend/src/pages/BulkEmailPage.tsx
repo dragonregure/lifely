@@ -6,6 +6,7 @@ import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -94,10 +95,8 @@ export function BulkEmailPage() {
                 {contacts.map((contact) => (
                   <TableRow key={contact.id}>
                     <TableCell>
-                      <input
+                      <Checkbox
                         aria-label={`Select ${contact.firstName} ${contact.lastName}`}
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-slate-300 accent-sky-500"
                         checked={selected.includes(contact.id)}
                         disabled={!canCreateCampaigns}
                         onChange={() => toggleContact(contact.id)}

@@ -66,6 +66,20 @@ type PipelinePageRequestOptions = Pick<RequestInit, "signal"> & {
   include?: readonly PipelineInclude[];
 };
 
+const ALL_PAGE_SIZE = 100;
+
+async function collectPaginatedData<TData>(loadPage: (page: number) => Promise<PaginatedResult<TData>>) {
+  const firstPage = await loadPage(1);
+  const records = [...firstPage.data];
+
+  for (let page = firstPage.page + 1; page <= firstPage.pageCount; page += 1) {
+    const nextPage = await loadPage(page);
+    records.push(...nextPage.data);
+  }
+
+  return records;
+}
+
 function toBackendContactPayload(payload: Partial<ContactPayload>) {
   return {
     ...(Object.prototype.hasOwnProperty.call(payload, "ownerId") ? { owner_id: payload.ownerId } : {}),
@@ -164,7 +178,7 @@ export async function getMembersPage(
 }
 
 export async function getContacts() {
-  return (await getContactsPage({ page: 1, pageSize: 100 })).data;
+  return collectPaginatedData((page) => getContactsPage({ page, pageSize: ALL_PAGE_SIZE }));
 }
 
 export async function getContactsPage(
@@ -205,7 +219,7 @@ export async function deleteContact(contactId: string) {
 }
 
 export async function getListings(options: ListingPageRequestOptions = {}) {
-  return (await getListingsPage({ page: 1, pageSize: 100 }, options)).data;
+  return collectPaginatedData((page) => getListingsPage({ page, pageSize: ALL_PAGE_SIZE }, options));
 }
 
 export async function getListingsPage(
@@ -253,7 +267,7 @@ export async function updateListing(listingId: string, payload: Partial<ListingP
 }
 
 export async function getPipelineDeals(options: PipelinePageRequestOptions = {}) {
-  return (await getPipelineDealsPage({ page: 1, pageSize: 100 }, options)).data;
+  return collectPaginatedData((page) => getPipelineDealsPage({ page, pageSize: ALL_PAGE_SIZE }, options));
 }
 
 export async function getPipelineDealsPage(
@@ -293,7 +307,7 @@ export async function updatePipelineDeal(dealId: string, payload: Partial<Pipeli
 }
 
 export async function getActivityLogs() {
-  return (await getActivityLogsPage({ page: 1, pageSize: 100 })).data;
+  return collectPaginatedData((page) => getActivityLogsPage({ page, pageSize: ALL_PAGE_SIZE }));
 }
 
 export async function getActivityLogsPage(
@@ -312,7 +326,7 @@ export async function getActivityLogsPage(
 }
 
 export async function getEmailCampaigns() {
-  return (await getEmailCampaignsPage({ page: 1, pageSize: 100 })).data;
+  return collectPaginatedData((page) => getEmailCampaignsPage({ page, pageSize: ALL_PAGE_SIZE }));
 }
 
 export async function getEmailCampaignsPage(

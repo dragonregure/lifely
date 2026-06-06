@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { CircleAvatar } from "@/components/CircleAvatar";
 import { LoadingInline } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -132,9 +133,7 @@ export function AppLayout() {
             <p className="text-sm font-semibold">{user?.name ?? "Maya Hart"}</p>
             <p className="text-xs text-muted-foreground">{user?.role ?? "Office Admin"}</p>
           </div>
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-900 text-xs font-semibold text-white">
-            {user?.avatarInitials ?? "MH"}
-          </div>
+          <CircleAvatar name={user?.name ?? "Maya Hart"} initials={user?.avatarInitials ?? "MH"} size={36} />
           <Button variant="ghost" size="icon" aria-label="Sign out" onClick={handleLogout}>
             <LogOut className="h-4 w-4" />
           </Button>

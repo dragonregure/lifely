@@ -1,7 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { SearchInput } from "@/components/query/SearchInput";
 import { DataTableFilterMenu } from "./DataTableFilterMenu";
 import type { DataTableFilter, DataTableSearch, FilterValues } from "./types";
 
@@ -29,21 +27,13 @@ export function DataTableToolbar<TData extends object>({
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       {searchEnabled && (
-        <div className="min-w-0 lg:flex-1">
-          <Label htmlFor="data-table-search" className="sr-only">
-            Search
-          </Label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="data-table-search"
-              className="pl-9"
-              placeholder={searchConfig.placeholder ?? "Search records"}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-            />
-          </div>
-        </div>
+        <SearchInput
+          id="data-table-search"
+          label="Search"
+          placeholder={searchConfig.placeholder ?? "Search records"}
+          value={query}
+          onChange={setQuery}
+        />
       )}
 
       {(filters.length > 0 || toolbarEnd) && (

@@ -1,368 +1,24 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction, type SyntheticEvent } from "react";
-import { Bath, BedDouble, ChevronLeft, ChevronRight, Home, MapPin, Pencil, Plus, Search, Trash2, X } from "lucide-react";
-import propertyPlaceholder from "@/assets/property-default.svg";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Plus } from "lucide-react";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
-import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  ServerMultiSelect,
-  type ServerMultiSelectLoadParams,
-  type ServerMultiSelectLoadResult,
-  type ServerMultiSelectOption,
-} from "@/components/ui/server-multi-select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { createListing, getContactsPage, getListing, getListingsPage, getMembersPage, updateListing, type ListingInclude, type ListingPayload } from "@/services/api";
-import { LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS, listingStatusLabel, listingTypeLabel } from "@/lib/listingOptions";
-import { formatCurrency } from "@/lib/utils";
+import { createListing, getContactsPage, getListing, getListingsPage, getMembersPage, updateListing, type ListingInclude } from "@/services/api";
+import { LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS } from "@/lib/listingOptions";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
-import type { Contact, Listing, ListingAgent, User } from "@/types";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import type { ServerMultiSelectLoadParams, ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
+import type { Listing } from "@/types";
+import { ListingFilters, ListingPagination } from "./listings/ListingControls";
+import { ListingDetailDialog, ListingFormDialog } from "./listings/ListingDialogs";
+import { ListingGrid } from "./listings/ListingGrid";
+import type { AgentOption, ContactOption, ListingDraft } from "./listings/listingTypes";
+import { contactToOption, draftFromListing, emptyListingDraft, payloadFromDraft, userToOption } from "./listings/listingUtils";
 
 const PAGE_SIZE_OPTIONS = [8, 12, 16, 24];
 const LISTING_DETAIL_INCLUDES = ["documents", "contacts", "users"] satisfies ListingInclude[];
-
-type ListingOption = {
-  label: string;
-  value: number;
-};
-
-type ListingDraft = {
-  title: string;
-  address: string;
-  price: string;
-  status: string;
-  bedrooms: string;
-  bathrooms: string;
-  type: string;
-  contacts: Contact[];
-  agents: ListingAgent[];
-  primaryOwnerUserId: string | null;
-};
-
-type ContactOption = ServerMultiSelectOption & {
-  contact: Contact;
-};
-
-type AgentOption = ServerMultiSelectOption & {
-  user: User;
-};
-
-function listingImageUrl(listing: Listing) {
-  return listing.documents.find((document) => document.type === "mainImage")?.url ?? propertyPlaceholder;
-}
-
-function contactName(contact: Contact) {
-  return `${contact.firstName} ${contact.lastName}`;
-}
-
-function userName(user: User) {
-  return user.name;
-}
-
-function handleImageFallback(event: SyntheticEvent<HTMLImageElement>) {
-  if (event.currentTarget.dataset.fallbackApplied !== "true") {
-    event.currentTarget.dataset.fallbackApplied = "true";
-    event.currentTarget.src = propertyPlaceholder;
-  }
-}
-
-function emptyListingDraft(statusOptions: ListingOption[], typeOptions: ListingOption[]): ListingDraft {
-  return {
-    title: "",
-    address: "",
-    price: "",
-    status: String(statusOptions[0]?.value ?? ""),
-    bedrooms: "0",
-    bathrooms: "0",
-    type: String(typeOptions[0]?.value ?? ""),
-    contacts: [],
-    agents: [],
-    primaryOwnerUserId: null,
-  };
-}
-
-function draftFromListing(listing: Listing): ListingDraft {
-  return {
-    title: listing.title,
-    address: listing.address,
-    price: String(listing.price),
-    status: String(listing.status),
-    bedrooms: String(listing.bedrooms),
-    bathrooms: String(listing.bathrooms),
-    type: String(listing.type),
-    contacts: listing.contacts,
-    agents: listing.agents,
-    primaryOwnerUserId: listing.agents.find((agent) => agent.isPrimaryOwner)?.id ?? null,
-  };
-}
-
-function payloadFromDraft(draft: ListingDraft): ListingPayload {
-  return {
-    title: draft.title.trim(),
-    address: draft.address.trim(),
-    price: Number(draft.price),
-    status: Number(draft.status) as ListingPayload["status"],
-    bedrooms: Number(draft.bedrooms),
-    bathrooms: Number(draft.bathrooms),
-    type: Number(draft.type) as ListingPayload["type"],
-    contactIds: draft.contacts.map((contact) => contact.id),
-    userIds: draft.agents.map((agent) => agent.id),
-    primaryOwnerUserId: draft.primaryOwnerUserId,
-  };
-}
-
-function contactToOption(contact: Contact): ContactOption {
-  return {
-    value: contact.id,
-    label: contactName(contact),
-    description: contact.email,
-    contact,
-  };
-}
-
-function userToOption(user: User): AgentOption {
-  return {
-    value: user.id,
-    label: userName(user),
-    description: user.email,
-    user,
-  };
-}
-
-type ListingFormFieldsProps = {
-  draft: ListingDraft;
-  statusOptions: ListingOption[];
-  typeOptions: ListingOption[];
-  setDraft: Dispatch<SetStateAction<ListingDraft>>;
-};
-
-function ListingFormFields({ draft, statusOptions, typeOptions, setDraft }: ListingFormFieldsProps) {
-  const updateDraft = (field: Exclude<keyof ListingDraft, "contacts" | "agents" | "primaryOwnerUserId">, value: string) => {
-    setDraft((current) => ({ ...current, [field]: value }));
-  };
-
-  return (
-    <div className="grid gap-4">
-      <div className="grid gap-2">
-        <Label htmlFor="listing-title">Title</Label>
-        <Input id="listing-title" value={draft.title} onChange={(event) => updateDraft("title", event.target.value)} required maxLength={180} />
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="listing-address">Address</Label>
-        <Input id="listing-address" value={draft.address} onChange={(event) => updateDraft("address", event.target.value)} required />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label htmlFor="listing-price">Price</Label>
-          <Input id="listing-price" type="number" min="0" step="0.01" value={draft.price} onChange={(event) => updateDraft("price", event.target.value)} required />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="listing-status">Status</Label>
-          <select
-            id="listing-status"
-            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={draft.status}
-            onChange={(event) => updateDraft("status", event.target.value)}
-            required
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="grid gap-2">
-          <Label htmlFor="listing-type">Type</Label>
-          <select
-            id="listing-type"
-            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={draft.type}
-            onChange={(event) => updateDraft("type", event.target.value)}
-            required
-          >
-            {typeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="listing-bedrooms">Bedrooms</Label>
-          <Input id="listing-bedrooms" type="number" min="0" max="20" value={draft.bedrooms} onChange={(event) => updateDraft("bedrooms", event.target.value)} required />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="listing-bathrooms">Bathrooms</Label>
-          <Input id="listing-bathrooms" type="number" min="0" max="20" value={draft.bathrooms} onChange={(event) => updateDraft("bathrooms", event.target.value)} required />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type ListingAssignmentFieldsProps = {
-  draft: ListingDraft;
-  loadAgentOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<AgentOption>>;
-  loadContactOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ContactOption>>;
-  setDraft: Dispatch<SetStateAction<ListingDraft>>;
-};
-
-function ListingAssignmentFields({ draft, loadAgentOptions, loadContactOptions, setDraft }: ListingAssignmentFieldsProps) {
-  const addContacts = (selectedOptions: ContactOption[]) => {
-    if (selectedOptions.length === 0) return;
-
-    setDraft((current) => {
-      const assignedIds = new Set(current.contacts.map((contact) => contact.id));
-      const nextContacts = selectedOptions
-        .map((option) => option.contact)
-        .filter((contact) => !assignedIds.has(contact.id));
-
-      if (nextContacts.length === 0) {
-        return current;
-      }
-
-      return { ...current, contacts: [...current.contacts, ...nextContacts] };
-    });
-  };
-
-  const removeContact = (contactId: string) => {
-    setDraft((current) => ({
-      ...current,
-      contacts: current.contacts.filter((contact) => contact.id !== contactId),
-    }));
-  };
-
-  const addAgents = (selectedOptions: AgentOption[]) => {
-    if (selectedOptions.length === 0) return;
-
-    setDraft((current) => {
-      const assignedIds = new Set(current.agents.map((agent) => agent.id));
-      const nextAgents = selectedOptions
-        .map((option) => option.user)
-        .filter((user) => !assignedIds.has(user.id))
-        .map((user) => ({ ...user, isPrimaryOwner: false }));
-
-      if (nextAgents.length === 0) {
-        return current;
-      }
-
-      return { ...current, agents: [...current.agents, ...nextAgents] };
-    });
-  };
-
-  const removeAgent = (agentId: string) => {
-    setDraft((current) => ({
-      ...current,
-      agents: current.agents.filter((agent) => agent.id !== agentId),
-      primaryOwnerUserId: current.primaryOwnerUserId === agentId ? null : current.primaryOwnerUserId,
-    }));
-  };
-
-  const setPrimaryOwner = (agentId: string, isChecked: boolean) => {
-    setDraft((current) => ({
-      ...current,
-      primaryOwnerUserId: isChecked ? agentId : null,
-    }));
-  };
-
-  return (
-    <div className="grid gap-3">
-      <div className="grid gap-2">
-        <Label htmlFor="listing-contact-assignment">Contacts</Label>
-        <ServerMultiSelect<ContactOption>
-          id="listing-contact-assignment"
-          value={[]}
-          onChange={addContacts}
-          loadOptions={loadContactOptions}
-          placeholder="Add contacts"
-          searchPlaceholder="Search contacts..."
-          emptyLabel="No contacts found."
-        />
-      </div>
-
-      <div className="rounded-md border bg-slate-50 p-3">
-        {draft.contacts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No contacts assigned.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {draft.contacts.map((contact) => (
-              <li key={contact.id} className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900 ring-1 ring-border">
-                <span className="truncate">{contactName(contact)}</span>
-                <button
-                  type="button"
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={`Unassign ${contactName(contact)}`}
-                  title={`Unassign ${contactName(contact)}`}
-                  onClick={() => removeContact(contact.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="grid gap-2">
-        <Label htmlFor="listing-agent-assignment">Agents</Label>
-        <ServerMultiSelect<AgentOption>
-          id="listing-agent-assignment"
-          value={[]}
-          onChange={addAgents}
-          loadOptions={loadAgentOptions}
-          placeholder="Add agents"
-          searchPlaceholder="Search agents..."
-          emptyLabel="No agents found."
-        />
-      </div>
-
-      <div className="rounded-md border bg-slate-50 p-3">
-        {draft.agents.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No agents assigned.</p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {draft.agents.map((agent) => (
-              <li key={agent.id} className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900 ring-1 ring-border">
-                <span className="truncate">{userName(agent)}</span>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 shrink-0 rounded border-input accent-primary focus:outline-none focus:ring-2 focus:ring-ring"
-                  checked={draft.primaryOwnerUserId === agent.id}
-                  onChange={(event) => setPrimaryOwner(agent.id, event.target.checked)}
-                  title="Set this user as primary owner"
-                  aria-label={`Set ${userName(agent)} as primary owner`}
-                />
-                <button
-                  type="button"
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-ring"
-                  aria-label={`Unassign ${userName(agent)}`}
-                  title={`Unassign ${userName(agent)}`}
-                  onClick={() => removeAgent(agent.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export function ListingsPage() {
   const { can } = useAuthorization();
@@ -383,12 +39,10 @@ export function ListingsPage() {
   const [pageCount, setPageCount] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
   const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const statusOptions = LISTING_STATUS_OPTIONS;
-  const typeOptions = LISTING_TYPE_OPTIONS;
   const [refreshKey, setRefreshKey] = useState(0);
+  const search = useDebouncedValue(searchInput, 350);
   const assignedContactIds = useMemo(() => new Set(formDraft.contacts.map((contact) => contact.id)), [formDraft.contacts]);
   const assignedAgentIds = useMemo(() => new Set(formDraft.agents.map((agent) => agent.id)), [formDraft.agents]);
 
@@ -445,13 +99,8 @@ export function ListingsPage() {
   );
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 350);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [searchInput]);
+    setPage(1);
+  }, [search]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -506,7 +155,7 @@ export function ListingsPage() {
     setFormListing(null);
     setSelectedListing(null);
     setFormError(null);
-    setFormDraft(emptyListingDraft(statusOptions, typeOptions));
+    setFormDraft(emptyListingDraft(LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS));
     setFormTab("details");
     setIsFormOpen(true);
   };
@@ -576,65 +225,22 @@ export function ListingsPage() {
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 rounded-lg border bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 lg:flex-1">
-          <Label htmlFor="listing-search" className="sr-only">
-            Search listings
-          </Label>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="listing-search"
-              className="pl-9"
-              placeholder="Search title, address, status, or type"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Label htmlFor="listing-status-filter" className="sr-only">
-            Status
-          </Label>
-          <select
-            id="listing-status-filter"
-            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={statusFilter}
-            onChange={(event) => {
-              setStatusFilter(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All statuses</option>
-            {statusOptions.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
-
-          <Label htmlFor="listing-type-filter" className="sr-only">
-            Type
-          </Label>
-          <select
-            id="listing-type-filter"
-            className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            value={typeFilter}
-            onChange={(event) => {
-              setTypeFilter(event.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="all">All types</option>
-            {typeOptions.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <ListingFilters
+        searchInput={searchInput}
+        statusFilter={statusFilter}
+        statusOptions={LISTING_STATUS_OPTIONS}
+        typeFilter={typeFilter}
+        typeOptions={LISTING_TYPE_OPTIONS}
+        onSearchInputChange={setSearchInput}
+        onStatusFilterChange={(value) => {
+          setStatusFilter(value);
+          setPage(1);
+        }}
+        onTypeFilterChange={(value) => {
+          setTypeFilter(value);
+          setPage(1);
+        }}
+      />
 
       {error ? <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div> : null}
 
@@ -643,220 +249,40 @@ export function ListingsPage() {
       ) : listings.length === 0 ? (
         <div className="rounded-lg border bg-white p-10 text-center text-sm text-muted-foreground">No listings found.</div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {listings.map((listing) => (
-            <button
-              key={listing.id}
-              type="button"
-              className="group overflow-hidden rounded-lg border bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-busy={detailLoadingId === listing.id}
-              disabled={detailLoadingId === listing.id}
-              onClick={() => void openListingDetails(listing)}
-            >
-              <img
-                src={listingImageUrl(listing)}
-                alt=""
-                className="aspect-[4/3] w-full bg-muted object-cover"
-                loading="lazy"
-                onError={handleImageFallback}
-              />
-              <div className="grid gap-4 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold text-foreground">{listing.title}</h2>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{listing.address}</p>
-                  </div>
-                  <StatusBadge status={listingStatusLabel(listing.status)} />
-                </div>
-
-                <p className="text-2xl font-semibold">{formatCurrency(listing.price)}</p>
-
-                <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Home className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{listingTypeLabel(listing.type)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <BedDouble className="h-4 w-4 shrink-0" />
-                    {listing.bedrooms}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Bath className="h-4 w-4 shrink-0" />
-                    {listing.bathrooms}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+        <ListingGrid detailLoadingId={detailLoadingId} listings={listings} onOpenDetails={openListingDetails} />
       )}
 
-      <div className="mt-4 flex flex-col gap-3 rounded-lg border bg-white p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-        <div>
-          Showing {range.start}-{range.end} of {totalRows}
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="listing-page-size" className="text-sm text-muted-foreground">
-              Cards
-            </Label>
-            <select
-              id="listing-page-size"
-              className="h-9 rounded-md border border-input bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              value={pageSize}
-              onChange={(event) => {
-                setPageSize(Number(event.target.value));
-                setPage(1);
-              }}
-            >
-              {PAGE_SIZE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="min-w-24 text-center">
-              Page {page} of {pageCount}
-            </span>
-            <Button type="button" variant="outline" size="icon" aria-label="Previous page" disabled={page === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button type="button" variant="outline" size="icon" aria-label="Next page" disabled={page === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ListingPagination
+        page={page}
+        pageCount={pageCount}
+        pageSize={pageSize}
+        pageSizeOptions={PAGE_SIZE_OPTIONS}
+        rangeEnd={range.end}
+        rangeStart={range.start}
+        totalRows={totalRows}
+        onPageChange={setPage}
+        onPageSizeChange={(nextPageSize) => {
+          setPageSize(nextPageSize);
+          setPage(1);
+        }}
+      />
 
-      <Dialog open={Boolean(selectedListing)} onOpenChange={(open) => !open && setSelectedListing(null)}>
-        {selectedListing ? (
-          <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
-            <img src={listingImageUrl(selectedListing)} alt="" className="aspect-[16/9] w-full bg-muted object-cover" onError={handleImageFallback} />
-            <div className="grid gap-5 p-6">
-              <DialogHeader className="pr-20">
-                <DialogTitle className="text-2xl">{selectedListing.title}</DialogTitle>
-                <DialogDescription className="sr-only">
-                  Listing details for {selectedListing.title}, including address, price, status, type, bedrooms, and bathrooms.
-                </DialogDescription>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  {selectedListing.address}
-                </div>
-              </DialogHeader>
-              <div className="absolute right-4 top-4 flex gap-2">
-                {canUpdateListings ? (
-                  <Button type="button" variant="outline" size="icon" className="bg-white/90" aria-label="Edit listing" onClick={() => openEditForm(selectedListing)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                ) : null}
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" size="icon" className="bg-white/90" aria-label="Close listing details">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </DialogClose>
-              </div>
+      <ListingDetailDialog canUpdateListings={canUpdateListings} listing={selectedListing} onClose={() => setSelectedListing(null)} onEdit={openEditForm} />
 
-              <div className="flex flex-wrap items-center gap-3">
-                <StatusBadge status={listingStatusLabel(selectedListing.status)} />
-                <span className="text-2xl font-semibold">{formatCurrency(selectedListing.price)}</span>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs uppercase text-muted-foreground">Type</p>
-                  <p className="mt-1 font-medium">{listingTypeLabel(selectedListing.type)}</p>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs uppercase text-muted-foreground">Bedrooms</p>
-                  <p className="mt-1 font-medium">{selectedListing.bedrooms}</p>
-                </div>
-                <div className="rounded-lg border bg-muted/30 p-3">
-                  <p className="text-xs uppercase text-muted-foreground">Bathrooms</p>
-                  <p className="mt-1 font-medium">{selectedListing.bathrooms}</p>
-                </div>
-              </div>
-
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <p className="text-xs uppercase text-muted-foreground">Assigned contacts</p>
-                {selectedListing.contacts.length === 0 ? (
-                  <p className="mt-1 text-sm font-medium text-slate-900">No contacts assigned</p>
-                ) : (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedListing.contacts.map((contact) => (
-                      <span key={contact.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900">
-                        {contactName(contact)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="rounded-lg border bg-muted/30 p-3">
-                <p className="text-xs uppercase text-muted-foreground">Assigned agents</p>
-                {selectedListing.agents.length === 0 ? (
-                  <p className="mt-1 text-sm font-medium text-slate-900">No agents assigned</p>
-                ) : (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedListing.agents.map((agent) => (
-                      <span key={agent.id} className="rounded-md bg-white px-2 py-1 text-sm font-medium text-slate-900">
-                        {userName(agent)}
-                        {agent.isPrimaryOwner ? <span className="ml-1 text-xs text-muted-foreground">(primary)</span> : null}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        ) : null}
-      </Dialog>
-
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{formListing ? "Update listing" : "Create listing"}</DialogTitle>
-            <DialogDescription>Manage the listing table fields used by the CRM inventory.</DialogDescription>
-          </DialogHeader>
-
-          <form className="grid gap-4" onSubmit={handleFormSubmit}>
-            {formError ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{formError}</div> : null}
-            <Tabs value={formTab} onValueChange={setFormTab}>
-              <TabsList className="flex h-auto flex-wrap justify-start">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="assignment">Assignment</TabsTrigger>
-              </TabsList>
-              <TabsContent value="details">
-                <ListingFormFields
-                  draft={formDraft}
-                  setDraft={setFormDraft}
-                  statusOptions={statusOptions}
-                  typeOptions={typeOptions}
-                />
-              </TabsContent>
-              <TabsContent value="assignment">
-                <ListingAssignmentFields
-                  draft={formDraft}
-                  loadAgentOptions={loadAgentOptions}
-                  loadContactOptions={loadContactOptions}
-                  setDraft={setFormDraft}
-                />
-              </TabsContent>
-            </Tabs>
-            <div className="flex justify-end gap-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit" isLoading={isSubmitting} loadingLabel={formListing ? "Updating" : "Creating"}>
-                {formListing ? "Update listing" : "Create listing"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ListingFormDialog
+        draft={formDraft}
+        error={formError}
+        formTab={formTab}
+        isOpen={isFormOpen}
+        isSubmitting={isSubmitting}
+        listing={formListing}
+        loadAgentOptions={loadAgentOptions}
+        loadContactOptions={loadContactOptions}
+        setDraft={setFormDraft}
+        setFormTab={setFormTab}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+      />
     </div>
   );
 }

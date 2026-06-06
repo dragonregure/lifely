@@ -6,6 +6,7 @@ import { LoadingState } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -348,8 +349,7 @@ function RoleEditorCard({
                 <div className="grid gap-2">
                   {groupPermissions.map((permission) => (
                     <label key={permission.id} className="flex items-center gap-2 text-xs" title={!canSave ? readOnlyReason : undefined}>
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={draft.permissions.includes(permission.name)}
                         disabled={!canSave}
                         onChange={() => updateDraft({ ...draft, permissions: toggleValue(draft.permissions, permission.name) })}

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/rbac/permissions";
@@ -24,7 +25,6 @@ import {
 import { isAbortError } from "@/services/httpClient";
 import type { ReferenceOption } from "@/services/referenceService";
 import type { Reference, ReferenceStatus, ReferenceValueType } from "@/types";
-import { inputClass } from "./settingsUtils";
 
 const fallbackReferenceTypes: ReferenceValueType[] = ["string", "int", "float", "double", "bool", "array", "object", "null"];
 const referenceStatuses: ReferenceStatus[] = ["ACTIVE", "INACTIVE"];
@@ -174,9 +174,8 @@ function ReferenceFormFields({
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${fieldPrefix}-type`}>Value type</Label>
-          <select
+          <Select
             id={`${fieldPrefix}-type`}
-            className={inputClass}
             value={draft.type}
             onChange={(event) => onChange({ type: event.target.value as ReferenceValueType })}
           >
@@ -185,13 +184,12 @@ function ReferenceFormFields({
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${fieldPrefix}-status`}>Status</Label>
-          <select
+          <Select
             id={`${fieldPrefix}-status`}
-            className={inputClass}
             value={draft.status}
             onChange={(event) => onChange({ status: event.target.value as ReferenceStatus })}
           >
@@ -200,7 +198,7 @@ function ReferenceFormFields({
                 {status}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
     ),
@@ -208,16 +206,15 @@ function ReferenceFormFields({
       <div className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor={`${fieldPrefix}-scope`}>Scope</Label>
-          <select
+          <Select
             id={`${fieldPrefix}-scope`}
-            className={inputClass}
             value={draft.scope}
             disabled={!canManageSystem}
             onChange={(event) => onChange({ scope: event.target.value as ReferenceDraft["scope"] })}
           >
             <option value="tenant">Tenant reference</option>
             <option value="system">System reference</option>
-          </select>
+          </Select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor={`${fieldPrefix}-meta`}>Metadata JSON</Label>

@@ -3,6 +3,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import type { DataTableFilter, FilterValues } from "./types";
 
 type DataTableFilterMenuProps<TData extends object> = {
@@ -32,7 +33,7 @@ export function DataTableFilterMenu<TData extends object>({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm" aria-label="Open table filters">
+        <Button type="button" variant="outline" aria-label="Open table filters">
           <SlidersHorizontal className="h-4 w-4" />
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </Button>
@@ -42,9 +43,8 @@ export function DataTableFilterMenu<TData extends object>({
           {filters.map((filter) => (
             <div key={filter.id} className="grid gap-1.5">
               <Label htmlFor={`data-table-filter-${filter.id}`}>{filter.label}</Label>
-              <select
+              <Select
                 id={`data-table-filter-${filter.id}`}
-                className="h-10 rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
                 value={filterValues[filter.id] ?? defaultFilterValue(filter)}
                 onChange={(event) => setFilterValues((current) => ({ ...current, [filter.id]: event.target.value }))}
               >
@@ -53,7 +53,7 @@ export function DataTableFilterMenu<TData extends object>({
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           ))}
         </div>

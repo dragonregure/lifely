@@ -2,6 +2,7 @@ import * as React from "react";
 import { AlertCircle, Check, ChevronDown, Search, X } from "lucide-react";
 import { LoadingSpinner } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { cn } from "@/lib/utils";
 
 export type ServerMultiSelectOption = {
@@ -46,17 +47,6 @@ export type ServerMultiSelectProps<TOption extends ServerMultiSelectOption = Ser
 
 const DEFAULT_PAGE_SIZE = 25;
 const DEFAULT_DEBOUNCE_MS = 300;
-
-function useDebouncedValue<TValue>(value: TValue, delayMs: number) {
-  const [debouncedValue, setDebouncedValue] = React.useState(value);
-
-  React.useEffect(() => {
-    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delayMs);
-    return () => window.clearTimeout(timeoutId);
-  }, [delayMs, value]);
-
-  return debouncedValue;
-}
 
 function firstEnabledIndex<TOption extends ServerMultiSelectOption>(
   options: TOption[],

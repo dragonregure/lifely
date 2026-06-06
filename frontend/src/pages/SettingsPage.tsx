@@ -3,13 +3,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { AccessSettings } from "./settings/AccessSettings";
 import { MemberSettings } from "./settings/MemberSettings";
 import { OverviewSettings } from "./settings/OverviewSettings";
 import { ReferenceSettings } from "./settings/ReferenceSettings";
 import type { SettingsView } from "./settings/settingsTypes";
-import { inputClass } from "./settings/settingsUtils";
 import { useRbacSettings } from "./settings/useRbacSettings";
 
 export function SettingsPage() {
@@ -29,9 +29,9 @@ export function SettingsPage() {
             <Label htmlFor="settings-view" className="sr-only">
               Settings view
             </Label>
-            <select
+            <Select
               id="settings-view"
-              className={`${inputClass} min-w-56`}
+              className="min-w-56"
               value={settings.activeView}
               disabled={settings.isLoading}
               onChange={(event) => settings.setActiveView(event.target.value as SettingsView)}
@@ -40,7 +40,7 @@ export function SettingsPage() {
               {canOpenMemberSettings && <option value="members">Member Setting</option>}
               {canOpenAccessSettings && <option value="access">Role & Permission Setting</option>}
               {canOpenReferenceSettings && <option value="references">Reference Setting</option>}
-            </select>
+            </Select>
             <PermissionGate permission={PERMISSIONS.users.view}>
               <Button variant="outline" isLoading={settings.isLoading} loadingLabel="Loading settings">
                 {!settings.isLoading && <UserPlus className="h-4 w-4" />}

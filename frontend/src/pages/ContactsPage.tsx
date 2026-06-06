@@ -9,14 +9,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  ServerMultiSelect,
-  type ServerMultiSelectLoadParams,
-  type ServerMultiSelectLoadResult,
-  type ServerMultiSelectOption,
-} from "@/components/ui/server-multi-select";
+import type { ServerMultiSelectLoadParams, ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
 import { useAuth } from "@/context/AuthContext";
 import {
   createContact,
@@ -25,148 +18,26 @@ import {
   getContactsPage,
   getMembersPage,
   updateContact,
-  type ContactPayload,
   type ReferenceOption,
 } from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
+import { ContactAssignmentFields, ContactAssignmentView, ContactProfileFields, ContactProfileView } from "./contacts/ContactFields";
+import type { ContactDraft, MemberOption, PendingContactAction } from "./contacts/contactTypes";
+import {
+  blankDraft,
+  contactName,
+  defaultContactStatusId,
+  draftFromContact,
+  memberToOption,
+  nullableDate,
+  payloadFromDraft,
+  profilePayloadFromDraft,
+  updateDraft,
+} from "./contacts/contactUtils";
 import type { Contact, User } from "@/types";
-
-const inputClass =
-  "h-10 rounded-md border border-input bg-white px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring";
-
-type ContactDraft = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  statusId: string;
-  budget: string;
-  source: string;
-  ownerId: string;
-  lastContactedAt: string;
-};
-
-type PendingContactAction = {
-  type: "archive" | "activate" | "delete";
-  contact: Contact;
-};
-
-type MemberOption = ServerMultiSelectOption & {
-  member: User;
-};
-
-function contactName(contact: Contact) {
-  return `${contact.firstName} ${contact.lastName}`;
-}
-
-function toDateInputValue(value: string) {
-  return new Date(value).toISOString().slice(0, 10);
-}
-
-function toIsoDate(value: string) {
-  return new Date(`${value}T00:00:00`).toISOString();
-}
-
-function nullableText(value: string) {
-  const trimmed = value.trim();
-  return trimmed === "" ? null : trimmed;
-}
-
-function nullableDate(value: string) {
-  return value ? toIsoDate(value) : null;
-}
-
-function nullableNumber(value: string) {
-  return value.trim() === "" ? null : Number(value);
-}
-
-function payloadFromDraft(draft: ContactDraft): ContactPayload {
-  return {
-    ownerId: draft.ownerId || null,
-    firstName: draft.firstName.trim(),
-    lastName: draft.lastName.trim(),
-    email: draft.email.trim(),
-    phone: nullableText(draft.phone),
-    ...(draft.statusId ? { statusId: draft.statusId } : {}),
-    budget: nullableNumber(draft.budget),
-    source: nullableText(draft.source),
-    lastContactedAt: nullableDate(draft.lastContactedAt),
-  };
-}
-
-function profilePayloadFromDraft(draft: ContactDraft): ContactPayload {
-  return {
-    firstName: draft.firstName.trim(),
-    lastName: draft.lastName.trim(),
-    email: draft.email.trim(),
-    phone: nullableText(draft.phone),
-    ...(draft.statusId ? { statusId: draft.statusId } : {}),
-    budget: nullableNumber(draft.budget),
-    source: nullableText(draft.source),
-  };
-}
-
-function blankDraft(ownerId = "", statusId = ""): ContactDraft {
-  return {
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    statusId,
-    budget: "",
-    source: "Website",
-    ownerId,
-    lastContactedAt: new Date().toISOString().slice(0, 10),
-  };
-}
-
-function draftFromContact(contact: Contact): ContactDraft {
-  return {
-    firstName: contact.firstName,
-    lastName: contact.lastName,
-    email: contact.email,
-    phone: contact.phone,
-    statusId: contact.statusId ?? "",
-    budget: String(contact.budget),
-    source: contact.source,
-    ownerId: contact.ownerId,
-    lastContactedAt: toDateInputValue(contact.lastContactedAt),
-  };
-}
-
-function updateDraft(draft: ContactDraft, patch: Partial<ContactDraft>) {
-  return { ...draft, ...patch };
-}
-
-function DetailField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border bg-slate-50 p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-medium text-slate-900">{value}</p>
-    </div>
-  );
-}
-
-function ReadOnlyFormField({ id, label, value, isLoading = false }: { id: string; label: string; value: string; isLoading?: boolean }) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input id={id} readOnly value={isLoading ? "Loading..." : value} className="bg-slate-50 text-slate-900" />
-    </div>
-  );
-}
-
-function memberToOption(member: User): MemberOption {
-  return {
-    value: member.id,
-    label: member.name,
-    description: member.email,
-    member,
-  };
-}
 
 export function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -190,7 +61,7 @@ export function ContactsPage() {
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
   const canDeleteContacts = can(PERMISSIONS.contacts.delete);
-  const defaultStatusId = statusOptions.find((status) => status.label === "New")?.value ?? statusOptions[0]?.value ?? "";
+  const defaultStatusId = defaultContactStatusId(statusOptions);
   const statusIdByLabel = useMemo(
     () => new Map(statusOptions.map((status) => [status.label, status.value])),
     [statusOptions],
@@ -429,139 +300,24 @@ export function ContactsPage() {
         {
           value: "profile",
           label: "Profile",
-          viewContent: (
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailField label="First name" value={selectedContact.firstName} />
-              <DetailField label="Last name" value={selectedContact.lastName} />
-              <DetailField label="Email" value={selectedContact.email} />
-              <DetailField label="Phone" value={selectedContact.phone || "Not provided"} />
-              <DetailField label="Status" value={selectedContact.status} />
-              <DetailField label="Budget" value={formatCurrency(selectedContact.budget)} />
-              <DetailField label="Source" value={selectedContact.source} />
-            </div>
-          ),
-          editContent: (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="profile-first-name">First name</Label>
-                <Input
-                  id="profile-first-name"
-                  required
-                  value={profileDraft.firstName}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { firstName: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-last-name">Last name</Label>
-                <Input
-                  id="profile-last-name"
-                  required
-                  value={profileDraft.lastName}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { lastName: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-email">Email</Label>
-                <Input
-                  id="profile-email"
-                  type="email"
-                  required
-                  value={profileDraft.email}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { email: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-phone">Phone</Label>
-                <Input
-                  id="profile-phone"
-                  value={profileDraft.phone}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { phone: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-status">Status</Label>
-                <select
-                  id="profile-status"
-                  className={inputClass}
-                  value={profileDraft.statusId}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { statusId: event.target.value }))}
-                >
-                  {statusOptions.length === 0 && <option value="">Loading statuses...</option>}
-                  {statusOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="profile-budget">Budget</Label>
-                <Input
-                  id="profile-budget"
-                  type="number"
-                  min="0"
-                  value={profileDraft.budget}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { budget: event.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2 md:col-span-2">
-                <Label htmlFor="profile-source">Source</Label>
-                <Input
-                  id="profile-source"
-                  value={profileDraft.source}
-                  onChange={(event) => setProfileDraft(updateDraft(profileDraft, { source: event.target.value }))}
-                />
-              </div>
-            </div>
-          ),
+          viewContent: <ContactProfileView contact={selectedContact} />,
+          editContent: <ContactProfileFields fieldPrefix="profile" draft={profileDraft} statusOptions={statusOptions} setDraft={setProfileDraft} />,
           onSave: saveProfile,
         },
         {
           value: "assignment",
           label: "Assignment",
-          viewContent: (
-            <div className="grid gap-3 md:grid-cols-2">
-              <DetailField label="Owner" value={selectedOwner?.name ?? "Unassigned"} />
-              <DetailField label="Last contacted" value={new Date(selectedContact.lastContactedAt).toLocaleDateString()} />
-              <DetailField label="Owner role" value={selectedOwner?.role ?? "Not assigned"} />
-              <DetailField label="Owner email" value={selectedOwner?.email ?? "Not assigned"} />
-            </div>
-          ),
+          viewContent: <ContactAssignmentView contact={selectedContact} owner={selectedOwner} />,
           editContent: (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="grid gap-2">
-                <Label htmlFor="assignment-owner">Owner</Label>
-                <ServerMultiSelect<MemberOption>
-                  id="assignment-owner"
-                  value={assignmentOwnerValue}
-                  onChange={handleAssignmentOwnerChange}
-                  loadOptions={loadMemberOptions}
-                  maxSelected={1}
-                  placeholder="Choose owner"
-                  searchPlaceholder="Search members..."
-                  emptyLabel="No members found."
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="assignment-contacted">Last contacted</Label>
-                <Input
-                  id="assignment-contacted"
-                  type="date"
-                  value={assignmentDraft.lastContactedAt}
-                  onChange={(event) => setAssignmentDraft(updateDraft(assignmentDraft, { lastContactedAt: event.target.value }))}
-                />
-              </div>
-              <ReadOnlyFormField
-                id="assignment-owner-role"
-                label="Owner role"
-                value={assignmentOwnerDetails?.role ?? "Not assigned"}
-              />
-              <ReadOnlyFormField
-                id="assignment-owner-email"
-                label="Owner email"
-                value={assignmentOwnerDetails?.email ?? "Not assigned"}
-              />
-            </div>
+            <ContactAssignmentFields
+              fieldPrefix="assignment"
+              draft={assignmentDraft}
+              ownerDetails={assignmentOwnerDetails}
+              ownerValue={assignmentOwnerValue}
+              loadMemberOptions={loadMemberOptions}
+              onOwnerChange={handleAssignmentOwnerChange}
+              setDraft={setAssignmentDraft}
+            />
           ),
           onSave: saveAssignment,
         },
@@ -572,119 +328,21 @@ export function ContactsPage() {
     {
       value: "profile",
       label: "Profile",
-      content: (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="create-first-name">First name</Label>
-            <Input
-              id="create-first-name"
-              required
-              value={createDraft.firstName}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { firstName: event.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="create-last-name">Last name</Label>
-            <Input
-              id="create-last-name"
-              required
-              value={createDraft.lastName}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { lastName: event.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="create-email">Email</Label>
-            <Input
-              id="create-email"
-              type="email"
-              required
-              value={createDraft.email}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { email: event.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="create-phone">Phone</Label>
-            <Input
-              id="create-phone"
-              value={createDraft.phone}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { phone: event.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="create-status">Status</Label>
-            <select
-              id="create-status"
-              className={inputClass}
-              value={createDraft.statusId}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { statusId: event.target.value }))}
-            >
-              {statusOptions.length === 0 && <option value="">Loading statuses...</option>}
-              {statusOptions.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="create-budget">Budget</Label>
-            <Input
-              id="create-budget"
-              type="number"
-              min="0"
-              value={createDraft.budget}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { budget: event.target.value }))}
-            />
-          </div>
-          <div className="grid gap-2 md:col-span-2">
-            <Label htmlFor="create-source">Source</Label>
-            <Input
-              id="create-source"
-              value={createDraft.source}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { source: event.target.value }))}
-            />
-          </div>
-        </div>
-      ),
+      content: <ContactProfileFields fieldPrefix="create" draft={createDraft} statusOptions={statusOptions} setDraft={setCreateDraft} />,
     },
     {
       value: "assignment",
       label: "Assignment",
       content: (
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="create-owner">Owner</Label>
-            <ServerMultiSelect<MemberOption>
-              id="create-owner"
-              value={createOwnerValue}
-              onChange={handleCreateOwnerChange}
-              loadOptions={loadMemberOptions}
-              maxSelected={1}
-              placeholder="Choose owner"
-              searchPlaceholder="Search members..."
-              emptyLabel="No members found."
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="create-contacted">Last contacted</Label>
-            <Input
-              id="create-contacted"
-              type="date"
-              value={createDraft.lastContactedAt}
-              onChange={(event) => setCreateDraft(updateDraft(createDraft, { lastContactedAt: event.target.value }))}
-            />
-          </div>
-          <ReadOnlyFormField
-            id="create-owner-role"
-            label="Owner role"
-            value={createOwnerDetails?.role ?? "Not assigned"}
-          />
-          <ReadOnlyFormField
-            id="create-owner-email"
-            label="Owner email"
-            value={createOwnerDetails?.email ?? "Not assigned"}
-          />
-        </div>
+        <ContactAssignmentFields
+          fieldPrefix="create"
+          draft={createDraft}
+          ownerDetails={createOwnerDetails}
+          ownerValue={createOwnerValue}
+          loadMemberOptions={loadMemberOptions}
+          onOwnerChange={handleCreateOwnerChange}
+          setDraft={setCreateDraft}
+        />
       ),
     },
   ];

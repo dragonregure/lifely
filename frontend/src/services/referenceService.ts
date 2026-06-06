@@ -22,6 +22,20 @@ export type ReferenceOption = {
 
 export type ReferenceTypeOption = ReferenceOption;
 
+const ALL_PAGE_SIZE = 100;
+
+async function collectPaginatedData<TData>(loadPage: (page: number) => Promise<PaginatedResult<TData>>) {
+  const firstPage = await loadPage(1);
+  const records = [...firstPage.data];
+
+  for (let page = firstPage.page + 1; page <= firstPage.pageCount; page += 1) {
+    const nextPage = await loadPage(page);
+    records.push(...nextPage.data);
+  }
+
+  return records;
+}
+
 function toBackendPayload(payload: Partial<ReferencePayload>) {
   return {
     ...(Object.prototype.hasOwnProperty.call(payload, "tenantId") ? { tenant_id: payload.tenantId } : {}),
@@ -35,7 +49,7 @@ function toBackendPayload(payload: Partial<ReferencePayload>) {
 }
 
 export async function getReferences() {
-  return (await getReferencesPage({ page: 1, pageSize: 100 })).data;
+  return collectPaginatedData((page) => getReferencesPage({ page, pageSize: ALL_PAGE_SIZE }));
 }
 
 export async function getReferencesPage(
@@ -64,23 +78,25 @@ export async function getReferenceGroupOptions() {
 }
 
 export async function getContactStatusOptions(options: Pick<RequestInit, "signal"> = {}) {
-  const result = await getReferencesPage(
-    {
-      page: 1,
-      pageSize: 100,
-      filters: {
-        group: "contact_status",
-        status: "ACTIVE",
+  const references = await collectPaginatedData((page) =>
+    getReferencesPage(
+      {
+        page,
+        pageSize: ALL_PAGE_SIZE,
+        filters: {
+          group: "contact_status",
+          status: "ACTIVE",
+        },
+        sort: {
+          columnId: "value",
+          direction: "asc",
+        },
       },
-      sort: {
-        columnId: "value",
-        direction: "asc",
-      },
-    },
-    options,
+      options,
+    ),
   );
 
-  return result.data
+  return references
     .map((reference) => ({
       label: String(reference.value ?? reference.key),
       value: reference.id,

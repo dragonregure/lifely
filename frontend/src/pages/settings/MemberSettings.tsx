@@ -4,9 +4,11 @@ import { LoadingState } from "@/components/Loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import type { AccessRole, Permission, User } from "@/types";
-import { inputClass, toggleValue } from "./settingsUtils";
+import { toggleValue } from "./settingsUtils";
 
 type MemberSettingsProps = {
   canAssignPermissions: boolean;
@@ -58,13 +60,13 @@ export function MemberSettings({
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="member-select">Member</Label>
-            <select id="member-select" className={inputClass} value={selectedMemberId} disabled={isLoading} onChange={(event) => setSelectedMemberId(event.target.value)}>
+            <Select id="member-select" value={selectedMemberId} disabled={isLoading} onChange={(event) => setSelectedMemberId(event.target.value)}>
               {members.map((member) => (
                 <option key={member.id} value={member.id}>
                   {member.name} - {member.email}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {selectedMember && (
@@ -93,7 +95,7 @@ export function MemberSettings({
             <div className="grid gap-2">
               {isLoading ? <LoadingState label="Loading roles" /> : roles.map((role) => (
                 <label key={role.id} className="flex items-center gap-2 rounded-md border p-3 text-sm">
-                  <input type="checkbox" checked={selectedRoles.includes(role.name)} disabled={!canAssignRoles} onChange={() => setSelectedRoles(toggleValue(selectedRoles, role.name))} />
+                  <Checkbox checked={selectedRoles.includes(role.name)} disabled={!canAssignRoles} onChange={() => setSelectedRoles(toggleValue(selectedRoles, role.name))} />
                   <span className="font-medium">{role.name}</span>
                 </label>
               ))}
@@ -118,8 +120,7 @@ export function MemberSettings({
                   <div className="grid gap-2">
                     {groupPermissions.map((permission) => (
                       <label key={permission.id} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={selectedDirectPermissions.includes(permission.name)}
                           disabled={!canAssignPermissions}
                           onChange={() => setSelectedDirectPermissions(toggleValue(selectedDirectPermissions, permission.name))}
