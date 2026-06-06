@@ -115,6 +115,36 @@ class Pipeline extends Model
     /**
      * @return array<int, int>
      */
+    public static function closedStageValues(): array
+    {
+        return [
+            self::STAGE_CLOSED_WON,
+            self::STAGE_CLOSED_LOST,
+        ];
+    }
+
+    public static function isClosedStageValue(int $stage): bool
+    {
+        return in_array($stage, self::closedStageValues(), true);
+    }
+
+    public function isClosedStage(): bool
+    {
+        return self::isClosedStageValue((int) $this->stage);
+    }
+
+    public function hasBlockingProblem(): bool
+    {
+        $listing = $this->relationLoaded('listing') ? $this->getRelation('listing') : $this->listing;
+        $contact = $this->relationLoaded('contact') ? $this->getRelation('contact') : $this->contact;
+
+        return ($listing instanceof Listing && (int) $listing->status === Listing::STATUS_SOLD)
+            || ($contact instanceof Contact && ! (bool) $contact->status);
+    }
+
+    /**
+     * @return array<int, int>
+     */
     public static function sourceValues(): array
     {
         return array_keys(self::SOURCE_LABELS);

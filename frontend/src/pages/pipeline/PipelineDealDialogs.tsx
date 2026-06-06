@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { UserCheck } from "lucide-react";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ServerMultiSelect, type ServerMultiSelectLoadParams, type ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
 import { Textarea } from "@/components/ui/textarea";
-import { createPipelineDeal, updatePipelineDeal } from "@/services/api";
+import { createPipelineDeal, updatePipelineDeal, type PipelineDealPayload } from "@/services/api";
 import type { PipelineDeal, PipelineStage, User } from "@/types";
 import { MANUAL_ENTRY_SOURCE, PIPELINE_STAGES, PIPELINE_STATUS_OPTIONS } from "./pipelineConstants";
 import type { AssigneeOption, ContactOption, ListingOption, PipelineCreatePermissions, PipelineEditPermissions } from "./pipelineTypes";
@@ -17,6 +18,8 @@ import {
   contactToOption,
   createPipelineDraft,
   draftFromDeal,
+  hasPipelineDealProblem,
+  isClosedPipelineStage,
   listingToOption,
   userToOption,
 } from "./pipelineUtils";
@@ -248,10 +251,12 @@ export function PipelineOverviewDialog({
   const [draft, setDraft] = useState(() => (deal ? draftFromDeal(deal, members) : null));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingClosePayload, setPendingClosePayload] = useState<Partial<PipelineDealPayload> | null>(null);
 
   useEffect(() => {
     setDraft(deal ? draftFromDeal(deal, members) : null);
     setError(null);
+    setPendingClosePayload(null);
   }, [deal, members]);
 
   if (!deal || !draft || !permissions) {
@@ -263,21 +268,19 @@ export function PipelineOverviewDialog({
   const selectedAssignee = draft.assignee ? [userToOption(draft.assignee)] : [];
   const canSave = Boolean(draft.contact && draft.listing && draft.assignee);
   const overviewTitle = draft.contact ? contactName(draft.contact) : "Pipeline deal";
+  const hasProblem = hasPipelineDealProblem(deal);
+  const statusOptions = hasProblem && deal.isActive ? PIPELINE_STATUS_OPTIONS.filter((status) => status.value === "active" || status.value === "inactive") : PIPELINE_STATUS_OPTIONS;
 
   const assignToCurrentUser = () => {
     if (!currentUser || !permissions.canAssignToSelf) return;
     setDraft((current) => (current ? { ...current, assignee: currentUser } : current));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const saveDeal = async (payload: Partial<PipelineDealPayload>) => {
     if (!canSave) {
       setError("Contact, listing, and assignee are required.");
       return;
     }
-
-    const payload = changedPipelinePayload(deal, draft, permissions);
 
     setIsSaving(true);
     setError(null);
@@ -287,133 +290,172 @@ export function PipelineOverviewDialog({
       onSaved({
         ...savedDeal,
         contact: draft.contact,
-        listing: draft.listing,
+        listing: payload.stage === "Closed Won" && draft.listing ? { ...draft.listing, status: 4 } : draft.listing,
         user: draft.assignee,
       });
       onOpenChange(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to save pipeline deal.");
+      throw caught;
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const payload = changedPipelinePayload(deal, draft, permissions);
+
+    if (payload.stage && isClosedPipelineStage(payload.stage as PipelineStage)) {
+      setPendingClosePayload(payload);
+      return;
+    }
+
+    try {
+      await saveDeal(payload);
+    } catch {
+      // Error state is shown in the dialog.
+    }
+  };
+
+  const confirmCloseStageSave = async () => {
+    if (!pendingClosePayload) return;
+
+    await saveDeal(pendingClosePayload);
+    setPendingClosePayload(null);
+  };
+
   return (
-    <Dialog open={Boolean(deal)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Pipeline card overview</DialogTitle>
-          <DialogDescription>{overviewTitle}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={Boolean(deal)} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Pipeline card overview</DialogTitle>
+            <DialogDescription>{overviewTitle}</DialogDescription>
+          </DialogHeader>
 
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          {error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            {error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="pipeline-contact">Contact Name</Label>
-              <ServerMultiSelect<ContactOption>
-                id="pipeline-contact"
-                value={selectedContact}
-                onChange={(value) => setDraft((current) => (current ? { ...current, contact: value[0]?.contact ?? null } : current))}
-                loadOptions={loadContactOptions}
-                placeholder="Select contact"
-                searchPlaceholder="Search contacts..."
-                emptyLabel="No contacts found."
-                maxSelected={1}
-                disabled={!permissions.canEditManualFields}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="pipeline-contact">Contact Name</Label>
+                <ServerMultiSelect<ContactOption>
+                  id="pipeline-contact"
+                  value={selectedContact}
+                  onChange={(value) => setDraft((current) => (current ? { ...current, contact: value[0]?.contact ?? null } : current))}
+                  loadOptions={loadContactOptions}
+                  placeholder="Select contact"
+                  searchPlaceholder="Search contacts..."
+                  emptyLabel="No contacts found."
+                  maxSelected={1}
+                  disabled={!permissions.canEditManualFields}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="pipeline-listing">Listing Title</Label>
+                <ServerMultiSelect<ListingOption>
+                  id="pipeline-listing"
+                  value={selectedListing}
+                  onChange={(value) => setDraft((current) => (current ? { ...current, listing: value[0]?.listing ?? null } : current))}
+                  loadOptions={loadListingOptions}
+                  placeholder="Select listing"
+                  searchPlaceholder="Search listings..."
+                  emptyLabel="No listings found."
+                  maxSelected={1}
+                  disabled={!permissions.canEditManualFields}
+                />
+              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="pipeline-listing">Listing Title</Label>
-              <ServerMultiSelect<ListingOption>
-                id="pipeline-listing"
-                value={selectedListing}
-                onChange={(value) => setDraft((current) => (current ? { ...current, listing: value[0]?.listing ?? null } : current))}
-                loadOptions={loadListingOptions}
-                placeholder="Select listing"
-                searchPlaceholder="Search listings..."
-                emptyLabel="No listings found."
-                maxSelected={1}
-                disabled={!permissions.canEditManualFields}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <div className="grid gap-2">
-              <Label htmlFor="pipeline-assignee">Assignee</Label>
-              <ServerMultiSelect<AssigneeOption>
-                id="pipeline-assignee"
-                value={selectedAssignee}
-                onChange={(value) => setDraft((current) => (current ? { ...current, assignee: value[0]?.user ?? null } : current))}
-                loadOptions={loadAssigneeOptions}
-                placeholder="Select assignee"
-                searchPlaceholder="Search users..."
-                emptyLabel="No users found."
-                maxSelected={1}
-                disabled={!permissions.canEditAssignee}
-              />
-            </div>
-            <Button type="button" variant="outline" disabled={!permissions.canAssignToSelf || !currentUser || draft.assignee?.id === currentUser.id} onClick={assignToCurrentUser}>
-              <UserCheck className="h-4 w-4" />
-              Assign to me
-            </Button>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-2">
-              <Label htmlFor="pipeline-stage">Stage</Label>
-              <Select id="pipeline-stage" value={draft.stage} disabled={!permissions.canEditProgress} onChange={(event) => setDraft((current) => (current ? { ...current, stage: event.target.value as PipelineStage } : current))}>
-                {PIPELINE_STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="pipeline-source">Source</Label>
-              <Input id="pipeline-source" value={deal.source} readOnly />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="pipeline-status">Status</Label>
-              <Select id="pipeline-status" value={draft.isActive ? "active" : "inactive"} disabled={!permissions.canEditProgress} onChange={(event) => setDraft((current) => (current ? { ...current, isActive: event.target.value === "active" } : current))}>
-                {PIPELINE_STATUS_OPTIONS.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="pipeline-next-task">Next Task</Label>
-            <Textarea
-              id="pipeline-next-task"
-              value={draft.nextTask}
-              readOnly={!permissions.canEditProgress}
-              onChange={(event) => setDraft((current) => (current ? { ...current, nextTask: event.target.value } : current))}
-              placeholder="Add the next follow-up task"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div className="grid gap-2">
+                <Label htmlFor="pipeline-assignee">Assignee</Label>
+                <ServerMultiSelect<AssigneeOption>
+                  id="pipeline-assignee"
+                  value={selectedAssignee}
+                  onChange={(value) => setDraft((current) => (current ? { ...current, assignee: value[0]?.user ?? null } : current))}
+                  loadOptions={loadAssigneeOptions}
+                  placeholder="Select assignee"
+                  searchPlaceholder="Search users..."
+                  emptyLabel="No users found."
+                  maxSelected={1}
+                  disabled={!permissions.canEditAssignee}
+                />
+              </div>
+              <Button type="button" variant="outline" disabled={!permissions.canAssignToSelf || !currentUser || draft.assignee?.id === currentUser.id} onClick={assignToCurrentUser}>
+                <UserCheck className="h-4 w-4" />
+                Assign to me
               </Button>
-            </DialogClose>
-            <Button type="submit" disabled={!canSave} isLoading={isSaving} loadingLabel="Saving">
-              Save and Close
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-2">
+                <Label htmlFor="pipeline-stage">Stage</Label>
+                <Select id="pipeline-stage" value={draft.stage} disabled={!permissions.canEditStage} onChange={(event) => setDraft((current) => (current ? { ...current, stage: event.target.value as PipelineStage } : current))}>
+                  {PIPELINE_STAGES.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="pipeline-source">Source</Label>
+                <Input id="pipeline-source" value={deal.source} readOnly />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="pipeline-status">Status</Label>
+                <Select id="pipeline-status" value={draft.isActive ? "active" : "inactive"} disabled={!permissions.canEditStatus} onChange={(event) => setDraft((current) => (current ? { ...current, isActive: event.target.value === "active" } : current))}>
+                  {statusOptions.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="pipeline-next-task">Next Task</Label>
+              <Textarea
+                id="pipeline-next-task"
+                value={draft.nextTask}
+                readOnly={!permissions.canEditNextTask}
+                onChange={(event) => setDraft((current) => (current ? { ...current, nextTask: event.target.value } : current))}
+                placeholder="Add the next follow-up task"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={!canSave} isLoading={isSaving} loadingLabel="Saving">
+                Save and Close
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        open={Boolean(pendingClosePayload)}
+        onOpenChange={(open) => {
+          if (!open) setPendingClosePayload(null);
+        }}
+        title={pendingClosePayload?.stage ? `Move to ${pendingClosePayload.stage}?` : "Move pipeline card?"}
+        description="Closed Won and Closed Lost are final pipeline stages. After confirming, this card cannot be moved to another stage."
+        confirmLabel="Save change"
+        isSubmitting={isSaving}
+        onConfirm={confirmCloseStageSave}
+      />
+    </>
   );
 }

@@ -49,6 +49,7 @@ abstract class PipelineMutationRequest extends FormRequest
             return $this->pipelineDeal;
         }
 
+        $tenantId = $this->tenantIdForAuthorization();
         $routePipeline = $this->route('pipeline');
         $pipelineId = $routePipeline instanceof Pipeline ? $routePipeline->id : $routePipeline;
 
@@ -56,11 +57,16 @@ abstract class PipelineMutationRequest extends FormRequest
             throw new NotFoundHttpException('Pipeline deal not found.');
         }
 
-        $pipeline = app(PipelineRepositoryInterface::class)->find($this->tenantIdForAuthorization(), $pipelineId);
+        $pipeline = app(PipelineRepositoryInterface::class)->find($tenantId, $pipelineId);
 
         if (! $pipeline) {
             throw new NotFoundHttpException('Pipeline deal not found.');
         }
+
+        $pipeline->load([
+            'contact' => fn ($query) => $query->where('tenant_id', $tenantId),
+            'listing' => fn ($query) => $query->where('tenant_id', $tenantId),
+        ]);
 
         return $this->pipelineDeal = $pipeline;
     }
@@ -76,11 +82,12 @@ abstract class PipelineMutationRequest extends FormRequest
             throw new HttpException(Response::HTTP_FORBIDDEN);
         }
 
+        $pipeline = $this->pipelineDeal();
+        $this->denyBlockedPipelineMutation($pipeline, $data);
+
         if ($user->can(Permissions::SYSTEM_BYPASS)) {
             return;
         }
-
-        $pipeline = $this->pipelineDeal();
 
         if ($this->hasAnyField($data, self::ASSIGNEE_FIELDS)) {
             $this->denyUnless(
@@ -173,6 +180,40 @@ abstract class PipelineMutationRequest extends FormRequest
     {
         if (! $condition) {
             throw new HttpException(Response::HTTP_FORBIDDEN, $message);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function denyBlockedPipelineMutation(Pipeline $pipeline, array $data): void
+    {
+        if (
+            $pipeline->isClosedStage()
+            && array_key_exists('stage', $data)
+            && (int) $data['stage'] !== (int) $pipeline->stage
+        ) {
+            throw ValidationException::withMessages([
+                'stage' => ['Closed pipeline cards cannot move to another stage.'],
+            ]);
+        }
+
+        if (! $pipeline->hasBlockingProblem()) {
+            return;
+        }
+
+        $blockedFields = array_diff(array_keys($data), ['is_active']);
+
+        if ($blockedFields !== []) {
+            throw ValidationException::withMessages([
+                'pipeline' => ['Pipeline cards with a sold listing or inactive contact can only be marked inactive.'],
+            ]);
+        }
+
+        if (array_key_exists('is_active', $data) && (bool) $data['is_active'] !== false) {
+            throw ValidationException::withMessages([
+                'is_active' => ['Pipeline cards with a sold listing or inactive contact can only be marked inactive.'],
+            ]);
         }
     }
 }

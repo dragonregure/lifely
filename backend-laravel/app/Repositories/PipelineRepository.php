@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Contracts\PipelineRepositoryInterface;
+use App\Models\Listing;
 use App\Models\Pipeline;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class PipelineRepository implements PipelineRepositoryInterface
 {
@@ -60,14 +62,18 @@ class PipelineRepository implements PipelineRepositoryInterface
 
     public function create(string $tenantId, array $data): Pipeline
     {
-        $pipeline = Pipeline::query()->create($data + [
-            'tenant_id' => $tenantId,
-            'stage' => Pipeline::STAGE_NEW_LEAD,
-            'source' => Pipeline::SOURCE_MANUAL_ENTRY,
-            'is_active' => true,
-        ]);
+        return DB::transaction(function () use ($tenantId, $data): Pipeline {
+            $pipeline = Pipeline::query()->create($data + [
+                'tenant_id' => $tenantId,
+                'stage' => Pipeline::STAGE_NEW_LEAD,
+                'source' => Pipeline::SOURCE_MANUAL_ENTRY,
+                'is_active' => true,
+            ]);
 
-        return $pipeline;
+            $this->markListingSoldWhenClosedWon($tenantId, $pipeline);
+
+            return $pipeline;
+        });
     }
 
     public function find(string $tenantId, string $pipelineId): ?Pipeline
@@ -87,9 +93,12 @@ class PipelineRepository implements PipelineRepositoryInterface
             return null;
         }
 
-        $pipeline->update($data);
+        return DB::transaction(function () use ($tenantId, $pipeline, $data): Pipeline {
+            $pipeline->update($data);
+            $this->markListingSoldWhenClosedWon($tenantId, $pipeline);
 
-        return $pipeline->refresh();
+            return $pipeline->refresh();
+        });
     }
 
     public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
@@ -102,9 +111,12 @@ class PipelineRepository implements PipelineRepositoryInterface
             return null;
         }
 
-        $pipeline->update(['stage' => $stage]);
+        return DB::transaction(function () use ($tenantId, $pipeline, $stage): Pipeline {
+            $pipeline->update(['stage' => $stage]);
+            $this->markListingSoldWhenClosedWon($tenantId, $pipeline);
 
-        return $pipeline->refresh();
+            return $pipeline->refresh();
+        });
     }
 
     public function pendingTaskCount(string $tenantId): int
@@ -273,5 +285,22 @@ class PipelineRepository implements PipelineRepositoryInterface
         ];
 
         return array_intersect_key($relations, array_flip($includes));
+    }
+
+    private function markListingSoldWhenClosedWon(string $tenantId, Pipeline $pipeline): void
+    {
+        if ((int) $pipeline->stage !== Pipeline::STAGE_CLOSED_WON) {
+            return;
+        }
+
+        $listing = Listing::query()
+            ->where('tenant_id', $tenantId)
+            ->find($pipeline->listing_id);
+
+        if (! $listing || (int) $listing->status === Listing::STATUS_SOLD) {
+            return;
+        }
+
+        $listing->update(['status' => Listing::STATUS_SOLD]);
     }
 }

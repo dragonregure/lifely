@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type DragEvent } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Plus } from "lucide-react";
+import { ConfirmationDialog } from "@/components/dialogs/ConfirmationDialog";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
@@ -17,9 +18,14 @@ import { PipelineCreateDialog, PipelineOverviewDialog } from "./pipeline/Pipelin
 import { PipelineFiltersMenu } from "./pipeline/PipelineFiltersMenu";
 import { MANUAL_ENTRY_SOURCE } from "./pipeline/pipelineConstants";
 import type { PipelineCreatePermissions, PipelineEditPermissions, PipelineFilters } from "./pipeline/pipelineTypes";
-import { dealMatchesFilters, emptyPipelineFilters } from "./pipeline/pipelineUtils";
+import { dealMatchesFilters, emptyPipelineFilters, hasPipelineDealProblem, isClosedPipelineStage } from "./pipeline/pipelineUtils";
 import { usePipelineDeals } from "./pipeline/usePipelineDeals";
 import { usePipelineOptions } from "./pipeline/usePipelineOptions";
+
+type PendingStageMove = {
+  deal: PipelineDeal;
+  targetStage: PipelineStage;
+};
 
 export function PipelinePage() {
   const layoutContext = useOutletContext<AppLayoutContext | null>();
@@ -31,12 +37,14 @@ export function PipelinePage() {
   const [dragOverStage, setDragOverStage] = useState<PipelineStage | null>(null);
   const [movingDealIds, setMovingDealIds] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [pendingStageMove, setPendingStageMove] = useState<PendingStageMove | null>(null);
   const [filters, setFilters] = useState<PipelineFilters>(emptyPipelineFilters);
   const { loadAssigneeOptions, loadContactOptions, loadListingOptions, loadSourceOptions } = usePipelineOptions();
-  const { grouped, isLoading, error, setDeals, setError } = usePipelineDeals(filters);
+  const { deals, grouped, isLoading, error, reloadDeals, setDeals, setError } = usePipelineDeals(filters);
 
   const canMoveDeal = useCallback(
-    (deal: PipelineDeal) => can(PERMISSIONS.pipeline.update) && deal.userId === user?.id,
+    (deal: PipelineDeal) =>
+      can(PERMISSIONS.pipeline.update) && deal.userId === user?.id && !isClosedPipelineStage(deal.stage) && !hasPipelineDealProblem(deal),
     [can, user?.id],
   );
 
@@ -47,12 +55,15 @@ export function PipelinePage() {
     const canEditAssignee = can(PERMISSIONS.pipeline.changeAssignee);
     const canAssignToSelf = can(PERMISSIONS.pipeline.assignToSelf);
     const isAssignee = selectedDeal.userId === user?.id;
+    const hasProblem = hasPipelineDealProblem(selectedDeal);
 
     return {
-      canEditManualFields: canUpdatePipeline && selectedDeal.source === MANUAL_ENTRY_SOURCE,
-      canEditAssignee,
-      canAssignToSelf,
-      canEditProgress: canUpdatePipeline && isAssignee,
+      canEditManualFields: canUpdatePipeline && selectedDeal.source === MANUAL_ENTRY_SOURCE && !hasProblem,
+      canEditAssignee: canEditAssignee && !hasProblem,
+      canAssignToSelf: canAssignToSelf && !hasProblem,
+      canEditStage: canUpdatePipeline && isAssignee && !isClosedPipelineStage(selectedDeal.stage) && !hasProblem,
+      canEditStatus: canUpdatePipeline && isAssignee && (!hasProblem || selectedDeal.isActive),
+      canEditNextTask: canUpdatePipeline && isAssignee && !hasProblem,
     };
   }, [can, selectedDeal, user?.id]);
 
@@ -71,6 +82,10 @@ export function PipelinePage() {
   const handleSavedDeal = (deal: PipelineDeal) => {
     setDeals((current) => (dealMatchesFilters(deal, filters) ? current.map((item) => (item.id === deal.id ? deal : item)) : current.filter((item) => item.id !== deal.id)));
     setSelectedDeal(null);
+
+    if (deal.stage === "Closed Won") {
+      void reloadDeals();
+    }
   };
 
   const handleCardDragStart = (event: DragEvent<HTMLButtonElement>, deal: PipelineDeal) => {
@@ -106,8 +121,30 @@ export function PipelinePage() {
     setDraggedDealId(null);
     setDragOverStage(null);
 
+    const matchingDeal = deals.find((item) => item.id === dealId);
+
+    if (!matchingDeal || matchingDeal.stage === targetStage) {
+      return;
+    }
+
+    if (!canMoveDeal(matchingDeal)) {
+      setError("This pipeline card cannot be moved.");
+      return;
+    }
+
+    if (isClosedPipelineStage(targetStage)) {
+      setPendingStageMove({ deal: matchingDeal, targetStage });
+      return;
+    }
+
+    await moveDealToStage(matchingDeal, targetStage);
+  };
+
+  const moveDealToStage = async (matchingDeal: PipelineDeal, targetStage: PipelineStage) => {
+    const previousStage = matchingDeal.stage;
+
     setDeals((current) => {
-      const deal = current.find((item) => item.id === dealId);
+      const deal = current.find((item) => item.id === matchingDeal.id);
 
       if (!deal || deal.stage === targetStage || !canMoveDeal(deal)) {
         return current;
@@ -115,19 +152,6 @@ export function PipelinePage() {
 
       return current.map((item) => (item.id === deal.id ? { ...item, stage: targetStage } : item));
     });
-
-    const matchingDeal = grouped.flatMap((column) => column.deals).find((item) => item.id === dealId);
-
-    if (!matchingDeal || matchingDeal.stage === targetStage) {
-      return;
-    }
-
-    if (!canMoveDeal(matchingDeal)) {
-      setError("You do not have permission to move this pipeline card.");
-      return;
-    }
-
-    const previousStage = matchingDeal.stage;
     setMovingDealIds((current) => (current.includes(matchingDeal.id) ? current : [...current, matchingDeal.id]));
     setError(null);
 
@@ -140,18 +164,29 @@ export function PipelinePage() {
                 ...item,
                 ...savedDeal,
                 contact: item.contact,
-                listing: item.listing,
+                listing: targetStage === "Closed Won" && item.listing ? { ...item.listing, status: 4 } : item.listing,
                 user: item.user,
               }
             : item,
         ),
       );
+
+      if (targetStage === "Closed Won") {
+        await reloadDeals();
+      }
     } catch (caught) {
       setDeals((current) => current.map((item) => (item.id === matchingDeal.id ? { ...item, stage: previousStage } : item)));
       setError(caught instanceof Error ? caught.message : "Unable to move pipeline card.");
     } finally {
       setMovingDealIds((current) => current.filter((id) => id !== matchingDeal.id));
     }
+  };
+
+  const confirmPendingStageMove = async () => {
+    if (!pendingStageMove) return;
+
+    await moveDealToStage(pendingStageMove.deal, pendingStageMove.targetStage);
+    setPendingStageMove(null);
   };
 
   const handleCardDragEnd = () => {
@@ -232,6 +267,18 @@ export function PipelinePage() {
         loadContactOptions={loadContactOptions}
         loadListingOptions={loadListingOptions}
         loadAssigneeOptions={loadAssigneeOptions}
+      />
+
+      <ConfirmationDialog
+        open={Boolean(pendingStageMove)}
+        onOpenChange={(open) => {
+          if (!open) setPendingStageMove(null);
+        }}
+        title={pendingStageMove ? `Move to ${pendingStageMove.targetStage}?` : "Move pipeline card?"}
+        description="Closed Won and Closed Lost are final pipeline stages. After confirming, this card cannot be moved to another stage."
+        confirmLabel="Move card"
+        isSubmitting={pendingStageMove ? movingDealIds.includes(pendingStageMove.deal.id) : false}
+        onConfirm={confirmPendingStageMove}
       />
     </div>
   );

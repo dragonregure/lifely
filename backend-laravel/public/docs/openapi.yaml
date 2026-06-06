@@ -646,9 +646,9 @@ components:
           oneOf:
             - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
             - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
-          description: Requires `pipeline.update` and the current user must be the assignee.
-        is_active: { type: boolean, description: Requires `pipeline.update` and the current user must be the assignee. }
-        next_task: { type: string, nullable: true, maxLength: 255, description: Requires `pipeline.update` and the current user must be the assignee. }
+          description: Requires `pipeline.update` and the current user must be the assignee. Closed Won and Closed Lost cards cannot move to another stage. Cards with a sold listing or inactive contact cannot change stage.
+        is_active: { type: boolean, description: Requires `pipeline.update` and the current user must be the assignee. Cards with a sold listing or inactive contact can only be marked inactive. }
+        next_task: { type: string, nullable: true, maxLength: 255, description: Requires `pipeline.update` and the current user must be the assignee. Cards with a sold listing or inactive contact cannot update this field. }
     PipelineStagePayload:
       type: object
       required: [stage]
@@ -1346,7 +1346,7 @@ paths:
     patch:
       tags: [Pipeline]
       summary: Move pipeline deal to a new stage
-      description: Requires `pipeline.update`.
+      description: Requires `pipeline.update`. Closed Won and Closed Lost are final stages. Moving to Closed Won marks the related listing Sold. Cards with a sold listing or inactive contact cannot change stage.
       parameters:
         - { $ref: "#/components/parameters/PipelineId" }
       requestBody:

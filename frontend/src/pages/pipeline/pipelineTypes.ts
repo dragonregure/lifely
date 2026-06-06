@@ -36,7 +36,9 @@ export type PipelineEditPermissions = {
   canEditManualFields: boolean;
   canEditAssignee: boolean;
   canAssignToSelf: boolean;
-  canEditProgress: boolean;
+  canEditStage: boolean;
+  canEditStatus: boolean;
+  canEditNextTask: boolean;
 };
 
 export type PipelineCreatePermissions = {

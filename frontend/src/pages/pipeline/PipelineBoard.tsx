@@ -1,10 +1,11 @@
 import type { DragEvent } from "react";
 import { CircleAvatar } from "@/components/CircleAvatar";
+import { DangerTriangleIcon } from "@/components/DangerTriangleIcon";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { PipelineDeal, PipelineStage } from "@/types";
 import type { PipelineColumn } from "./pipelineTypes";
-import { contactName } from "./pipelineUtils";
+import { contactName, hasPipelineDealProblem, pipelineProblemLabel } from "./pipelineUtils";
 
 type PipelineBoardProps = {
   columns: PipelineColumn[];
@@ -70,6 +71,8 @@ export function PipelineBoard({
               const isMovable = canMoveDeal(deal);
               const isDragging = draggedDealId === deal.id;
               const isMoving = movingDealIds.includes(deal.id);
+              const hasProblem = hasPipelineDealProblem(deal);
+              const problemLabel = pipelineProblemLabel(deal);
 
               return (
                 <button
@@ -85,11 +88,16 @@ export function PipelineBoard({
                   onClick={() => onCardClick(deal)}
                   onDragStart={(event) => onCardDragStart(event, deal)}
                   onDragEnd={onCardDragEnd}
-                  aria-label={`${displayName} pipeline card${isMovable ? ". Drag to move between stages." : ""}`}
+                  aria-label={`${displayName} pipeline card${hasProblem ? `. ${problemLabel}.` : ""}${isMovable ? " Drag to move between stages." : ""}`}
                 >
-                  <Card className="min-w-0 overflow-hidden shadow-sm transition hover:border-primary/40 hover:shadow-md">
+                  <Card className={cn("relative min-w-0 overflow-hidden shadow-sm transition hover:border-primary/40 hover:shadow-md", hasProblem && "border-destructive/40")}>
+                    {hasProblem ? (
+                      <span className="absolute right-2 top-2 rounded-sm bg-white/95" title={problemLabel}>
+                        <DangerTriangleIcon title={problemLabel} />
+                      </span>
+                    ) : null}
                     <CardContent className="min-w-0 p-3">
-                      <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+                      <p className={cn("truncate text-sm font-semibold text-slate-900", hasProblem && "pr-5")}>{displayName}</p>
                       <p className="mt-1 truncate text-xs text-muted-foreground">{listing?.title ?? "Unassigned listing"}</p>
                       <div className="mt-2 flex min-h-7 items-end justify-between gap-2">
                         <p className="min-w-0 truncate text-sm font-semibold">{formatCurrency(deal.value)}</p>

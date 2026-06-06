@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getPipelineDealsPage } from "@/services/api";
 import type { PipelineDeal } from "@/types";
 import { PIPELINE_BOARD_INCLUDES, PIPELINE_PAGE_SIZE, PIPELINE_STAGES } from "./pipelineConstants";
@@ -61,26 +61,36 @@ export function usePipelineDeals(filters: PipelineFilters) {
     [debouncedSearch, filters.assignees, filters.sources],
   );
 
+  const reloadDeals = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await loadAllPipelineDeals(debouncedFilters, signal ?? new AbortController().signal);
+
+        if (!signal?.aborted) {
+          setDeals(result);
+        }
+      } catch (caught) {
+        if (caught instanceof DOMException && caught.name === "AbortError") return;
+        setError(caught instanceof Error ? caught.message : "Unable to load pipeline.");
+      } finally {
+        if (!signal?.aborted) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [debouncedFilters],
+  );
+
   useEffect(() => {
     const controller = new AbortController();
 
-    setIsLoading(true);
-    setError(null);
-
-    loadAllPipelineDeals(debouncedFilters, controller.signal)
-      .then((result) => setDeals(result))
-      .catch((caught) => {
-        if (caught instanceof DOMException && caught.name === "AbortError") return;
-        setError(caught instanceof Error ? caught.message : "Unable to load pipeline.");
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      });
+    void reloadDeals(controller.signal);
 
     return () => controller.abort();
-  }, [assigneeFilter, debouncedFilters, sourceFilter]);
+  }, [assigneeFilter, reloadDeals, sourceFilter]);
 
   const grouped = useMemo(() => {
     return PIPELINE_STAGES.map((stage) => ({
@@ -94,6 +104,7 @@ export function usePipelineDeals(filters: PipelineFilters) {
     error,
     grouped,
     isLoading,
+    reloadDeals,
     setDeals,
     setError,
   };

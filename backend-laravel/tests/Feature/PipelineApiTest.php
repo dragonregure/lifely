@@ -254,6 +254,97 @@ class PipelineApiTest extends TestCase
         ]);
     }
 
+    public function test_moving_pipeline_to_closed_won_marks_listing_sold(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $contact = $this->createContact($tenant, $actor);
+        $listing = $this->createListing($tenant, 645000);
+        $pipeline = Pipeline::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contact->id,
+            'listing_id' => $listing->id,
+            'user_id' => $actor->id,
+            'stage' => Pipeline::STAGE_NEGOTIATING,
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+                'stage' => 'Closed Won',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.stage', 'Closed Won');
+
+        $this->assertDatabaseHas('listings', [
+            'id' => $listing->id,
+            'tenant_id' => $tenant->id,
+            'status' => Listing::STATUS_SOLD,
+        ]);
+    }
+
+    public function test_closed_pipeline_cannot_move_to_another_stage(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $contact = $this->createContact($tenant, $actor);
+        $listing = $this->createListing($tenant, 645000);
+        $pipeline = Pipeline::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contact->id,
+            'listing_id' => $listing->id,
+            'user_id' => $actor->id,
+            'stage' => Pipeline::STAGE_CLOSED_LOST,
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/pipeline/{$pipeline->id}/stage", [
+                'stage' => 'Negotiating',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.stage.0', 'Closed pipeline cards cannot move to another stage.');
+
+        $this->assertDatabaseHas('pipelines', [
+            'id' => $pipeline->id,
+            'stage' => Pipeline::STAGE_CLOSED_LOST,
+        ]);
+    }
+
+    public function test_problem_pipeline_can_only_be_marked_inactive(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $contact = $this->createContact($tenant, $actor, ['status' => false]);
+        $listing = $this->createListing($tenant, 645000, ['status' => Listing::STATUS_AVAILABLE]);
+        $pipeline = Pipeline::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contact->id,
+            'listing_id' => $listing->id,
+            'user_id' => $actor->id,
+            'stage' => Pipeline::STAGE_CONTACTED,
+            'is_active' => true,
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+                'stage' => 'Qualified',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.pipeline.0', 'Pipeline cards with a sold listing or inactive contact can only be marked inactive.');
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+                'is_active' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.is_active', false);
+
+        $this->assertDatabaseHas('pipelines', [
+            'id' => $pipeline->id,
+            'stage' => Pipeline::STAGE_CONTACTED,
+            'is_active' => false,
+        ]);
+    }
+
     public function test_assigned_user_can_update_manual_pipeline_overview(): void
     {
         $tenant = Tenant::factory()->create();

@@ -17,6 +17,7 @@ export const PIPELINE_STATUS_OPTIONS = [
   { label: "Inactive", value: "inactive" },
 ] as const;
 
+export const CLOSED_PIPELINE_STAGES = ["Closed Won", "Closed Lost"] as const satisfies readonly PipelineStage[];
 export const MANUAL_ENTRY_SOURCE: PipelineSource = "Manual Entry";
 export const PIPELINE_BOARD_INCLUDES = ["contact", "listing", "user"] as const;
 export const PIPELINE_PAGE_SIZE = 100;

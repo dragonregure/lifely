@@ -1,7 +1,8 @@
 import { formatCurrency } from "@/lib/utils";
+import { LISTING_STATUS } from "@/lib/listingOptions";
 import type { PipelineDealPayload } from "@/services/api";
-import type { Contact, Listing, PipelineDeal, PipelineSource, User } from "@/types";
-import { MANUAL_ENTRY_SOURCE } from "./pipelineConstants";
+import type { Contact, Listing, PipelineDeal, PipelineSource, PipelineStage, User } from "@/types";
+import { CLOSED_PIPELINE_STAGES, MANUAL_ENTRY_SOURCE } from "./pipelineConstants";
 import type {
   AssigneeOption,
   ContactOption,
@@ -96,15 +97,19 @@ export function changedPipelinePayload(deal: PipelineDeal, draft: PipelineDraft,
     payload.userId = draft.assignee.id;
   }
 
-  if (permissions.canEditProgress) {
+  if (permissions.canEditStage) {
     if (draft.stage !== deal.stage) {
       payload.stage = draft.stage;
     }
+  }
 
+  if (permissions.canEditStatus) {
     if (draft.isActive !== deal.isActive) {
       payload.isActive = draft.isActive;
     }
+  }
 
+  if (permissions.canEditNextTask) {
     const nextTask = draft.nextTask.trim() || null;
     if (nextTask !== (deal.nextTask ?? null)) {
       payload.nextTask = nextTask;
@@ -152,4 +157,29 @@ export function dealMatchesFilters(deal: PipelineDeal, filters: PipelineFilters)
 
 export function canEditManualPipelineFields(deal: PipelineDeal) {
   return deal.source === MANUAL_ENTRY_SOURCE;
+}
+
+export function isClosedPipelineStage(stage: PipelineStage) {
+  return CLOSED_PIPELINE_STAGES.some((closedStage) => closedStage === stage);
+}
+
+export function pipelineDealProblems(deal: PipelineDeal) {
+  if (deal.stage === "Closed Won") {
+    return [];
+  }
+
+  return [
+    deal.listing?.status === LISTING_STATUS.sold ? "Listing is sold" : null,
+    deal.contact && !deal.contact.statusValue ? "Contact is inactive" : null,
+  ].filter((problem): problem is string => Boolean(problem));
+}
+
+export function hasPipelineDealProblem(deal: PipelineDeal) {
+  return pipelineDealProblems(deal).length > 0;
+}
+
+export function pipelineProblemLabel(deal: PipelineDeal) {
+  const problems = pipelineDealProblems(deal);
+
+  return problems.length > 0 ? problems.join("; ") : "Pipeline card has a problem";
 }
