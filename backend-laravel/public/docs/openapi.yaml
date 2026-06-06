@@ -1279,7 +1279,7 @@ paths:
         - in: query
           name: filter[user_id]
           schema: { type: string, format: uuid }
-          description: Filter by assigned user UUID. Top-level `user_id` is also accepted.
+          description: Filter by one or more assigned user UUIDs. Use comma-separated values for multiple assignees. Top-level `user_id` is also accepted.
         - in: query
           name: filter[contact_id]
           schema: { type: string, format: uuid }
@@ -1291,7 +1291,7 @@ paths:
         - in: query
           name: filter[source]
           schema: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
-          description: Filter by readable source label. Top-level `source` is also accepted.
+          description: Filter by one or more readable source labels. Use comma-separated values for multiple sources. Top-level `source` is also accepted.
         - { $ref: "#/components/parameters/PipelineIncludes" }
       responses:
         "200": { description: Paginated tenant-scoped pipeline deals. }

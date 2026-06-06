@@ -34,15 +34,15 @@ class PipelineRepository implements PipelineRepositoryInterface
             ->with($this->relations($tenantId, $includes));
 
         $this->applyStageFilter($query, $dataTable);
+        $this->applyAssigneeFilter($query, $dataTable);
         $this->applySourceFilter($query, $dataTable);
-        $this->applySearch($query, $dataTable);
+        $this->applySearch($query, $dataTable, $tenantId);
 
         return EloquentDataTable::paginate(
             $query,
             $dataTable,
             [],
             [
-                'user_id' => 'pipelines.user_id',
                 'contact_id' => 'pipelines.contact_id',
                 'listing_id' => 'pipelines.listing_id',
             ],
@@ -154,35 +154,88 @@ class PipelineRepository implements PipelineRepositoryInterface
     /**
      * @param  Builder<Pipeline>  $query
      */
-    private function applySourceFilter(Builder $query, DataTableQuery $dataTable): void
+    private function applyAssigneeFilter(Builder $query, DataTableQuery $dataTable): void
     {
-        $source = Pipeline::sourceFromInput($dataTable->filter('source'));
+        $userIds = $this->filterValues($dataTable->filter('user_id'));
 
-        if ($source !== null) {
-            $query->where('pipelines.source', $source);
+        if ($userIds !== []) {
+            $query->whereIn('pipelines.user_id', $userIds);
         }
     }
 
     /**
      * @param  Builder<Pipeline>  $query
      */
-    private function applySearch(Builder $query, DataTableQuery $dataTable): void
+    private function applySourceFilter(Builder $query, DataTableQuery $dataTable): void
+    {
+        $sources = collect($this->filterValues($dataTable->filter('source')))
+            ->map(fn (string $source): ?int => Pipeline::sourceFromInput($source))
+            ->filter(fn (?int $source): bool => $source !== null)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($sources !== []) {
+            $query->whereIn('pipelines.source', $sources);
+        }
+    }
+
+    /**
+     * @param  Builder<Pipeline>  $query
+     */
+    private function applySearch(Builder $query, DataTableQuery $dataTable, string $tenantId): void
     {
         if ($dataTable->search === null) {
             return;
         }
 
+        $search = $dataTable->search;
+        $like = '%'.$search.'%';
+        $nameParts = collect(explode(' ', $search))
+            ->map(fn (string $part): string => trim($part))
+            ->filter()
+            ->values()
+            ->all();
+        $firstNamePart = $nameParts[0] ?? null;
+        $lastNamePartKey = array_key_last($nameParts);
+        $lastNamePart = $lastNamePartKey !== null ? $nameParts[$lastNamePartKey] : null;
         $matchingStages = collect(Pipeline::STAGE_LABELS)
-            ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($dataTable->search)))
+            ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($search)))
             ->keys()
             ->all();
         $matchingSources = collect(Pipeline::SOURCE_LABELS)
-            ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($dataTable->search)))
+            ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($search)))
             ->keys()
             ->all();
 
-        $query->where(function (Builder $query) use ($dataTable, $matchingStages, $matchingSources): void {
-            $query->where('pipelines.next_task', 'like', '%'.$dataTable->search.'%');
+        $query->where(function (Builder $query) use ($like, $matchingStages, $matchingSources, $firstNamePart, $lastNamePart, $tenantId): void {
+            $query->where('pipelines.next_task', 'like', $like)
+                ->orWhereHas('contact', function (Builder $query) use ($like, $firstNamePart, $lastNamePart, $tenantId): void {
+                    $query->where('tenant_id', $tenantId)
+                        ->where(function (Builder $query) use ($like, $firstNamePart, $lastNamePart): void {
+                            $query->where('first_name', 'like', $like)
+                                ->orWhere('last_name', 'like', $like)
+                                ->orWhere('email', 'like', $like);
+
+                            if ($firstNamePart !== null && $lastNamePart !== null && $firstNamePart !== $lastNamePart) {
+                                $query->orWhere(function (Builder $query) use ($firstNamePart, $lastNamePart): void {
+                                    $query->where('first_name', 'like', '%'.$firstNamePart.'%')
+                                        ->where('last_name', 'like', '%'.$lastNamePart.'%');
+                                });
+                            }
+                        });
+                })
+                ->orWhereHas('listing', function (Builder $query) use ($like, $tenantId): void {
+                    $query->where('tenant_id', $tenantId)
+                        ->where('title', 'like', $like);
+                })
+                ->orWhereHas('user', function (Builder $query) use ($like, $tenantId): void {
+                    $query->where('tenant_id', $tenantId)
+                        ->where(function (Builder $query) use ($like): void {
+                            $query->where('name', 'like', $like)
+                                ->orWhere('email', 'like', $like);
+                        });
+                });
 
             if ($matchingStages !== []) {
                 $query->orWhereIn('pipelines.stage', $matchingStages);
@@ -192,6 +245,23 @@ class PipelineRepository implements PipelineRepositoryInterface
                 $query->orWhereIn('pipelines.source', $matchingSources);
             }
         });
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function filterValues(?string $filter): array
+    {
+        if ($filter === null) {
+            return [];
+        }
+
+        return collect(explode(',', $filter))
+            ->map(fn (string $value): string => trim($value))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function relations(string $tenantId, array $includes): array

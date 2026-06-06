@@ -133,6 +133,100 @@ class PipelineApiTest extends TestCase
             ->assertJsonPath('data.user_id', $assignee->id);
     }
 
+    public function test_pipeline_list_supports_relation_search_and_multi_value_filters(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_VIEW]);
+        $assigneeA = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Maya Laurent',
+            'email' => 'maya.pipeline@example.com',
+        ]);
+        $assigneeB = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Noah Hart',
+            'email' => 'noah.pipeline@example.com',
+        ]);
+        $assigneeC = User::factory()->create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Priya Shah',
+            'email' => 'priya.pipeline@example.com',
+        ]);
+
+        $contactA = $this->createContact($tenant, $actor, [
+            'first_name' => 'Ava',
+            'last_name' => 'North',
+            'email' => 'ava.pipeline@example.com',
+        ]);
+        $contactB = $this->createContact($tenant, $actor, [
+            'first_name' => 'Liam',
+            'last_name' => 'Stone',
+            'email' => 'liam.pipeline@example.com',
+        ]);
+        $contactC = $this->createContact($tenant, $actor, [
+            'first_name' => 'Zara',
+            'last_name' => 'Cole',
+            'email' => 'zara.pipeline@example.com',
+        ]);
+
+        $listingA = $this->createListing($tenant, 875000, ['title' => 'Garden Walk Terrace']);
+        $listingB = $this->createListing($tenant, 910000, ['title' => 'Skyline Penthouse']);
+        $listingC = $this->createListing($tenant, 720000, ['title' => 'Riverbend Cottage']);
+
+        $pipelineA = Pipeline::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contactA->id,
+            'listing_id' => $listingA->id,
+            'user_id' => $assigneeA->id,
+            'stage' => Pipeline::STAGE_NEW_LEAD,
+            'source' => Pipeline::SOURCE_WEBSITE,
+        ]);
+        $pipelineB = Pipeline::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contactB->id,
+            'listing_id' => $listingB->id,
+            'user_id' => $assigneeB->id,
+            'stage' => Pipeline::STAGE_CONTACTED,
+            'source' => Pipeline::SOURCE_REFERRAL,
+        ]);
+        $pipelineC = Pipeline::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contactC->id,
+            'listing_id' => $listingC->id,
+            'user_id' => $assigneeC->id,
+            'stage' => Pipeline::STAGE_QUALIFIED,
+            'source' => Pipeline::SOURCE_EMAIL,
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/pipeline?search=Ava')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $pipelineA->id);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/pipeline?search=Skyline')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $pipelineB->id);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/pipeline?search=Priya')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $pipelineC->id);
+
+        $response = $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson("/api/v1/pipeline?filter[user_id]={$assigneeA->id},{$assigneeB->id}&filter[source]=Website,Referral")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->assertEqualsCanonicalizing(
+            [$pipelineA->id, $pipelineB->id],
+            array_column($response->json('data'), 'id'),
+        );
+    }
+
     public function test_authorized_user_can_update_pipeline_stage_with_integer_storage(): void
     {
         $tenant = Tenant::factory()->create();
@@ -267,9 +361,12 @@ class PipelineApiTest extends TestCase
         return $user;
     }
 
-    private function createContact(Tenant $tenant, User $owner): Contact
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createContact(Tenant $tenant, User $owner, array $attributes = []): Contact
     {
-        return Contact::query()->create([
+        return Contact::query()->create(array_merge([
             'tenant_id' => $tenant->id,
             'owner_id' => $owner->id,
             'first_name' => 'Ethan',
@@ -280,12 +377,15 @@ class PipelineApiTest extends TestCase
             'budget' => 500000,
             'source' => 'Website',
             'last_contacted_at' => now(),
-        ]);
+        ], $attributes));
     }
 
-    private function createListing(Tenant $tenant, int $price): Listing
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createListing(Tenant $tenant, int $price, array $attributes = []): Listing
     {
-        return Listing::query()->create([
+        return Listing::query()->create(array_merge([
             'tenant_id' => $tenant->id,
             'title' => 'Harbor View Residence',
             'address' => '18 Harbor Lane, Westport',
@@ -294,7 +394,7 @@ class PipelineApiTest extends TestCase
             'bedrooms' => 4,
             'bathrooms' => 3,
             'property_type' => Listing::TYPE_HOUSE,
-        ]);
+        ], $attributes));
     }
 
     private function contactStatus(string $key): Reference

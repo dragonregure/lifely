@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useOutletContext } from "react-router-dom";
-import { Plus, UserCheck } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, UserCheck, X } from "lucide-react";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -25,7 +26,7 @@ import {
   getContactsPage,
   getListingsPage,
   getMembersPage,
-  getPipelineDeals,
+  getPipelineDealsPage,
   updatePipelineDeal,
   type PipelineDealPayload,
 } from "@/services/api";
@@ -52,6 +53,21 @@ const statusOptions = [
 const MANUAL_ENTRY_SOURCE: PipelineSource = "Manual Entry";
 const PIPELINE_BOARD_INCLUDES = ["contact", "listing", "user"] as const;
 
+const pipelineSources: PipelineSource[] = [
+  "Manual Entry",
+  "Website",
+  "Listing Inquiry",
+  "Social Media",
+  "Referral",
+  "Phone Call",
+  "Messaging",
+  "Email",
+  "Paid Ads",
+  "Portal",
+  "Exhibition",
+  "Integration",
+];
+
 type ContactOption = ServerMultiSelectOption & {
   contact: Contact;
 };
@@ -64,6 +80,10 @@ type AssigneeOption = ServerMultiSelectOption & {
   user: User;
 };
 
+type SourceOption = ServerMultiSelectOption & {
+  source: PipelineSource;
+};
+
 type PipelineDraft = {
   contact: Contact | null;
   listing: Listing | null;
@@ -72,6 +92,29 @@ type PipelineDraft = {
   isActive: boolean;
   nextTask: string;
 };
+
+type PipelineFilters = {
+  search: string;
+  assignees: AssigneeOption[];
+  sources: SourceOption[];
+};
+
+const emptyPipelineFilters: PipelineFilters = {
+  search: "",
+  assignees: [],
+  sources: [],
+};
+
+function useDebouncedValue<TValue>(value: TValue, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [delayMs, value]);
+
+  return debouncedValue;
+}
 
 function contactName(contact: Contact) {
   return `${contact.firstName} ${contact.lastName}`.trim();
@@ -101,6 +144,14 @@ function userToOption(user: User): AssigneeOption {
     label: user.name,
     description: user.email,
     user,
+  };
+}
+
+function sourceToOption(source: PipelineSource): SourceOption {
+  return {
+    value: source,
+    label: source,
+    source,
   };
 }
 
@@ -602,6 +653,100 @@ function PipelineOverviewDialog({
   );
 }
 
+type PipelineFiltersMenuProps = {
+  filters: PipelineFilters;
+  onChange: (filters: PipelineFilters) => void;
+  loadAssigneeOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<AssigneeOption>>;
+  loadSourceOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<SourceOption>>;
+};
+
+function activeFilterCount(filters: PipelineFilters) {
+  return filters.assignees.length + filters.sources.length;
+}
+
+function searchableDealText(deal: PipelineDeal) {
+  return [
+    deal.contact ? contactName(deal.contact) : "",
+    deal.contact?.email ?? "",
+    deal.listing?.title ?? "",
+    deal.user?.name ?? "",
+    deal.user?.email ?? "",
+    deal.source,
+    deal.stage,
+    deal.nextTask ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function dealMatchesFilters(deal: PipelineDeal, filters: PipelineFilters) {
+  if (filters.assignees.length > 0 && !filters.assignees.some((assignee) => assignee.value === deal.userId)) {
+    return false;
+  }
+
+  if (filters.sources.length > 0 && !filters.sources.some((source) => source.value === deal.source)) {
+    return false;
+  }
+
+  const search = filters.search.trim().toLowerCase();
+  if (search && !searchableDealText(deal).includes(search)) {
+    return false;
+  }
+
+  return true;
+}
+
+function PipelineFiltersMenu({ filters, onChange, loadAssigneeOptions, loadSourceOptions }: PipelineFiltersMenuProps) {
+  const count = activeFilterCount(filters);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button type="button" variant="outline" aria-label="Open pipeline filters">
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters{count > 0 ? ` (${count})` : ""}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[min(22rem,calc(100vw-2rem))] p-4">
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="pipeline-filter-assignee">Assignee</Label>
+            <ServerMultiSelect<AssigneeOption>
+              id="pipeline-filter-assignee"
+              value={filters.assignees}
+              onChange={(assignees) => onChange({ ...filters, assignees })}
+              loadOptions={loadAssigneeOptions}
+              placeholder="Select assignees"
+              searchPlaceholder="Search users..."
+              emptyLabel="No users found."
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="pipeline-filter-source">Source</Label>
+            <ServerMultiSelect<SourceOption>
+              id="pipeline-filter-source"
+              value={filters.sources}
+              onChange={(sources) => onChange({ ...filters, sources })}
+              loadOptions={loadSourceOptions}
+              placeholder="Select sources"
+              searchPlaceholder="Search sources..."
+              emptyLabel="No sources found."
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button type="button" variant="ghost" size="sm" disabled={count === 0} onClick={() => onChange({ ...filters, assignees: [], sources: [] })}>
+              <X className="h-4 w-4" />
+              Clear
+            </Button>
+          </div>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function PipelinePage() {
   const layoutContext = useOutletContext<AppLayoutContext | null>();
   const isSidebarMinimized = layoutContext?.isSidebarMinimized ?? false;
@@ -612,13 +757,42 @@ export function PipelinePage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<PipelineFilters>(emptyPipelineFilters);
+  const debouncedSearch = useDebouncedValue(filters.search, 300);
+  const assigneeFilter = useMemo(() => filters.assignees.map((assignee) => assignee.value).join(","), [filters.assignees]);
+  const sourceFilter = useMemo(() => filters.sources.map((source) => source.value).join(","), [filters.sources]);
 
   useEffect(() => {
-    getPipelineDeals({ include: PIPELINE_BOARD_INCLUDES })
-      .then(setDeals)
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load pipeline."))
-      .finally(() => setIsLoading(false));
-  }, []);
+    const controller = new AbortController();
+
+    setIsLoading(true);
+    setError(null);
+
+    getPipelineDealsPage(
+      {
+        page: 1,
+        pageSize: 100,
+        search: debouncedSearch,
+        filters: {
+          user_id: assigneeFilter,
+          source: sourceFilter,
+        },
+      },
+      { include: PIPELINE_BOARD_INCLUDES, signal: controller.signal },
+    )
+      .then((result) => setDeals(result.data))
+      .catch((caught) => {
+        if (caught instanceof DOMException && caught.name === "AbortError") return;
+        setError(caught instanceof Error ? caught.message : "Unable to load pipeline.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [assigneeFilter, debouncedSearch, sourceFilter]);
 
   const loadContactOptions = useCallback(
     async ({ search, page, pageSize, signal }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<ContactOption>> => {
@@ -680,6 +854,23 @@ export function PipelinePage() {
     [],
   );
 
+  const loadSourceOptions = useCallback(
+    async ({ search, page, pageSize }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<SourceOption>> => {
+      const normalizedSearch = search.trim().toLowerCase();
+      const matchingOptions = pipelineSources
+        .filter((source) => source.toLowerCase().includes(normalizedSearch))
+        .map(sourceToOption);
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+
+      return {
+        options: matchingOptions.slice(start, end),
+        hasMore: end < matchingOptions.length,
+      };
+    },
+    [],
+  );
+
   const grouped = useMemo(() => {
     return stages.map((stage) => ({
       stage,
@@ -712,11 +903,11 @@ export function PipelinePage() {
   );
 
   const handleCreatedDeal = (deal: PipelineDeal) => {
-    setDeals((current) => [deal, ...current]);
+    setDeals((current) => (dealMatchesFilters(deal, filters) ? [deal, ...current] : current));
   };
 
   const handleSavedDeal = (deal: PipelineDeal) => {
-    setDeals((current) => current.map((item) => (item.id === deal.id ? deal : item)));
+    setDeals((current) => (dealMatchesFilters(deal, filters) ? current.map((item) => (item.id === deal.id ? deal : item)) : current.filter((item) => item.id !== deal.id)));
     setSelectedDeal(null);
   };
 
@@ -737,6 +928,32 @@ export function PipelinePage() {
       />
 
       {error ? <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div> : null}
+
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <Label htmlFor="pipeline-search" className="sr-only">
+            Search
+          </Label>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="pipeline-search"
+              className="pl-9"
+              value={filters.search}
+              onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+              placeholder="Search contact, listing, or assignee"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <PipelineFiltersMenu
+            filters={filters}
+            onChange={setFilters}
+            loadAssigneeOptions={loadAssigneeOptions}
+            loadSourceOptions={loadSourceOptions}
+          />
+        </div>
+      </div>
 
       {isLoading ? (
         <LoadingState className="border bg-white" label="Loading pipeline" />
