@@ -12,7 +12,7 @@ const BulkEmailPage = lazy(() => import("@/pages/BulkEmailPage").then((module) =
 const ContactsPage = lazy(() => import("@/pages/ContactsPage").then((module) => ({ default: module.ContactsPage })));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((module) => ({ default: module.DashboardPage })));
 const ListingsPage = lazy(() => import("@/pages/ListingsPage").then((module) => ({ default: module.ListingsPage })));
-const PipelinePage = lazy(() => import("@/pages/PipelinePage").then((module) => ({ default: module.PipelinePage })));
+const LeadsPage = lazy(() => import("@/pages/LeadsPage").then((module) => ({ default: module.LeadsPage })));
 const ReportsPage = lazy(() => import("@/pages/ReportsPage").then((module) => ({ default: module.ReportsPage })));
 const SettingsPage = lazy(() => import("@/pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 
@@ -27,8 +27,8 @@ export default function App() {
             <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/contacts"]} />}>
               <Route path="/contacts" element={<ContactsPage />} />
             </Route>
-            <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/pipeline"]} />}>
-              <Route path="/pipeline" element={<PipelinePage />} />
+            <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/leads"]} />}>
+              <Route path="/leads" element={<LeadsPage />} />
             </Route>
             <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/listings"]} />}>
               <Route path="/listings" element={<ListingsPage />} />

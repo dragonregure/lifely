@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests;
 
-use App\Contracts\PipelineRepositoryInterface;
+use App\Contracts\LeadRepositoryInterface;
 use App\Http\Requests\Concerns\ResolvesTenantForValidation;
-use App\Models\Pipeline;
+use App\Models\Lead;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,19 +13,19 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-abstract class PipelineMutationRequest extends FormRequest
+abstract class LeadMutationRequest extends FormRequest
 {
     use ResolvesTenantForValidation;
 
     private const ASSIGNEE_FIELDS = ['stage', 'is_active', 'next_task'];
     private const MANUAL_SOURCE_FIELDS = ['contact_id', 'listing_id'];
 
-    private ?Pipeline $pipelineDeal = null;
+    private ?Lead $leadDeal = null;
 
     protected function prepareForValidation(): void
     {
         if ($this->has('stage')) {
-            $stage = Pipeline::stageFromInput($this->input('stage'));
+            $stage = Lead::stageFromInput($this->input('stage'));
 
             if ($stage !== null) {
                 $this->merge(['stage' => $stage]);
@@ -36,45 +36,45 @@ abstract class PipelineMutationRequest extends FormRequest
             return;
         }
 
-        $source = Pipeline::sourceFromInput($this->input('source'));
+        $source = Lead::sourceFromInput($this->input('source'));
 
         if ($source !== null) {
             $this->merge(['source' => $source]);
         }
     }
 
-    protected function pipelineDeal(): Pipeline
+    protected function leadDeal(): Lead
     {
-        if ($this->pipelineDeal instanceof Pipeline) {
-            return $this->pipelineDeal;
+        if ($this->leadDeal instanceof Lead) {
+            return $this->leadDeal;
         }
 
         $tenantId = $this->tenantIdForAuthorization();
-        $routePipeline = $this->route('pipeline');
-        $pipelineId = $routePipeline instanceof Pipeline ? $routePipeline->id : $routePipeline;
+        $routeLead = $this->route('lead');
+        $leadId = $routeLead instanceof Lead ? $routeLead->id : $routeLead;
 
-        if (! is_string($pipelineId)) {
-            throw new NotFoundHttpException('Pipeline deal not found.');
+        if (! is_string($leadId)) {
+            throw new NotFoundHttpException('Lead not found.');
         }
 
-        $pipeline = app(PipelineRepositoryInterface::class)->find($tenantId, $pipelineId);
+        $lead = app(LeadRepositoryInterface::class)->find($tenantId, $leadId);
 
-        if (! $pipeline) {
-            throw new NotFoundHttpException('Pipeline deal not found.');
+        if (! $lead) {
+            throw new NotFoundHttpException('Lead not found.');
         }
 
-        $pipeline->load([
+        $lead->load([
             'contact' => fn ($query) => $query->where('tenant_id', $tenantId),
             'listing' => fn ($query) => $query->where('tenant_id', $tenantId),
         ]);
 
-        return $this->pipelineDeal = $pipeline;
+        return $this->leadDeal = $lead;
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function authorizePipelineUpdate(array $data): void
+    protected function authorizeLeadUpdate(array $data): void
     {
         $user = $this->user();
 
@@ -82,8 +82,8 @@ abstract class PipelineMutationRequest extends FormRequest
             throw new HttpException(Response::HTTP_FORBIDDEN);
         }
 
-        $pipeline = $this->pipelineDeal();
-        $this->denyBlockedPipelineMutation($pipeline, $data);
+        $lead = $this->leadDeal();
+        $this->denyBlockedLeadMutation($lead, $data);
 
         if ($user->can(Permissions::SYSTEM_BYPASS)) {
             return;
@@ -91,35 +91,35 @@ abstract class PipelineMutationRequest extends FormRequest
 
         if ($this->hasAnyField($data, self::ASSIGNEE_FIELDS)) {
             $this->denyUnless(
-                $user->can(Permissions::PIPELINE_UPDATE) && (string) $pipeline->user_id === (string) $user->id,
-                'Only the assigned user can update pipeline progress fields.'
+                $user->can(Permissions::LEADS_UPDATE) && (string) $lead->user_id === (string) $user->id,
+                'Only the assigned user can update lead progress fields.'
             );
         }
 
         if ($this->hasAnyField($data, self::MANUAL_SOURCE_FIELDS)) {
             $this->denyUnless(
-                $user->can(Permissions::PIPELINE_UPDATE) && (int) $pipeline->source === Pipeline::SOURCE_MANUAL_ENTRY,
-                'Contact and listing can only be changed for manual-entry pipeline deals.'
+                $user->can(Permissions::LEADS_UPDATE) && (int) $lead->source === Lead::SOURCE_MANUAL_ENTRY,
+                'Contact and listing can only be changed for manual-entry leads.'
             );
         }
 
-        if (! array_key_exists('user_id', $data) || (string) $data['user_id'] === (string) $pipeline->user_id) {
+        if (! array_key_exists('user_id', $data) || (string) $data['user_id'] === (string) $lead->user_id) {
             return;
         }
 
         $isAssigningToSelf = (string) $data['user_id'] === (string) $user->id;
 
         $this->denyUnless(
-            $user->can(Permissions::PIPELINE_CHANGE_ASSIGNEE)
-                || ($isAssigningToSelf && $user->can(Permissions::PIPELINE_ASSIGN_TO_SELF)),
-            'You do not have permission to change this pipeline assignee.'
+            $user->can(Permissions::LEADS_CHANGE_ASSIGNEE)
+                || ($isAssigningToSelf && $user->can(Permissions::LEADS_ASSIGN_TO_SELF)),
+            'You do not have permission to change this lead assignee.'
         );
     }
 
     /**
      * @param  array<string, mixed>  $data
      */
-    protected function authorizePipelineCreate(array $data): void
+    protected function authorizeLeadCreate(array $data): void
     {
         $user = $this->user();
 
@@ -138,9 +138,9 @@ abstract class PipelineMutationRequest extends FormRequest
         $isAssigningToSelf = (string) $data['user_id'] === (string) $user->id;
 
         $this->denyUnless(
-            $user->can(Permissions::PIPELINE_CHANGE_ASSIGNEE)
-                || ($isAssigningToSelf && $user->can(Permissions::PIPELINE_ASSIGN_TO_SELF)),
-            'You do not have permission to set this pipeline assignee.'
+            $user->can(Permissions::LEADS_CHANGE_ASSIGNEE)
+                || ($isAssigningToSelf && $user->can(Permissions::LEADS_ASSIGN_TO_SELF)),
+            'You do not have permission to set this lead assignee.'
         );
     }
 
@@ -186,19 +186,19 @@ abstract class PipelineMutationRequest extends FormRequest
     /**
      * @param  array<string, mixed>  $data
      */
-    private function denyBlockedPipelineMutation(Pipeline $pipeline, array $data): void
+    private function denyBlockedLeadMutation(Lead $lead, array $data): void
     {
         if (
-            $pipeline->isClosedStage()
+            $lead->isClosedStage()
             && array_key_exists('stage', $data)
-            && (int) $data['stage'] !== (int) $pipeline->stage
+            && (int) $data['stage'] !== (int) $lead->stage
         ) {
             throw ValidationException::withMessages([
-                'stage' => ['Closed pipeline cards cannot move to another stage.'],
+                'stage' => ['Closed lead cards cannot move to another stage.'],
             ]);
         }
 
-        if (! $pipeline->hasBlockingProblem()) {
+        if (! $lead->hasBlockingProblem()) {
             return;
         }
 
@@ -206,13 +206,13 @@ abstract class PipelineMutationRequest extends FormRequest
 
         if ($blockedFields !== []) {
             throw ValidationException::withMessages([
-                'pipeline' => ['Pipeline cards with a sold listing or inactive contact can only be marked inactive.'],
+                'lead' => ['Lead cards with a sold listing or inactive contact can only be marked inactive.'],
             ]);
         }
 
         if (array_key_exists('is_active', $data) && (bool) $data['is_active'] !== false) {
             throw ValidationException::withMessages([
-                'is_active' => ['Pipeline cards with a sold listing or inactive contact can only be marked inactive.'],
+                'is_active' => ['Lead cards with a sold listing or inactive contact can only be marked inactive.'],
             ]);
         }
     }

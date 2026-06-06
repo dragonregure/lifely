@@ -4,7 +4,7 @@ import type {
   DashboardSummary,
   EmailCampaign,
   Listing,
-  PipelineDeal,
+  LeadDeal,
   Tenant,
   User,
 } from "@/types";
@@ -35,7 +35,7 @@ export const users: User[] = [
     role: "Senior Agent",
     roles: ["Senior Agent"],
     directPermissions: [],
-    permissions: ["contacts.view", "pipeline.view", "reports.view"],
+    permissions: ["contacts.view", "leads.view", "reports.view"],
     name: "Jon Bell",
     email: "jon@skyline.example",
     avatarInitials: "JB",
@@ -46,7 +46,7 @@ export const users: User[] = [
     role: "Simple Agent",
     roles: ["Simple Agent"],
     directPermissions: [],
-    permissions: ["contacts.view", "pipeline.view"],
+    permissions: ["contacts.view", "leads.view"],
     name: "Nadia Cruz",
     email: "nadia@skyline.example",
     avatarInitials: "NC",
@@ -205,7 +205,7 @@ export const listings: Listing[] = [
   },
 ];
 
-export const pipelineDeals: PipelineDeal[] = [
+export const leadDeals: LeadDeal[] = [
   {
     id: "deal-1",
     tenantId: tenant.id,
@@ -304,10 +304,10 @@ export const activityLogs: ActivityLog[] = [
     tenantId: tenant.id,
     userId: "user-1",
     userName: "Maya Hart",
-    actionType: "pipeline.updated",
+    actionType: "lead.updated",
     description: "Isabella Nguyen moved to Negotiating for Cedar Row Townhome.",
     properties: {
-      subject_type: "pipeline",
+      subject_type: "lead",
       subject_id: "deal-4",
       changes: {
         stage: { old: "Viewing Scheduled", new: "Negotiating" },
@@ -365,13 +365,13 @@ export const emailCampaigns: EmailCampaign[] = [
 export const dashboardSummary: DashboardSummary = {
   newLeads: 12,
   pendingTasks: 9,
-  pipelineValue: 3475000,
+  leadValue: 3475000,
   winRate: 31,
   leadHealth: [
     { label: "Active", value: 60 },
     { label: "Inactive", value: 8 },
   ],
-  pipelinePerformance: [
+  leadPerformance: [
     { label: "Jan", value: 820000 },
     { label: "Feb", value: 1120000 },
     { label: "Mar", value: 970000 },

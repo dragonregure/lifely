@@ -3,26 +3,26 @@ import { CircleAvatar } from "@/components/CircleAvatar";
 import { DangerTriangleIcon } from "@/components/DangerTriangleIcon";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { PipelineDeal, PipelineStage } from "@/types";
-import type { PipelineColumn } from "./pipelineTypes";
-import { contactName, hasPipelineDealProblem, pipelineProblemLabel } from "./pipelineUtils";
+import type { LeadDeal, LeadStage } from "@/types";
+import type { LeadColumn } from "./leadTypes";
+import { contactName, hasLeadDealProblem, leadProblemLabel } from "./leadUtils";
 
-type PipelineBoardProps = {
-  columns: PipelineColumn[];
+type LeadBoardProps = {
+  columns: LeadColumn[];
   draggedDealId: string | null;
-  dragOverStage: PipelineStage | null;
+  dragOverStage: LeadStage | null;
   isSidebarMinimized: boolean;
   movingDealIds: string[];
-  canMoveDeal: (deal: PipelineDeal) => boolean;
-  onCardClick: (deal: PipelineDeal) => void;
+  canMoveDeal: (deal: LeadDeal) => boolean;
+  onCardClick: (deal: LeadDeal) => void;
   onCardDragEnd: () => void;
-  onCardDragStart: (event: DragEvent<HTMLButtonElement>, deal: PipelineDeal) => void;
-  onColumnDragLeave: (event: DragEvent<HTMLDivElement>, stage: PipelineStage) => void;
-  onColumnDragOver: (event: DragEvent<HTMLDivElement>, stage: PipelineStage) => void;
-  onDrop: (event: DragEvent<HTMLDivElement>, stage: PipelineStage) => void;
+  onCardDragStart: (event: DragEvent<HTMLButtonElement>, deal: LeadDeal) => void;
+  onColumnDragLeave: (event: DragEvent<HTMLDivElement>, stage: LeadStage) => void;
+  onColumnDragOver: (event: DragEvent<HTMLDivElement>, stage: LeadStage) => void;
+  onDrop: (event: DragEvent<HTMLDivElement>, stage: LeadStage) => void;
 };
 
-export function PipelineBoard({
+export function LeadBoard({
   columns,
   draggedDealId,
   dragOverStage,
@@ -35,7 +35,7 @@ export function PipelineBoard({
   onColumnDragLeave,
   onColumnDragOver,
   onDrop,
-}: PipelineBoardProps) {
+}: LeadBoardProps) {
   return (
     <div
       className={cn(
@@ -71,8 +71,8 @@ export function PipelineBoard({
               const isMovable = canMoveDeal(deal);
               const isDragging = draggedDealId === deal.id;
               const isMoving = movingDealIds.includes(deal.id);
-              const hasProblem = hasPipelineDealProblem(deal);
-              const problemLabel = pipelineProblemLabel(deal);
+              const hasProblem = hasLeadDealProblem(deal);
+              const problemLabel = leadProblemLabel(deal);
 
               return (
                 <button
@@ -88,7 +88,7 @@ export function PipelineBoard({
                   onClick={() => onCardClick(deal)}
                   onDragStart={(event) => onCardDragStart(event, deal)}
                   onDragEnd={onCardDragEnd}
-                  aria-label={`${displayName} pipeline card${hasProblem ? `. ${problemLabel}.` : ""}${isMovable ? " Drag to move between stages." : ""}`}
+                  aria-label={`${displayName} lead card${hasProblem ? `. ${problemLabel}.` : ""}${isMovable ? " Drag to move between stages." : ""}`}
                 >
                   <Card className={cn("relative min-w-0 overflow-hidden shadow-sm transition hover:border-primary/40 hover:shadow-md", hasProblem && "border-destructive/40")}>
                     {hasProblem ? (

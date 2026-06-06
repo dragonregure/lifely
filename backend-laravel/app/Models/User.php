@@ -55,9 +55,9 @@ class User extends Authenticatable
         return $this->belongsTo(Tenant::class);
     }
 
-    public function pipelines(): HasMany
+    public function leads(): HasMany
     {
-        return $this->hasMany(Pipeline::class);
+        return $this->hasMany(Lead::class);
     }
 
     public function listings(): BelongsToMany

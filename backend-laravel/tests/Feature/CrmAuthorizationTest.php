@@ -50,7 +50,7 @@ class CrmAuthorizationTest extends TestCase
             ->assertForbidden();
 
         $this->withHeader('X-Tenant-Id', $this->tenant->id)
-            ->postJson('/api/v1/pipeline')
+            ->postJson('/api/v1/leads')
             ->assertForbidden();
 
         $this->withHeader('X-Tenant-Id', $this->tenant->id)
@@ -85,7 +85,7 @@ class CrmAuthorizationTest extends TestCase
             '/api/v1/dashboard',
             '/api/v1/contacts',
             '/api/v1/listings',
-            '/api/v1/pipeline',
+            '/api/v1/leads',
             '/api/v1/activity-logs',
             '/api/v1/email-campaigns',
         ];

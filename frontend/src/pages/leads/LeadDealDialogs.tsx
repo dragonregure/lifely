@@ -8,34 +8,34 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ServerMultiSelect, type ServerMultiSelectLoadParams, type ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
 import { Textarea } from "@/components/ui/textarea";
-import { createPipelineDeal, updatePipelineDeal, type PipelineDealPayload } from "@/services/api";
-import type { PipelineDeal, PipelineStage, User } from "@/types";
-import { MANUAL_ENTRY_SOURCE, PIPELINE_STAGES, PIPELINE_STATUS_OPTIONS } from "./pipelineConstants";
-import type { AssigneeOption, ContactOption, ListingOption, PipelineCreatePermissions, PipelineEditPermissions } from "./pipelineTypes";
+import { createLeadDeal, updateLeadDeal, type LeadDealPayload } from "@/services/api";
+import type { LeadDeal, LeadStage, User } from "@/types";
+import { MANUAL_ENTRY_SOURCE, LEAD_STAGES, LEAD_STATUS_OPTIONS } from "./leadConstants";
+import type { AssigneeOption, ContactOption, ListingOption, LeadCreatePermissions, LeadEditPermissions } from "./leadTypes";
 import {
-  changedPipelinePayload,
+  changedLeadPayload,
   contactName,
   contactToOption,
-  createPipelineDraft,
+  createLeadDraft,
   draftFromDeal,
-  hasPipelineDealProblem,
-  isClosedPipelineStage,
+  hasLeadDealProblem,
+  isClosedLeadStage,
   listingToOption,
   userToOption,
-} from "./pipelineUtils";
+} from "./leadUtils";
 
-type PipelineCreateDialogProps = {
+type LeadCreateDialogProps = {
   open: boolean;
   currentUser: User | null;
-  permissions: PipelineCreatePermissions;
+  permissions: LeadCreatePermissions;
   onOpenChange: (open: boolean) => void;
-  onCreated: (deal: PipelineDeal) => void;
+  onCreated: (deal: LeadDeal) => void;
   loadContactOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ContactOption>>;
   loadListingOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ListingOption>>;
   loadAssigneeOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<AssigneeOption>>;
 };
 
-export function PipelineCreateDialog({
+export function LeadCreateDialog({
   open,
   currentUser,
   permissions,
@@ -44,14 +44,14 @@ export function PipelineCreateDialog({
   loadContactOptions,
   loadListingOptions,
   loadAssigneeOptions,
-}: PipelineCreateDialogProps) {
-  const [draft, setDraft] = useState(() => createPipelineDraft(currentUser));
+}: LeadCreateDialogProps) {
+  const [draft, setDraft] = useState(() => createLeadDraft(currentUser));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
-      setDraft(createPipelineDraft(currentUser));
+      setDraft(createLeadDraft(currentUser));
       setError(null);
     }
   }, [currentUser, open]);
@@ -77,7 +77,7 @@ export function PipelineCreateDialog({
     }
 
     if (!canUseSelectedAssignee) {
-      setError("You do not have permission to set this pipeline assignee.");
+      setError("You do not have permission to set this lead assignee.");
       return;
     }
 
@@ -85,7 +85,7 @@ export function PipelineCreateDialog({
     setError(null);
 
     try {
-      const savedDeal = await createPipelineDeal({
+      const savedDeal = await createLeadDeal({
         contactId: draft.contact.id,
         listingId: draft.listing.id,
         userId: draft.assignee.id,
@@ -102,7 +102,7 @@ export function PipelineCreateDialog({
       });
       onOpenChange(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to create pipeline deal.");
+      setError(caught instanceof Error ? caught.message : "Unable to create lead.");
     } finally {
       setIsSaving(false);
     }
@@ -112,7 +112,7 @@ export function PipelineCreateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create pipeline deal</DialogTitle>
+          <DialogTitle>Create lead deal</DialogTitle>
           <DialogDescription>Manual Entry</DialogDescription>
         </DialogHeader>
 
@@ -121,9 +121,9 @@ export function PipelineCreateDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="new-pipeline-contact">Contact Name</Label>
+              <Label htmlFor="new-lead-contact">Contact Name</Label>
               <ServerMultiSelect<ContactOption>
-                id="new-pipeline-contact"
+                id="new-lead-contact"
                 value={selectedContact}
                 onChange={(value) => setDraft((current) => ({ ...current, contact: value[0]?.contact ?? null }))}
                 loadOptions={loadContactOptions}
@@ -135,9 +135,9 @@ export function PipelineCreateDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="new-pipeline-listing">Listing Title</Label>
+              <Label htmlFor="new-lead-listing">Listing Title</Label>
               <ServerMultiSelect<ListingOption>
-                id="new-pipeline-listing"
+                id="new-lead-listing"
                 value={selectedListing}
                 onChange={(value) => setDraft((current) => ({ ...current, listing: value[0]?.listing ?? null }))}
                 loadOptions={loadListingOptions}
@@ -151,9 +151,9 @@ export function PipelineCreateDialog({
 
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <div className="grid gap-2">
-              <Label htmlFor="new-pipeline-assignee">Assignee</Label>
+              <Label htmlFor="new-lead-assignee">Assignee</Label>
               <ServerMultiSelect<AssigneeOption>
-                id="new-pipeline-assignee"
+                id="new-lead-assignee"
                 value={selectedAssignee}
                 onChange={(value) => setDraft((current) => ({ ...current, assignee: value[0]?.user ?? null }))}
                 loadOptions={loadAssigneeOptions}
@@ -172,9 +172,9 @@ export function PipelineCreateDialog({
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2">
-              <Label htmlFor="new-pipeline-stage">Stage</Label>
-              <Select id="new-pipeline-stage" value={draft.stage} onChange={(event) => setDraft((current) => ({ ...current, stage: event.target.value as PipelineStage }))}>
-                {PIPELINE_STAGES.map((stage) => (
+              <Label htmlFor="new-lead-stage">Stage</Label>
+              <Select id="new-lead-stage" value={draft.stage} onChange={(event) => setDraft((current) => ({ ...current, stage: event.target.value as LeadStage }))}>
+                {LEAD_STAGES.map((stage) => (
                   <option key={stage} value={stage}>
                     {stage}
                   </option>
@@ -183,14 +183,14 @@ export function PipelineCreateDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="new-pipeline-source">Source</Label>
-              <Input id="new-pipeline-source" value={MANUAL_ENTRY_SOURCE} readOnly />
+              <Label htmlFor="new-lead-source">Source</Label>
+              <Input id="new-lead-source" value={MANUAL_ENTRY_SOURCE} readOnly />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="new-pipeline-status">Status</Label>
-              <Select id="new-pipeline-status" value={draft.isActive ? "active" : "inactive"} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.value === "active" }))}>
-                {PIPELINE_STATUS_OPTIONS.map((status) => (
+              <Label htmlFor="new-lead-status">Status</Label>
+              <Select id="new-lead-status" value={draft.isActive ? "active" : "inactive"} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.value === "active" }))}>
+                {LEAD_STATUS_OPTIONS.map((status) => (
                   <option key={status.value} value={status.value}>
                     {status.label}
                   </option>
@@ -200,9 +200,9 @@ export function PipelineCreateDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="new-pipeline-next-task">Next Task</Label>
+            <Label htmlFor="new-lead-next-task">Next Task</Label>
             <Textarea
-              id="new-pipeline-next-task"
+              id="new-lead-next-task"
               value={draft.nextTask}
               onChange={(event) => setDraft((current) => ({ ...current, nextTask: event.target.value }))}
               placeholder="Add the next follow-up task"
@@ -225,19 +225,19 @@ export function PipelineCreateDialog({
   );
 }
 
-type PipelineOverviewDialogProps = {
-  deal: PipelineDeal | null;
+type LeadOverviewDialogProps = {
+  deal: LeadDeal | null;
   members: User[];
   currentUser: User | null;
-  permissions: PipelineEditPermissions | null;
+  permissions: LeadEditPermissions | null;
   onOpenChange: (open: boolean) => void;
-  onSaved: (deal: PipelineDeal) => void;
+  onSaved: (deal: LeadDeal) => void;
   loadContactOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ContactOption>>;
   loadListingOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<ListingOption>>;
   loadAssigneeOptions: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<AssigneeOption>>;
 };
 
-export function PipelineOverviewDialog({
+export function LeadOverviewDialog({
   deal,
   members,
   currentUser,
@@ -247,11 +247,11 @@ export function PipelineOverviewDialog({
   loadContactOptions,
   loadListingOptions,
   loadAssigneeOptions,
-}: PipelineOverviewDialogProps) {
+}: LeadOverviewDialogProps) {
   const [draft, setDraft] = useState(() => (deal ? draftFromDeal(deal, members) : null));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingClosePayload, setPendingClosePayload] = useState<Partial<PipelineDealPayload> | null>(null);
+  const [pendingClosePayload, setPendingClosePayload] = useState<Partial<LeadDealPayload> | null>(null);
 
   useEffect(() => {
     setDraft(deal ? draftFromDeal(deal, members) : null);
@@ -267,16 +267,16 @@ export function PipelineOverviewDialog({
   const selectedListing = draft.listing ? [listingToOption(draft.listing)] : [];
   const selectedAssignee = draft.assignee ? [userToOption(draft.assignee)] : [];
   const canSave = Boolean(draft.contact && draft.listing && draft.assignee);
-  const overviewTitle = draft.contact ? contactName(draft.contact) : "Pipeline deal";
-  const hasProblem = hasPipelineDealProblem(deal);
-  const statusOptions = hasProblem && deal.isActive ? PIPELINE_STATUS_OPTIONS.filter((status) => status.value === "active" || status.value === "inactive") : PIPELINE_STATUS_OPTIONS;
+  const overviewTitle = draft.contact ? contactName(draft.contact) : "lead deal";
+  const hasProblem = hasLeadDealProblem(deal);
+  const statusOptions = hasProblem && deal.isActive ? LEAD_STATUS_OPTIONS.filter((status) => status.value === "active" || status.value === "inactive") : LEAD_STATUS_OPTIONS;
 
   const assignToCurrentUser = () => {
     if (!currentUser || !permissions.canAssignToSelf) return;
     setDraft((current) => (current ? { ...current, assignee: currentUser } : current));
   };
 
-  const saveDeal = async (payload: Partial<PipelineDealPayload>) => {
+  const saveDeal = async (payload: Partial<LeadDealPayload>) => {
     if (!canSave) {
       setError("Contact, listing, and assignee are required.");
       return;
@@ -286,7 +286,7 @@ export function PipelineOverviewDialog({
     setError(null);
 
     try {
-      const savedDeal = Object.keys(payload).length > 0 ? await updatePipelineDeal(deal.id, payload) : deal;
+      const savedDeal = Object.keys(payload).length > 0 ? await updateLeadDeal(deal.id, payload) : deal;
       onSaved({
         ...savedDeal,
         contact: draft.contact,
@@ -295,7 +295,7 @@ export function PipelineOverviewDialog({
       });
       onOpenChange(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to save pipeline deal.");
+      setError(caught instanceof Error ? caught.message : "Unable to save lead.");
       throw caught;
     } finally {
       setIsSaving(false);
@@ -305,9 +305,9 @@ export function PipelineOverviewDialog({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const payload = changedPipelinePayload(deal, draft, permissions);
+    const payload = changedLeadPayload(deal, draft, permissions);
 
-    if (payload.stage && isClosedPipelineStage(payload.stage as PipelineStage)) {
+    if (payload.stage && isClosedLeadStage(payload.stage as LeadStage)) {
       setPendingClosePayload(payload);
       return;
     }
@@ -331,7 +331,7 @@ export function PipelineOverviewDialog({
       <Dialog open={Boolean(deal)} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Pipeline card overview</DialogTitle>
+            <DialogTitle>lead card overview</DialogTitle>
             <DialogDescription>{overviewTitle}</DialogDescription>
           </DialogHeader>
 
@@ -340,9 +340,9 @@ export function PipelineOverviewDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2">
-                <Label htmlFor="pipeline-contact">Contact Name</Label>
+                <Label htmlFor="lead-contact">Contact Name</Label>
                 <ServerMultiSelect<ContactOption>
-                  id="pipeline-contact"
+                  id="lead-contact"
                   value={selectedContact}
                   onChange={(value) => setDraft((current) => (current ? { ...current, contact: value[0]?.contact ?? null } : current))}
                   loadOptions={loadContactOptions}
@@ -355,9 +355,9 @@ export function PipelineOverviewDialog({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="pipeline-listing">Listing Title</Label>
+                <Label htmlFor="lead-listing">Listing Title</Label>
                 <ServerMultiSelect<ListingOption>
-                  id="pipeline-listing"
+                  id="lead-listing"
                   value={selectedListing}
                   onChange={(value) => setDraft((current) => (current ? { ...current, listing: value[0]?.listing ?? null } : current))}
                   loadOptions={loadListingOptions}
@@ -372,9 +372,9 @@ export function PipelineOverviewDialog({
 
             <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <div className="grid gap-2">
-                <Label htmlFor="pipeline-assignee">Assignee</Label>
+                <Label htmlFor="lead-assignee">Assignee</Label>
                 <ServerMultiSelect<AssigneeOption>
-                  id="pipeline-assignee"
+                  id="lead-assignee"
                   value={selectedAssignee}
                   onChange={(value) => setDraft((current) => (current ? { ...current, assignee: value[0]?.user ?? null } : current))}
                   loadOptions={loadAssigneeOptions}
@@ -393,9 +393,9 @@ export function PipelineOverviewDialog({
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="grid gap-2">
-                <Label htmlFor="pipeline-stage">Stage</Label>
-                <Select id="pipeline-stage" value={draft.stage} disabled={!permissions.canEditStage} onChange={(event) => setDraft((current) => (current ? { ...current, stage: event.target.value as PipelineStage } : current))}>
-                  {PIPELINE_STAGES.map((stage) => (
+                <Label htmlFor="lead-stage">Stage</Label>
+                <Select id="lead-stage" value={draft.stage} disabled={!permissions.canEditStage} onChange={(event) => setDraft((current) => (current ? { ...current, stage: event.target.value as LeadStage } : current))}>
+                  {LEAD_STAGES.map((stage) => (
                     <option key={stage} value={stage}>
                       {stage}
                     </option>
@@ -404,13 +404,13 @@ export function PipelineOverviewDialog({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="pipeline-source">Source</Label>
-                <Input id="pipeline-source" value={deal.source} readOnly />
+                <Label htmlFor="lead-source">Source</Label>
+                <Input id="lead-source" value={deal.source} readOnly />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="pipeline-status">Status</Label>
-                <Select id="pipeline-status" value={draft.isActive ? "active" : "inactive"} disabled={!permissions.canEditStatus} onChange={(event) => setDraft((current) => (current ? { ...current, isActive: event.target.value === "active" } : current))}>
+                <Label htmlFor="lead-status">Status</Label>
+                <Select id="lead-status" value={draft.isActive ? "active" : "inactive"} disabled={!permissions.canEditStatus} onChange={(event) => setDraft((current) => (current ? { ...current, isActive: event.target.value === "active" } : current))}>
                   {statusOptions.map((status) => (
                     <option key={status.value} value={status.value}>
                       {status.label}
@@ -421,9 +421,9 @@ export function PipelineOverviewDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="pipeline-next-task">Next Task</Label>
+              <Label htmlFor="lead-next-task">Next Task</Label>
               <Textarea
-                id="pipeline-next-task"
+                id="lead-next-task"
                 value={draft.nextTask}
                 readOnly={!permissions.canEditNextTask}
                 onChange={(event) => setDraft((current) => (current ? { ...current, nextTask: event.target.value } : current))}
@@ -450,8 +450,8 @@ export function PipelineOverviewDialog({
         onOpenChange={(open) => {
           if (!open) setPendingClosePayload(null);
         }}
-        title={pendingClosePayload?.stage ? `Move to ${pendingClosePayload.stage}?` : "Move pipeline card?"}
-        description="Closed Won and Closed Lost are final pipeline stages. After confirming, this card cannot be moved to another stage."
+        title={pendingClosePayload?.stage ? `Move to ${pendingClosePayload.stage}?` : "Move lead card?"}
+        description="Closed Won and Closed Lost are final lead stages. After confirming, this card cannot be moved to another stage."
         confirmLabel="Save change"
         isSubmitting={isSaving}
         onConfirm={confirmCloseStageSave}

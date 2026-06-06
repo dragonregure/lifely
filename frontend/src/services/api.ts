@@ -2,7 +2,7 @@ export { login, logout, register } from "@/services/authService";
 export {
   createListing,
   createContact,
-  createPipelineDeal,
+  createLeadDeal,
   deleteContact,
   getActivityLogs,
   getActivityLogsPage,
@@ -15,15 +15,15 @@ export {
   getListingsPage,
   getMembers,
   getMembersPage,
-  getPipelineDeals,
-  getPipelineDealsPage,
+  getLeadDeals,
+  getLeadDealsPage,
   getSession,
   sendBulkEmailDraft,
   updateContact,
   updateListing,
-  updatePipelineDeal,
+  updateLeadDeal,
 } from "@/services/crmService";
-export type { ContactPayload, ListingInclude, ListingPayload, PipelineDealPayload, PipelineInclude } from "@/services/crmService";
+export type { ContactPayload, ListingInclude, ListingPayload, LeadDealPayload, LeadInclude } from "@/services/crmService";
 export { getDashboardSummary } from "@/services/reportingService";
 export {
   createReference,

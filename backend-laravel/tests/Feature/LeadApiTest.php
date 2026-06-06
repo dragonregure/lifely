@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Contact;
 use App\Models\Listing;
-use App\Models\Pipeline;
+use App\Models\Lead;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
@@ -15,7 +15,7 @@ use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
-class PipelineApiTest extends TestCase
+class LeadApiTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -27,19 +27,19 @@ class PipelineApiTest extends TestCase
         $this->seed(RbacSeeder::class);
     }
 
-    public function test_authorized_user_can_create_pipeline_with_readable_stage_and_listing_value(): void
+    public function test_authorized_user_can_create_lead_with_readable_stage_and_listing_value(): void
     {
         $tenant = Tenant::factory()->create();
         $actor = $this->actingUserWithPermissions($tenant, [
-            Permissions::PIPELINE_CREATE,
-            Permissions::PIPELINE_VIEW,
-            Permissions::PIPELINE_ASSIGN_TO_SELF,
+            Permissions::LEADS_CREATE,
+            Permissions::LEADS_VIEW,
+            Permissions::LEADS_ASSIGN_TO_SELF,
         ]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 875000);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->postJson('/api/v1/pipeline', [
+            ->postJson('/api/v1/leads', [
                 'contact_id' => $contact->id,
                 'listing_id' => $listing->id,
                 'user_id' => $actor->id,
@@ -48,24 +48,24 @@ class PipelineApiTest extends TestCase
             ])
             ->assertCreated()
             ->assertJsonPath('data.stage', 'Qualified')
-            ->assertJsonPath('data.source_id', Pipeline::SOURCE_MANUAL_ENTRY)
+            ->assertJsonPath('data.source_id', Lead::SOURCE_MANUAL_ENTRY)
             ->assertJsonPath('data.source', 'Manual Entry')
             ->assertJsonPath('data.is_active', true)
             ->assertJsonPath('data.value', 875000);
 
-        $this->assertDatabaseHas('pipelines', [
+        $this->assertDatabaseHas('leads', [
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
-            'stage' => Pipeline::STAGE_QUALIFIED,
-            'source' => Pipeline::SOURCE_MANUAL_ENTRY,
+            'stage' => Lead::STAGE_QUALIFIED,
+            'source' => Lead::SOURCE_MANUAL_ENTRY,
             'is_active' => true,
         ]);
 
-        $this->assertFalse(Schema::hasColumn('pipelines', 'value'));
+        $this->assertFalse(Schema::hasColumn('leads', 'value'));
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->getJson('/api/v1/pipeline')
+            ->getJson('/api/v1/leads')
             ->assertOk()
             ->assertJsonPath('data.0.stage', 'Qualified')
             ->assertJsonPath('data.0.source', 'Manual Entry')
@@ -75,26 +75,26 @@ class PipelineApiTest extends TestCase
             ->assertJsonMissingPath('data.0.user');
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->getJson('/api/v1/pipeline?include[]=contact&include[]=listing&include[]=user')
+            ->getJson('/api/v1/leads?include[]=contact&include[]=listing&include[]=user')
             ->assertOk()
-            ->assertJsonPath('data.0.contact.email', 'ethan.pipeline@example.com')
+            ->assertJsonPath('data.0.contact.email', 'ethan.lead@example.com')
             ->assertJsonPath('data.0.listing.title', 'Harbor View Residence')
             ->assertJsonPath('data.0.user_id', $actor->id);
     }
 
-    public function test_assign_to_self_permission_can_create_pipeline_for_current_user_only(): void
+    public function test_assign_to_self_permission_can_create_lead_for_current_user_only(): void
     {
         $tenant = Tenant::factory()->create();
         $actor = $this->actingUserWithPermissions($tenant, [
-            Permissions::PIPELINE_CREATE,
-            Permissions::PIPELINE_ASSIGN_TO_SELF,
+            Permissions::LEADS_CREATE,
+            Permissions::LEADS_ASSIGN_TO_SELF,
         ]);
         $otherUser = User::factory()->create(['tenant_id' => $tenant->id]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 875000);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->postJson('/api/v1/pipeline', [
+            ->postJson('/api/v1/leads', [
                 'contact_id' => $contact->id,
                 'listing_id' => $listing->id,
                 'user_id' => $otherUser->id,
@@ -102,7 +102,7 @@ class PipelineApiTest extends TestCase
             ->assertForbidden();
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->postJson('/api/v1/pipeline', [
+            ->postJson('/api/v1/leads', [
                 'contact_id' => $contact->id,
                 'listing_id' => $listing->id,
                 'user_id' => $actor->id,
@@ -111,19 +111,19 @@ class PipelineApiTest extends TestCase
             ->assertJsonPath('data.user_id', $actor->id);
     }
 
-    public function test_change_assignee_permission_can_create_pipeline_for_another_user(): void
+    public function test_change_assignee_permission_can_create_lead_for_another_user(): void
     {
         $tenant = Tenant::factory()->create();
         $actor = $this->actingUserWithPermissions($tenant, [
-            Permissions::PIPELINE_CREATE,
-            Permissions::PIPELINE_CHANGE_ASSIGNEE,
+            Permissions::LEADS_CREATE,
+            Permissions::LEADS_CHANGE_ASSIGNEE,
         ]);
         $assignee = User::factory()->create(['tenant_id' => $tenant->id]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 875000);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->postJson('/api/v1/pipeline', [
+            ->postJson('/api/v1/leads', [
                 'contact_id' => $contact->id,
                 'listing_id' => $listing->id,
                 'user_id' => $assignee->id,
@@ -132,144 +132,144 @@ class PipelineApiTest extends TestCase
             ->assertJsonPath('data.user_id', $assignee->id);
     }
 
-    public function test_pipeline_list_supports_relation_search_and_multi_value_filters(): void
+    public function test_Lead_list_supports_relation_search_and_multi_value_filters(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_VIEW]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_VIEW]);
         $assigneeA = User::factory()->create([
             'tenant_id' => $tenant->id,
             'name' => 'Maya Laurent',
-            'email' => 'maya.pipeline@example.com',
+            'email' => 'maya.lead@example.com',
         ]);
         $assigneeB = User::factory()->create([
             'tenant_id' => $tenant->id,
             'name' => 'Noah Hart',
-            'email' => 'noah.pipeline@example.com',
+            'email' => 'noah.lead@example.com',
         ]);
         $assigneeC = User::factory()->create([
             'tenant_id' => $tenant->id,
             'name' => 'Priya Shah',
-            'email' => 'priya.pipeline@example.com',
+            'email' => 'priya.lead@example.com',
         ]);
 
         $contactA = $this->createContact($tenant, $actor, [
             'first_name' => 'Ava',
             'last_name' => 'North',
-            'email' => 'ava.pipeline@example.com',
+            'email' => 'ava.lead@example.com',
         ]);
         $contactB = $this->createContact($tenant, $actor, [
             'first_name' => 'Liam',
             'last_name' => 'Stone',
-            'email' => 'liam.pipeline@example.com',
+            'email' => 'liam.lead@example.com',
         ]);
         $contactC = $this->createContact($tenant, $actor, [
             'first_name' => 'Zara',
             'last_name' => 'Cole',
-            'email' => 'zara.pipeline@example.com',
+            'email' => 'zara.lead@example.com',
         ]);
 
         $listingA = $this->createListing($tenant, 875000, ['title' => 'Garden Walk Terrace']);
         $listingB = $this->createListing($tenant, 910000, ['title' => 'Skyline Penthouse']);
         $listingC = $this->createListing($tenant, 720000, ['title' => 'Riverbend Cottage']);
 
-        $pipelineA = Pipeline::query()->create([
+        $leadA = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contactA->id,
             'listing_id' => $listingA->id,
             'user_id' => $assigneeA->id,
-            'stage' => Pipeline::STAGE_NEW_LEAD,
-            'source' => Pipeline::SOURCE_WEBSITE,
+            'stage' => Lead::STAGE_NEW_LEAD,
+            'source' => Lead::SOURCE_WEBSITE,
         ]);
-        $pipelineB = Pipeline::query()->create([
+        $leadB = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contactB->id,
             'listing_id' => $listingB->id,
             'user_id' => $assigneeB->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
-            'source' => Pipeline::SOURCE_REFERRAL,
+            'stage' => Lead::STAGE_CONTACTED,
+            'source' => Lead::SOURCE_REFERRAL,
         ]);
-        $pipelineC = Pipeline::query()->create([
+        $leadC = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contactC->id,
             'listing_id' => $listingC->id,
             'user_id' => $assigneeC->id,
-            'stage' => Pipeline::STAGE_QUALIFIED,
-            'source' => Pipeline::SOURCE_EMAIL,
+            'stage' => Lead::STAGE_QUALIFIED,
+            'source' => Lead::SOURCE_EMAIL,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->getJson('/api/v1/pipeline?search=Ava')
+            ->getJson('/api/v1/leads?search=Ava')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $pipelineA->id);
+            ->assertJsonPath('data.0.id', $leadA->id);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->getJson('/api/v1/pipeline?search=Skyline')
+            ->getJson('/api/v1/leads?search=Skyline')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $pipelineB->id);
+            ->assertJsonPath('data.0.id', $leadB->id);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->getJson('/api/v1/pipeline?search=Priya')
+            ->getJson('/api/v1/leads?search=Priya')
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.id', $pipelineC->id);
+            ->assertJsonPath('data.0.id', $leadC->id);
 
         $response = $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->getJson("/api/v1/pipeline?filter[user_id]={$assigneeA->id},{$assigneeB->id}&filter[source]=Website,Referral")
+            ->getJson("/api/v1/leads?filter[user_id]={$assigneeA->id},{$assigneeB->id}&filter[source]=Website,Referral")
             ->assertOk()
             ->assertJsonCount(2, 'data');
 
         $this->assertEqualsCanonicalizing(
-            [$pipelineA->id, $pipelineB->id],
+            [$leadA->id, $leadB->id],
             array_column($response->json('data'), 'id'),
         );
     }
 
-    public function test_authorized_user_can_update_pipeline_stage_with_integer_storage(): void
+    public function test_authorized_user_can_update_lead_stage_with_integer_storage(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_UPDATE]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 645000);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $actor->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
+            'stage' => Lead::STAGE_CONTACTED,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}/stage", [
+            ->patchJson("/api/v1/leads/{$lead->id}/stage", [
                 'stage' => 'Closed Won',
             ])
             ->assertOk()
             ->assertJsonPath('data.stage', 'Closed Won')
             ->assertJsonPath('data.value', 645000);
 
-        $this->assertDatabaseHas('pipelines', [
-            'id' => $pipeline->id,
-            'stage' => Pipeline::STAGE_CLOSED_WON,
+        $this->assertDatabaseHas('leads', [
+            'id' => $lead->id,
+            'stage' => Lead::STAGE_CLOSED_WON,
         ]);
     }
 
-    public function test_moving_pipeline_to_closed_won_marks_listing_sold(): void
+    public function test_moving_lead_to_closed_won_marks_listing_sold(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_UPDATE]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 645000);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $actor->id,
-            'stage' => Pipeline::STAGE_NEGOTIATING,
+            'stage' => Lead::STAGE_NEGOTIATING,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+            ->patchJson("/api/v1/leads/{$lead->id}", [
                 'stage' => 'Closed Won',
             ])
             ->assertOk()
@@ -282,88 +282,88 @@ class PipelineApiTest extends TestCase
         ]);
     }
 
-    public function test_closed_pipeline_cannot_move_to_another_stage(): void
+    public function test_closed_lead_cannot_move_to_another_stage(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_UPDATE]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 645000);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $actor->id,
-            'stage' => Pipeline::STAGE_CLOSED_LOST,
+            'stage' => Lead::STAGE_CLOSED_LOST,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}/stage", [
+            ->patchJson("/api/v1/leads/{$lead->id}/stage", [
                 'stage' => 'Negotiating',
             ])
             ->assertUnprocessable()
-            ->assertJsonPath('errors.stage.0', 'Closed pipeline cards cannot move to another stage.');
+            ->assertJsonPath('errors.stage.0', 'Closed lead cards cannot move to another stage.');
 
-        $this->assertDatabaseHas('pipelines', [
-            'id' => $pipeline->id,
-            'stage' => Pipeline::STAGE_CLOSED_LOST,
+        $this->assertDatabaseHas('leads', [
+            'id' => $lead->id,
+            'stage' => Lead::STAGE_CLOSED_LOST,
         ]);
     }
 
-    public function test_problem_pipeline_can_only_be_marked_inactive(): void
+    public function test_problem_lead_can_only_be_marked_inactive(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_UPDATE]);
         $contact = $this->createContact($tenant, $actor, ['status' => false]);
         $listing = $this->createListing($tenant, 645000, ['status' => Listing::STATUS_AVAILABLE]);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $actor->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
+            'stage' => Lead::STAGE_CONTACTED,
             'is_active' => true,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+            ->patchJson("/api/v1/leads/{$lead->id}", [
                 'stage' => 'Qualified',
             ])
             ->assertUnprocessable()
-            ->assertJsonPath('errors.pipeline.0', 'Pipeline cards with a sold listing or inactive contact can only be marked inactive.');
+            ->assertJsonPath('errors.lead.0', 'Lead cards with a sold listing or inactive contact can only be marked inactive.');
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+            ->patchJson("/api/v1/leads/{$lead->id}", [
                 'is_active' => false,
             ])
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
 
-        $this->assertDatabaseHas('pipelines', [
-            'id' => $pipeline->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
+        $this->assertDatabaseHas('leads', [
+            'id' => $lead->id,
+            'stage' => Lead::STAGE_CONTACTED,
             'is_active' => false,
         ]);
     }
 
-    public function test_assigned_user_can_update_manual_pipeline_overview(): void
+    public function test_assigned_user_can_update_manual_lead_overview(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_UPDATE]);
         $contact = $this->createContact($tenant, $actor);
         $nextContact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 645000);
         $nextListing = $this->createListing($tenant, 755000);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $actor->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
-            'source' => Pipeline::SOURCE_MANUAL_ENTRY,
+            'stage' => Lead::STAGE_CONTACTED,
+            'source' => Lead::SOURCE_MANUAL_ENTRY,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+            ->patchJson("/api/v1/leads/{$lead->id}", [
                 'contact_id' => $nextContact->id,
                 'listing_id' => $nextListing->id,
                 'stage' => 'Negotiating',
@@ -377,39 +377,39 @@ class PipelineApiTest extends TestCase
             ->assertJsonPath('data.is_active', false)
             ->assertJsonPath('data.next_task', 'Send revised offer.');
 
-        $this->assertDatabaseHas('pipelines', [
-            'id' => $pipeline->id,
+        $this->assertDatabaseHas('leads', [
+            'id' => $lead->id,
             'contact_id' => $nextContact->id,
             'listing_id' => $nextListing->id,
-            'stage' => Pipeline::STAGE_NEGOTIATING,
+            'stage' => Lead::STAGE_NEGOTIATING,
             'is_active' => false,
         ]);
     }
 
-    public function test_non_assigned_user_cannot_update_pipeline_progress_fields(): void
+    public function test_non_assigned_user_cannot_update_lead_progress_fields(): void
     {
         $tenant = Tenant::factory()->create();
         $assignee = User::factory()->create(['tenant_id' => $tenant->id]);
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_UPDATE]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_UPDATE]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 645000);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $assignee->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
+            'stage' => Lead::STAGE_CONTACTED,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", [
+            ->patchJson("/api/v1/leads/{$lead->id}", [
                 'stage' => 'Closed Won',
             ])
             ->assertForbidden();
 
-        $this->assertDatabaseHas('pipelines', [
-            'id' => $pipeline->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
+        $this->assertDatabaseHas('leads', [
+            'id' => $lead->id,
+            'stage' => Lead::STAGE_CONTACTED,
         ]);
     }
 
@@ -417,24 +417,24 @@ class PipelineApiTest extends TestCase
     {
         $tenant = Tenant::factory()->create();
         $assignee = User::factory()->create(['tenant_id' => $tenant->id]);
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_ASSIGN_TO_SELF]);
+        $actor = $this->actingUserWithPermissions($tenant, [Permissions::LEADS_ASSIGN_TO_SELF]);
         $otherUser = User::factory()->create(['tenant_id' => $tenant->id]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 645000);
-        $pipeline = Pipeline::query()->create([
+        $lead = Lead::query()->create([
             'tenant_id' => $tenant->id,
             'contact_id' => $contact->id,
             'listing_id' => $listing->id,
             'user_id' => $assignee->id,
-            'stage' => Pipeline::STAGE_CONTACTED,
+            'stage' => Lead::STAGE_CONTACTED,
         ]);
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", ['user_id' => $otherUser->id])
+            ->patchJson("/api/v1/leads/{$lead->id}", ['user_id' => $otherUser->id])
             ->assertForbidden();
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
-            ->patchJson("/api/v1/pipeline/{$pipeline->id}", ['user_id' => $actor->id])
+            ->patchJson("/api/v1/leads/{$lead->id}", ['user_id' => $actor->id])
             ->assertOk()
             ->assertJsonPath('data.user_id', $actor->id);
     }
@@ -461,7 +461,7 @@ class PipelineApiTest extends TestCase
             'owner_id' => $owner->id,
             'first_name' => 'Ethan',
             'last_name' => 'Miller',
-            'email' => 'ethan.pipeline@example.com',
+            'email' => 'ethan.lead@example.com',
             'phone' => '+62812345678',
             'status' => true,
             'budget' => 500000,

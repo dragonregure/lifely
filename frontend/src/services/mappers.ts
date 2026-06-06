@@ -19,7 +19,7 @@ import type {
   EmailCampaign,
   Listing,
   Permission,
-  PipelineDeal,
+  LeadDeal,
   Reference,
   Tenant,
   User,
@@ -157,7 +157,7 @@ export function mapListing(listing: BackendListing): Listing {
   };
 }
 
-export function mapDeal(deal: BackendDeal): PipelineDeal {
+export function mapDeal(deal: BackendDeal): LeadDeal {
   return {
     id: deal.id,
     tenantId: deal.tenant_id,

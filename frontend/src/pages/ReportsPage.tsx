@@ -26,11 +26,11 @@ export function ReportsPage() {
       <PageHeader
         eyebrow="Insights"
         title="Reports"
-        description="A concise reporting surface for pipeline performance, lead mix, and office health."
+        description="A concise reporting surface for lead performance, lead mix, and office health."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Forecast" value={formatCurrency(summary?.pipelineValue ?? 0)} note="Open pipeline value" icon={DollarSign} isLoading={isLoading} />
+        <MetricCard label="Forecast" value={formatCurrency(summary?.leadValue ?? 0)} note="Open lead value" icon={DollarSign} isLoading={isLoading} />
         <MetricCard label="Lead intake" value={`${summary?.newLeads ?? 0}`} note="New leads this week" icon={UsersRound} isLoading={isLoading} />
         <MetricCard label="Conversion" value={`${summary?.winRate ?? 0}%`} note="Rolling close rate" icon={Target} isLoading={isLoading} />
         <MetricCard label="Velocity" value="18 days" note="Average stage duration" icon={TrendingUp} isLoading={isLoading} />
@@ -39,7 +39,7 @@ export function ReportsPage() {
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Monthly pipeline</CardTitle>
+            <CardTitle>Monthly leads</CardTitle>
             <CardDescription>Deal value trend by month.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -48,7 +48,7 @@ export function ReportsPage() {
                 <LoadingState className="h-full" label="Loading chart" />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={summary?.pipelinePerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
+                  <BarChart data={summary?.leadPerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} />
                     <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000}k`} />

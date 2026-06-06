@@ -4,8 +4,8 @@ import type {
   EmailCampaign,
   ListingStatus,
   ListingType,
-  PipelineSource,
-  PipelineStage,
+  LeadSource,
+  LeadStage,
   ReferenceValue,
   ReferenceStatus,
   ReferenceValueType,
@@ -104,9 +104,9 @@ export type BackendDeal = {
   contact_id: string;
   listing_id: string;
   user_id: string;
-  stage: PipelineStage;
+  stage: LeadStage;
   source_id: number;
-  source: PipelineSource;
+  source: LeadSource;
   is_active: boolean;
   value: number;
   next_task?: string | null;
@@ -140,10 +140,10 @@ export type BackendCampaign = {
 export type BackendDashboard = {
   new_leads: number;
   pending_tasks: number;
-  pipeline_value: number;
+  lead_value: number;
   win_rate: number;
   lead_health: Array<{ label: ContactStatus; value: number }>;
-  pipeline_by_stage: Array<{ stage: string; deals: number; value: number }>;
+  lead_by_stage: Array<{ stage: string; deals: number; value: number }>;
 };
 
 export type BackendPermission = {

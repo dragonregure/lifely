@@ -2,20 +2,20 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Pipeline;
+use App\Models\Lead;
 use App\Support\Rbac\Permissions;
 use Illuminate\Validation\Rule;
 
-class StorePipelineRequest extends PipelineMutationRequest
+class StoreLeadRequest extends LeadMutationRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can(Permissions::PIPELINE_CREATE) ?? false;
+        return $this->user()?->can(Permissions::LEADS_CREATE) ?? false;
     }
 
     protected function passedValidation(): void
     {
-        $this->authorizePipelineCreate($this->validated());
+        $this->authorizeLeadCreate($this->validated());
     }
 
     public function rules(): array
@@ -26,8 +26,8 @@ class StorePipelineRequest extends PipelineMutationRequest
             'contact_id' => ['required', 'uuid', Rule::exists('contacts', 'id')->where('tenant_id', $tenantId)],
             'listing_id' => ['required', 'uuid', Rule::exists('listings', 'id')->where('tenant_id', $tenantId)],
             'user_id' => ['required', 'uuid', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
-            'stage' => ['nullable', 'integer', Rule::in(Pipeline::stageValues())],
-            'source' => ['nullable', 'integer', Rule::in(Pipeline::sourceValues())],
+            'stage' => ['nullable', 'integer', Rule::in(Lead::stageValues())],
+            'source' => ['nullable', 'integer', Rule::in(Lead::sourceValues())],
             'is_active' => ['sometimes', 'boolean'],
             'next_task' => ['nullable', 'string', 'max:255'],
             'due_at' => ['nullable', 'date'],

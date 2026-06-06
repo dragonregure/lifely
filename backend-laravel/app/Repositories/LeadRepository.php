@@ -2,9 +2,9 @@
 
 namespace App\Repositories;
 
-use App\Contracts\PipelineRepositoryInterface;
+use App\Contracts\LeadRepositoryInterface;
 use App\Models\Listing;
-use App\Models\Pipeline;
+use App\Models\Lead;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,26 +13,26 @@ use Illuminate\Database\Query\JoinClause;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-class PipelineRepository implements PipelineRepositoryInterface
+class LeadRepository implements LeadRepositoryInterface
 {
     public function all(string $tenantId): Collection
     {
-        return Pipeline::query()
-            ->where('pipelines.tenant_id', $tenantId)
+        return Lead::query()
+            ->where('leads.tenant_id', $tenantId)
             ->latest()
             ->get();
     }
 
     public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
     {
-        $query = Pipeline::query()
-            ->select('pipelines.*')
+        $query = Lead::query()
+            ->select('leads.*')
             ->addSelect('listings.price as listing_value')
             ->leftJoin('listings', function (JoinClause $join) use ($tenantId): void {
-                $join->on('listings.id', '=', 'pipelines.listing_id')
+                $join->on('listings.id', '=', 'leads.listing_id')
                     ->where('listings.tenant_id', '=', $tenantId);
             })
-            ->where('pipelines.tenant_id', $tenantId)
+            ->where('leads.tenant_id', $tenantId)
             ->with($this->relations($tenantId, $includes));
 
         $this->applyStageFilter($query, $dataTable);
@@ -45,83 +45,83 @@ class PipelineRepository implements PipelineRepositoryInterface
             $dataTable,
             [],
             [
-                'contact_id' => 'pipelines.contact_id',
-                'listing_id' => 'pipelines.listing_id',
+                'contact_id' => 'leads.contact_id',
+                'listing_id' => 'leads.listing_id',
             ],
             [
-                'stage' => 'pipelines.stage',
-                'source' => 'pipelines.source',
+                'stage' => 'leads.stage',
+                'source' => 'leads.source',
                 'value' => 'listings.price',
-                'next_task' => 'pipelines.next_task',
-                'due_at' => 'pipelines.due_at',
-                'created_at' => 'pipelines.created_at',
+                'next_task' => 'leads.next_task',
+                'due_at' => 'leads.due_at',
+                'created_at' => 'leads.created_at',
             ],
-            'pipelines.created_at'
+            'leads.created_at'
         );
     }
 
-    public function create(string $tenantId, array $data): Pipeline
+    public function create(string $tenantId, array $data): Lead
     {
-        return DB::transaction(function () use ($tenantId, $data): Pipeline {
-            $pipeline = Pipeline::query()->create($data + [
+        return DB::transaction(function () use ($tenantId, $data): Lead {
+            $lead = Lead::query()->create($data + [
                 'tenant_id' => $tenantId,
-                'stage' => Pipeline::STAGE_NEW_LEAD,
-                'source' => Pipeline::SOURCE_MANUAL_ENTRY,
+                'stage' => Lead::STAGE_NEW_LEAD,
+                'source' => Lead::SOURCE_MANUAL_ENTRY,
                 'is_active' => true,
             ]);
 
-            $this->markListingSoldWhenClosedWon($tenantId, $pipeline);
+            $this->markListingSoldWhenClosedWon($tenantId, $lead);
 
-            return $pipeline;
+            return $lead;
         });
     }
 
-    public function find(string $tenantId, string $pipelineId): ?Pipeline
+    public function find(string $tenantId, string $leadId): ?Lead
     {
-        return Pipeline::query()
+        return Lead::query()
             ->where('tenant_id', $tenantId)
-            ->find($pipelineId);
+            ->find($leadId);
     }
 
-    public function update(string $tenantId, string $pipelineId, array $data): ?Pipeline
+    public function update(string $tenantId, string $leadId, array $data): ?Lead
     {
-        $pipeline = Pipeline::query()
+        $lead = Lead::query()
             ->where('tenant_id', $tenantId)
-            ->find($pipelineId);
+            ->find($leadId);
 
-        if (! $pipeline) {
+        if (! $lead) {
             return null;
         }
 
-        return DB::transaction(function () use ($tenantId, $pipeline, $data): Pipeline {
-            $pipeline->update($data);
-            $this->markListingSoldWhenClosedWon($tenantId, $pipeline);
+        return DB::transaction(function () use ($tenantId, $lead, $data): Lead {
+            $lead->update($data);
+            $this->markListingSoldWhenClosedWon($tenantId, $lead);
 
-            return $pipeline->refresh();
+            return $lead->refresh();
         });
     }
 
-    public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
+    public function updateStage(string $tenantId, string $leadId, int $stage): ?Lead
     {
-        $pipeline = Pipeline::query()
+        $lead = Lead::query()
             ->where('tenant_id', $tenantId)
-            ->find($pipelineId);
+            ->find($leadId);
 
-        if (! $pipeline) {
+        if (! $lead) {
             return null;
         }
 
-        return DB::transaction(function () use ($tenantId, $pipeline, $stage): Pipeline {
-            $pipeline->update(['stage' => $stage]);
-            $this->markListingSoldWhenClosedWon($tenantId, $pipeline);
+        return DB::transaction(function () use ($tenantId, $lead, $stage): Lead {
+            $lead->update(['stage' => $stage]);
+            $this->markListingSoldWhenClosedWon($tenantId, $lead);
 
-            return $pipeline->refresh();
+            return $lead->refresh();
         });
     }
 
     public function pendingTaskCount(string $tenantId): int
     {
-        return Pipeline::query()
+        return Lead::query()
             ->where('tenant_id', $tenantId)
             ->whereNotNull('next_task')
             ->count();
@@ -129,71 +129,71 @@ class PipelineRepository implements PipelineRepositoryInterface
 
     public function totalValue(string $tenantId): float
     {
-        return (float) Pipeline::query()
+        return (float) Lead::query()
             ->join('listings', function ($join) use ($tenantId): void {
-                $join->on('listings.id', '=', 'pipelines.listing_id')
+                $join->on('listings.id', '=', 'leads.listing_id')
                     ->where('listings.tenant_id', '=', $tenantId);
             })
-            ->where('pipelines.tenant_id', $tenantId)
+            ->where('leads.tenant_id', $tenantId)
             ->sum('listings.price');
     }
 
     public function valueByStage(string $tenantId): Collection
     {
-        return Pipeline::query()
+        return Lead::query()
             ->join('listings', function ($join) use ($tenantId): void {
-                $join->on('listings.id', '=', 'pipelines.listing_id')
+                $join->on('listings.id', '=', 'leads.listing_id')
                     ->where('listings.tenant_id', '=', $tenantId);
             })
-            ->where('pipelines.tenant_id', $tenantId)
-            ->selectRaw('pipelines.stage, count(*) as deals, sum(listings.price) as value')
-            ->groupBy('pipelines.stage')
+            ->where('leads.tenant_id', $tenantId)
+            ->selectRaw('leads.stage, count(*) as deals, sum(listings.price) as value')
+            ->groupBy('leads.stage')
             ->get();
     }
 
     /**
-     * @param  Builder<Pipeline>  $query
+     * @param  Builder<Lead>  $query
      */
     private function applyStageFilter(Builder $query, DataTableQuery $dataTable): void
     {
-        $stage = Pipeline::stageFromInput($dataTable->filter('stage'));
+        $stage = Lead::stageFromInput($dataTable->filter('stage'));
 
         if ($stage !== null) {
-            $query->where('pipelines.stage', $stage);
+            $query->where('leads.stage', $stage);
         }
     }
 
     /**
-     * @param  Builder<Pipeline>  $query
+     * @param  Builder<Lead>  $query
      */
     private function applyAssigneeFilter(Builder $query, DataTableQuery $dataTable): void
     {
         $userIds = $this->filterValues($dataTable->filter('user_id'));
 
         if ($userIds !== []) {
-            $query->whereIn('pipelines.user_id', $userIds);
+            $query->whereIn('leads.user_id', $userIds);
         }
     }
 
     /**
-     * @param  Builder<Pipeline>  $query
+     * @param  Builder<Lead>  $query
      */
     private function applySourceFilter(Builder $query, DataTableQuery $dataTable): void
     {
         $sources = collect($this->filterValues($dataTable->filter('source')))
-            ->map(fn (string $source): ?int => Pipeline::sourceFromInput($source))
+            ->map(fn (string $source): ?int => Lead::sourceFromInput($source))
             ->filter(fn (?int $source): bool => $source !== null)
             ->unique()
             ->values()
             ->all();
 
         if ($sources !== []) {
-            $query->whereIn('pipelines.source', $sources);
+            $query->whereIn('leads.source', $sources);
         }
     }
 
     /**
-     * @param  Builder<Pipeline>  $query
+     * @param  Builder<Lead>  $query
      */
     private function applySearch(Builder $query, DataTableQuery $dataTable, string $tenantId): void
     {
@@ -211,17 +211,17 @@ class PipelineRepository implements PipelineRepositoryInterface
         $firstNamePart = $nameParts[0] ?? null;
         $lastNamePartKey = array_key_last($nameParts);
         $lastNamePart = $lastNamePartKey !== null ? $nameParts[$lastNamePartKey] : null;
-        $matchingStages = collect(Pipeline::STAGE_LABELS)
+        $matchingStages = collect(Lead::STAGE_LABELS)
             ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($search)))
             ->keys()
             ->all();
-        $matchingSources = collect(Pipeline::SOURCE_LABELS)
+        $matchingSources = collect(Lead::SOURCE_LABELS)
             ->filter(fn (string $label): bool => str_contains(strtolower($label), strtolower($search)))
             ->keys()
             ->all();
 
         $query->where(function (Builder $query) use ($like, $matchingStages, $matchingSources, $firstNamePart, $lastNamePart, $tenantId): void {
-            $query->where('pipelines.next_task', 'like', $like)
+            $query->where('leads.next_task', 'like', $like)
                 ->orWhereHas('contact', function (Builder $query) use ($like, $firstNamePart, $lastNamePart, $tenantId): void {
                     $query->where('tenant_id', $tenantId)
                         ->where(function (Builder $query) use ($like, $firstNamePart, $lastNamePart): void {
@@ -250,11 +250,11 @@ class PipelineRepository implements PipelineRepositoryInterface
                 });
 
             if ($matchingStages !== []) {
-                $query->orWhereIn('pipelines.stage', $matchingStages);
+                $query->orWhereIn('leads.stage', $matchingStages);
             }
 
             if ($matchingSources !== []) {
-                $query->orWhereIn('pipelines.source', $matchingSources);
+                $query->orWhereIn('leads.source', $matchingSources);
             }
         });
     }
@@ -287,15 +287,15 @@ class PipelineRepository implements PipelineRepositoryInterface
         return array_intersect_key($relations, array_flip($includes));
     }
 
-    private function markListingSoldWhenClosedWon(string $tenantId, Pipeline $pipeline): void
+    private function markListingSoldWhenClosedWon(string $tenantId, Lead $lead): void
     {
-        if ((int) $pipeline->stage !== Pipeline::STAGE_CLOSED_WON) {
+        if ((int) $lead->stage !== Lead::STAGE_CLOSED_WON) {
             return;
         }
 
         $listing = Listing::query()
             ->where('tenant_id', $tenantId)
-            ->find($pipeline->listing_id);
+            ->find($lead->listing_id);
 
         if (! $listing || (int) $listing->status === Listing::STATUS_SOLD) {
             return;

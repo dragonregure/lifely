@@ -1,5 +1,5 @@
 import type { ServerMultiSelectOption } from "@/components/ui/server-multi-select";
-import type { Contact, Listing, PipelineDeal, PipelineSource, PipelineStage, User } from "@/types";
+import type { Contact, Listing, LeadDeal, LeadSource, LeadStage, User } from "@/types";
 
 export type ContactOption = ServerMultiSelectOption & {
   contact: Contact;
@@ -14,25 +14,25 @@ export type AssigneeOption = ServerMultiSelectOption & {
 };
 
 export type SourceOption = ServerMultiSelectOption & {
-  source: PipelineSource;
+  source: LeadSource;
 };
 
-export type PipelineDraft = {
+export type LeadDraft = {
   contact: Contact | null;
   listing: Listing | null;
   assignee: User | null;
-  stage: PipelineStage;
+  stage: LeadStage;
   isActive: boolean;
   nextTask: string;
 };
 
-export type PipelineFilters = {
+export type LeadFilters = {
   search: string;
   assignees: AssigneeOption[];
   sources: SourceOption[];
 };
 
-export type PipelineEditPermissions = {
+export type LeadEditPermissions = {
   canEditManualFields: boolean;
   canEditAssignee: boolean;
   canAssignToSelf: boolean;
@@ -41,12 +41,12 @@ export type PipelineEditPermissions = {
   canEditNextTask: boolean;
 };
 
-export type PipelineCreatePermissions = {
+export type LeadCreatePermissions = {
   canChangeAssignee: boolean;
   canAssignToSelf: boolean;
 };
 
-export type PipelineColumn = {
-  stage: PipelineStage;
-  deals: PipelineDeal[];
+export type LeadColumn = {
+  stage: LeadStage;
+  deals: LeadDeal[];
 };

@@ -31,12 +31,12 @@ export const PERMISSIONS = {
     create: "listings.create",
     update: "listings.update",
   },
-  pipeline: {
-    view: "pipeline.view",
-    create: "pipeline.create",
-    update: "pipeline.update",
-    changeAssignee: "pipeline.change_assignee",
-    assignToSelf: "pipeline.assign_to_self",
+  leads: {
+    view: "leads.view",
+    create: "leads.create",
+    update: "leads.update",
+    changeAssignee: "leads.change_assignee",
+    assignToSelf: "leads.assign_to_self",
   },
   emailCampaigns: {
     view: "email_campaigns.view",

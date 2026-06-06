@@ -41,7 +41,7 @@ export type ListingPayload = {
   primaryOwnerUserId?: string | null;
 };
 
-export type PipelineDealPayload = {
+export type LeadDealPayload = {
   contactId?: string;
   listingId?: string;
   userId?: string;
@@ -52,7 +52,7 @@ export type PipelineDealPayload = {
 
 export type ListingInclude = "documents" | "contacts" | "users";
 
-export type PipelineInclude = "contact" | "listing" | "user";
+export type LeadInclude = "contact" | "listing" | "user";
 
 type ListingRequestOptions = Pick<RequestInit, "signal"> & {
   include?: readonly ListingInclude[];
@@ -62,8 +62,8 @@ type ListingPageRequestOptions = Pick<RequestInit, "signal"> & {
   include?: readonly ListingInclude[];
 };
 
-type PipelinePageRequestOptions = Pick<RequestInit, "signal"> & {
-  include?: readonly PipelineInclude[];
+type LeadPageRequestOptions = Pick<RequestInit, "signal"> & {
+  include?: readonly LeadInclude[];
 };
 
 const ALL_PAGE_SIZE = 100;
@@ -109,7 +109,7 @@ function toBackendListingPayload(payload: Partial<ListingPayload>) {
   };
 }
 
-function toBackendPipelineDealPayload(payload: Partial<PipelineDealPayload>) {
+function toBackendLeadDealPayload(payload: Partial<LeadDealPayload>) {
   return {
     ...(payload.contactId !== undefined ? { contact_id: payload.contactId } : {}),
     ...(payload.listingId !== undefined ? { listing_id: payload.listingId } : {}),
@@ -266,18 +266,18 @@ export async function updateListing(listingId: string, payload: Partial<ListingP
   return mapListing(response.data);
 }
 
-export async function getPipelineDeals(options: PipelinePageRequestOptions = {}) {
-  return collectPaginatedData((page) => getPipelineDealsPage({ page, pageSize: ALL_PAGE_SIZE }, options));
+export async function getLeadDeals(options: LeadPageRequestOptions = {}) {
+  return collectPaginatedData((page) => getLeadDealsPage({ page, pageSize: ALL_PAGE_SIZE }, options));
 }
 
-export async function getPipelineDealsPage(
+export async function getLeadDealsPage(
   params?: ServerDataTableParams,
-  options: PipelinePageRequestOptions = {},
+  options: LeadPageRequestOptions = {},
 ): Promise<PaginatedResult<ReturnType<typeof mapDeal>>> {
   const { include = [], ...requestOptions } = options;
   const query = new URLSearchParams(toQueryString(params));
   appendIncludes(query, include);
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/pipeline?${query.toString()}`, requestOptions);
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/leads?${query.toString()}`, requestOptions);
 
   return {
     data: response.data.map(mapDeal),
@@ -288,19 +288,19 @@ export async function getPipelineDealsPage(
   };
 }
 
-export async function createPipelineDeal(payload: PipelineDealPayload) {
-  const response = await apiRequest<ApiEnvelope<BackendDeal>>("/pipeline", {
+export async function createLeadDeal(payload: LeadDealPayload) {
+  const response = await apiRequest<ApiEnvelope<BackendDeal>>("/leads", {
     method: "POST",
-    body: JSON.stringify(toBackendPipelineDealPayload(payload)),
+    body: JSON.stringify(toBackendLeadDealPayload(payload)),
   });
 
   return mapDeal(response.data);
 }
 
-export async function updatePipelineDeal(dealId: string, payload: Partial<PipelineDealPayload>) {
-  const response = await apiRequest<ApiEnvelope<BackendDeal>>(`/pipeline/${dealId}`, {
+export async function updateLeadDeal(dealId: string, payload: Partial<LeadDealPayload>) {
+  const response = await apiRequest<ApiEnvelope<BackendDeal>>(`/leads/${dealId}`, {
     method: "PATCH",
-    body: JSON.stringify(toBackendPipelineDealPayload(payload)),
+    body: JSON.stringify(toBackendLeadDealPayload(payload)),
   });
 
   return mapDeal(response.data);

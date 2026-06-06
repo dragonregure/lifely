@@ -11,7 +11,7 @@ export type NavigationItem = {
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Contacts", href: "/contacts", icon: ContactRound, anyOf: [PERMISSIONS.contacts.view] },
-  { label: "Pipeline", href: "/pipeline", icon: BarChart3, anyOf: [PERMISSIONS.pipeline.view] },
+  { label: "Leads", href: "/leads", icon: BarChart3, anyOf: [PERMISSIONS.leads.view] },
   { label: "Listings", href: "/listings", icon: Building2, anyOf: [PERMISSIONS.listings.view] },
   { label: "Bulk Email", href: "/email", icon: Mail, anyOf: [PERMISSIONS.emailCampaigns.view] },
   { label: "Activity", href: "/activity", icon: Activity, anyOf: [PERMISSIONS.activityLogs.view] },
@@ -22,7 +22,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 export const ROUTE_PERMISSIONS: Record<string, readonly PermissionName[] | undefined> = {
   "/dashboard": undefined,
   "/contacts": [PERMISSIONS.contacts.view],
-  "/pipeline": [PERMISSIONS.pipeline.view],
+  "/leads": [PERMISSIONS.leads.view],
   "/listings": [PERMISSIONS.listings.view],
   "/email": [PERMISSIONS.emailCampaigns.view],
   "/activity": [PERMISSIONS.activityLogs.view],

@@ -76,7 +76,7 @@ export type ListingStatus = 1 | 2 | 3 | 4;
 
 export type ListingType = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
-export type PipelineStage =
+export type LeadStage =
   | "New Lead"
   | "Contacted"
   | "Qualified"
@@ -87,7 +87,7 @@ export type PipelineStage =
   | "Closed Lost"
   | "Dormant";
 
-export type PipelineSource =
+export type LeadSource =
   | "Manual Entry"
   | "Website"
   | "Listing Inquiry"
@@ -167,15 +167,15 @@ export type Listing = {
   agents: ListingAgent[];
 };
 
-export type PipelineDeal = {
+export type LeadDeal = {
   id: string;
   tenantId: string;
   contactId: string;
   listingId: string;
   userId: string;
-  stage: PipelineStage;
+  stage: LeadStage;
   sourceId: number;
-  source: PipelineSource;
+  source: LeadSource;
   isActive: boolean;
   value: number;
   nextTask?: string | null;
@@ -215,8 +215,8 @@ export type EmailCampaign = {
 export type DashboardSummary = {
   newLeads: number;
   pendingTasks: number;
-  pipelineValue: number;
+  leadValue: number;
   winRate: number;
   leadHealth: Array<{ label: ContactStatus; value: number }>;
-  pipelinePerformance: Array<{ label: string; value: number }>;
+  leadPerformance: Array<{ label: string; value: number }>;
 };

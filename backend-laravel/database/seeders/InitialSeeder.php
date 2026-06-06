@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Contact;
 use App\Models\Listing;
-use App\Models\Pipeline;
+use App\Models\Lead;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Roles;
@@ -48,13 +48,13 @@ class InitialSeeder extends Seeder
             'property_type' => Listing::TYPE_HOUSE,
         ]);
 
-        Pipeline::query()->firstOrCreate([
+        Lead::query()->firstOrCreate([
             'tenant_id' => $this->tenant->id,
             'contact_id' => $this->contacts->random()->id,
             'listing_id' => $listing->id,
             'user_id' => $this->admin->id,
         ], [
-            'stage' => Pipeline::STAGE_NEW_LEAD,
+            'stage' => Lead::STAGE_NEW_LEAD,
             'next_task' => 'Create first follow-up task',
             'due_at' => now()->addDay(),
         ]);

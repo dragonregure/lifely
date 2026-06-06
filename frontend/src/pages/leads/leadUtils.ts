@@ -1,19 +1,19 @@
 import { formatCurrency } from "@/lib/utils";
 import { LISTING_STATUS } from "@/lib/listingOptions";
-import type { PipelineDealPayload } from "@/services/api";
-import type { Contact, Listing, PipelineDeal, PipelineSource, PipelineStage, User } from "@/types";
-import { CLOSED_PIPELINE_STAGES, MANUAL_ENTRY_SOURCE } from "./pipelineConstants";
+import type { LeadDealPayload } from "@/services/api";
+import type { Contact, Listing, LeadDeal, LeadSource, LeadStage, User } from "@/types";
+import { CLOSED_LEAD_STAGES, MANUAL_ENTRY_SOURCE } from "./leadConstants";
 import type {
   AssigneeOption,
   ContactOption,
   ListingOption,
-  PipelineDraft,
-  PipelineEditPermissions,
-  PipelineFilters,
+  LeadDraft,
+  LeadEditPermissions,
+  LeadFilters,
   SourceOption,
-} from "./pipelineTypes";
+} from "./leadTypes";
 
-export const emptyPipelineFilters: PipelineFilters = {
+export const emptyLeadFilters: LeadFilters = {
   search: "",
   assignees: [],
   sources: [],
@@ -50,7 +50,7 @@ export function userToOption(user: User): AssigneeOption {
   };
 }
 
-export function sourceToOption(source: PipelineSource): SourceOption {
+export function sourceToOption(source: LeadSource): SourceOption {
   return {
     value: source,
     label: source,
@@ -58,7 +58,7 @@ export function sourceToOption(source: PipelineSource): SourceOption {
   };
 }
 
-export function createPipelineDraft(currentUser: User | null): PipelineDraft {
+export function createLeadDraft(currentUser: User | null): LeadDraft {
   return {
     contact: null,
     listing: null,
@@ -69,7 +69,7 @@ export function createPipelineDraft(currentUser: User | null): PipelineDraft {
   };
 }
 
-export function draftFromDeal(deal: PipelineDeal, members: User[]): PipelineDraft {
+export function draftFromDeal(deal: LeadDeal, members: User[]): LeadDraft {
   return {
     contact: deal.contact ?? null,
     listing: deal.listing ?? null,
@@ -80,8 +80,8 @@ export function draftFromDeal(deal: PipelineDeal, members: User[]): PipelineDraf
   };
 }
 
-export function changedPipelinePayload(deal: PipelineDeal, draft: PipelineDraft, permissions: PipelineEditPermissions): Partial<PipelineDealPayload> {
-  const payload: Partial<PipelineDealPayload> = {};
+export function changedLeadPayload(deal: LeadDeal, draft: LeadDraft, permissions: LeadEditPermissions): Partial<LeadDealPayload> {
+  const payload: Partial<LeadDealPayload> = {};
 
   if (permissions.canEditManualFields) {
     if (draft.contact?.id && draft.contact.id !== deal.contactId) {
@@ -119,11 +119,11 @@ export function changedPipelinePayload(deal: PipelineDeal, draft: PipelineDraft,
   return payload;
 }
 
-export function activeFilterCount(filters: PipelineFilters) {
+export function activeFilterCount(filters: LeadFilters) {
   return filters.assignees.length + filters.sources.length;
 }
 
-export function searchableDealText(deal: PipelineDeal) {
+export function searchableDealText(deal: LeadDeal) {
   return [
     deal.contact ? contactName(deal.contact) : "",
     deal.contact?.email ?? "",
@@ -138,7 +138,7 @@ export function searchableDealText(deal: PipelineDeal) {
     .toLowerCase();
 }
 
-export function dealMatchesFilters(deal: PipelineDeal, filters: PipelineFilters) {
+export function dealMatchesFilters(deal: LeadDeal, filters: LeadFilters) {
   if (filters.assignees.length > 0 && !filters.assignees.some((assignee) => assignee.value === deal.userId)) {
     return false;
   }
@@ -155,15 +155,15 @@ export function dealMatchesFilters(deal: PipelineDeal, filters: PipelineFilters)
   return true;
 }
 
-export function canEditManualPipelineFields(deal: PipelineDeal) {
+export function canEditManualLeadFields(deal: LeadDeal) {
   return deal.source === MANUAL_ENTRY_SOURCE;
 }
 
-export function isClosedPipelineStage(stage: PipelineStage) {
-  return CLOSED_PIPELINE_STAGES.some((closedStage) => closedStage === stage);
+export function isClosedLeadStage(stage: LeadStage) {
+  return CLOSED_LEAD_STAGES.some((closedStage) => closedStage === stage);
 }
 
-export function pipelineDealProblems(deal: PipelineDeal) {
+export function leadDealProblems(deal: LeadDeal) {
   if (deal.stage === "Closed Won") {
     return [];
   }
@@ -174,12 +174,12 @@ export function pipelineDealProblems(deal: PipelineDeal) {
   ].filter((problem): problem is string => Boolean(problem));
 }
 
-export function hasPipelineDealProblem(deal: PipelineDeal) {
-  return pipelineDealProblems(deal).length > 0;
+export function hasLeadDealProblem(deal: LeadDeal) {
+  return leadDealProblems(deal).length > 0;
 }
 
-export function pipelineProblemLabel(deal: PipelineDeal) {
-  const problems = pipelineDealProblems(deal);
+export function leadProblemLabel(deal: LeadDeal) {
+  const problems = leadDealProblems(deal);
 
-  return problems.length > 0 ? problems.join("; ") : "Pipeline card has a problem";
+  return problems.length > 0 ? problems.join("; ") : "lead card has a problem";
 }

@@ -3,9 +3,9 @@
 namespace Tests\Unit;
 
 use App\Contracts\ContactRepositoryInterface;
-use App\Contracts\PipelineRepositoryInterface;
+use App\Contracts\LeadRepositoryInterface;
 use App\Models\Contact;
-use App\Models\Pipeline;
+use App\Models\Lead;
 use App\Services\ReportingService;
 use App\Support\DataTables\DataTableQuery;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -54,7 +54,7 @@ class ReportingServiceTest extends TestCase
             }
         };
 
-        $pipeline = new class implements PipelineRepositoryInterface {
+        $lead = new class implements LeadRepositoryInterface {
             public function all(string $tenantId): Collection
             {
                 return collect();
@@ -65,22 +65,22 @@ class ReportingServiceTest extends TestCase
                 return new Paginator([], 0, $dataTable->perPage);
             }
 
-            public function find(string $tenantId, string $pipelineId): ?Pipeline
+            public function find(string $tenantId, string $leadId): ?Lead
             {
                 return null;
             }
 
-            public function create(string $tenantId, array $data): Pipeline
+            public function create(string $tenantId, array $data): Lead
             {
-                return new Pipeline();
+                return new Lead();
             }
 
-            public function update(string $tenantId, string $pipelineId, array $data): ?Pipeline
+            public function update(string $tenantId, string $leadId, array $data): ?Lead
             {
                 return null;
             }
 
-            public function updateStage(string $tenantId, string $pipelineId, int $stage): ?Pipeline
+            public function updateStage(string $tenantId, string $leadId, int $stage): ?Lead
             {
                 return null;
             }
@@ -97,16 +97,16 @@ class ReportingServiceTest extends TestCase
 
             public function valueByStage(string $tenantId): Collection
             {
-                return collect([(object) ['stage' => Pipeline::STAGE_VIEWING_SCHEDULED, 'deals' => 2, 'value' => 800000]]);
+                return collect([(object) ['stage' => Lead::STAGE_VIEWING_SCHEDULED, 'deals' => 2, 'value' => 800000]]);
             }
         };
 
-        $summary = (new ReportingService($contacts, $pipeline))->dashboard('tenant-1');
+        $summary = (new ReportingService($contacts, $lead))->dashboard('tenant-1');
 
         $this->assertSame(3, $summary['new_leads']);
         $this->assertSame(5, $summary['pending_tasks']);
-        $this->assertSame(1200000.0, $summary['pipeline_value']);
+        $this->assertSame(1200000.0, $summary['lead_value']);
         $this->assertSame(0, $summary['win_rate']);
-        $this->assertSame('Viewing Scheduled', $summary['pipeline_by_stage'][0]['stage']);
+        $this->assertSame('Viewing Scheduled', $summary['lead_by_stage'][0]['stage']);
     }
 }

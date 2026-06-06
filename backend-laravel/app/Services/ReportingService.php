@@ -3,15 +3,15 @@
 namespace App\Services;
 
 use App\Contracts\ContactRepositoryInterface;
-use App\Contracts\PipelineRepositoryInterface;
+use App\Contracts\LeadRepositoryInterface;
 use App\Contracts\ReportingServiceInterface;
-use App\Models\Pipeline;
+use App\Models\Lead;
 
 class ReportingService implements ReportingServiceInterface
 {
     public function __construct(
         private readonly ContactRepositoryInterface $contacts,
-        private readonly PipelineRepositoryInterface $pipeline,
+        private readonly LeadRepositoryInterface $leads,
     ) {
     }
 
@@ -21,17 +21,17 @@ class ReportingService implements ReportingServiceInterface
 
         return [
             'new_leads' => (int) ($contactsByStatus['Active'] ?? 0),
-            'pending_tasks' => $this->pipeline->pendingTaskCount($tenantId),
-            'pipeline_value' => $this->pipeline->totalValue($tenantId),
+            'pending_tasks' => $this->leads->pendingTaskCount($tenantId),
+            'lead_value' => $this->leads->totalValue($tenantId),
             'win_rate' => 0,
             'lead_health' => $contactsByStatus
                 ->map(fn ($total, $status) => ['label' => $status, 'value' => (int) $total])
                 ->values()
                 ->all(),
-            'pipeline_by_stage' => $this->pipeline
+            'lead_by_stage' => $this->leads
                 ->valueByStage($tenantId)
                 ->map(fn ($row) => [
-                    'stage' => Pipeline::stageLabel((int) $row->stage),
+                    'stage' => Lead::stageLabel((int) $row->stage),
                     'deals' => (int) $row->deals,
                     'value' => (float) $row->value,
                 ])

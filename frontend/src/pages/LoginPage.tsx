@@ -73,7 +73,7 @@ export function LoginPage() {
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary text-base font-bold text-white">L</div>
             <h1 className="mt-8 max-w-xl text-4xl font-semibold tracking-normal text-slate-950">Lifely</h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-              A calm CRM workspace for property offices to manage leads, listings, pipeline tasks, and queued communication.
+              A calm CRM workspace for property offices to manage leads, listings, lead tasks, and queued communication.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

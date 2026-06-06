@@ -25,8 +25,8 @@ tags:
     description: Tenant-scoped CRM contacts and leads.
   - name: Listings
     description: Tenant-scoped property inventory.
-  - name: Pipeline
-    description: Tenant-scoped deal pipeline.
+  - name: Leads
+    description: Tenant-scoped lead workflow.
   - name: References
     description: System and tenant reference values.
   - name: Activity Logs
@@ -101,7 +101,7 @@ components:
         type: array
         items: { type: string, enum: [roles] }
       description: Optional permission relations to include. Omit this parameter for main permission fields only.
-    PipelineIncludes:
+    LeadIncludes:
       in: query
       name: include[]
       style: form
@@ -109,13 +109,13 @@ components:
       schema:
         type: array
         items: { type: string, enum: [contact, listing, user] }
-      description: Optional pipeline relations to include. Omit this parameter for main pipeline fields only.
-    PipelineId:
+      description: Optional lead relations to include. Omit this parameter for main lead fields only.
+    LeadId:
       in: path
-      name: pipeline
+      name: lead
       required: true
       schema: { type: string, format: uuid }
-      description: Tenant-scoped pipeline deal UUID.
+      description: Tenant-scoped lead UUID.
     ReferenceId:
       in: path
       name: reference
@@ -322,7 +322,7 @@ components:
           description: Present only when `users` is requested through `include[]`. User assignments include `is_primary_owner` for the selected primary owner.
           items: { $ref: "#/components/schemas/Member" }
         created_at: { type: string, format: date-time, nullable: true }
-    Pipeline:
+    Lead:
       type: object
       properties:
         id: { type: string, format: uuid }
@@ -333,7 +333,7 @@ components:
         stage: { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
         source_id: { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], description: "0=Manual Entry, 1=Website, 2=Listing Inquiry, 3=Social Media, 4=Referral, 5=Phone Call, 6=Messaging, 7=Email, 8=Paid Ads, 9=Portal, 10=Exhibition, 11=Integration." }
         source: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
-        is_active: { type: boolean, description: Active pipeline rows are true; archived rows are false. }
+        is_active: { type: boolean, description: Active lead rows are true; archived rows are false. }
         value: { type: number, description: Derived from the related listing price. }
         next_task: { type: string, nullable: true }
         due_at: { type: string, format: date-time, nullable: true }
@@ -413,14 +413,15 @@ components:
       properties:
         new_leads: { type: integer }
         pending_tasks: { type: integer }
-        pipeline_value: { type: number }
+        lead_value: { type: number }
         win_rate: { type: number }
-        pipeline_performance:
+        lead_by_stage:
           type: array
           items:
             type: object
             properties:
-              label: { type: string, example: Jan }
+              stage: { type: string, example: Viewing Scheduled }
+              deals: { type: integer }
               value: { type: number }
         lead_health:
           type: array
@@ -481,7 +482,7 @@ components:
         permissions:
           type: array
           items: { type: string }
-          example: [contacts.view, contacts.create, pipeline.view]
+          example: [contacts.view, contacts.create, leads.view]
     RoleUpdatePayload:
       type: object
       properties:
@@ -616,13 +617,13 @@ components:
           format: uuid
           nullable: true
           description: Assigned user UUID to mark as the primary owner. Must be included in `user_ids` when provided.
-    PipelineStorePayload:
+    LeadStorePayload:
       type: object
       required: [contact_id, listing_id, user_id]
       properties:
         contact_id: { type: string, format: uuid }
         listing_id: { type: string, format: uuid }
-        user_id: { type: string, format: uuid, description: "Requires `pipeline.change_assignee`; assigning the current user also allows `pipeline.assign_to_self`." }
+        user_id: { type: string, format: uuid, description: "Requires `leads.change_assignee`; assigning the current user also allows `leads.assign_to_self`." }
         stage:
           oneOf:
             - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
@@ -636,20 +637,20 @@ components:
         is_active: { type: boolean, default: true }
         next_task: { type: string, nullable: true, maxLength: 255 }
         due_at: { type: string, format: date-time, nullable: true }
-    PipelineUpdatePayload:
+    LeadUpdatePayload:
       type: object
       properties:
         contact_id: { type: string, format: uuid, description: Editable only for manual-entry deals. }
         listing_id: { type: string, format: uuid, description: Editable only for manual-entry deals. }
-        user_id: { type: string, format: uuid, description: "Requires `pipeline.change_assignee`; assigning the current user also allows `pipeline.assign_to_self`." }
+        user_id: { type: string, format: uuid, description: "Requires `leads.change_assignee`; assigning the current user also allows `leads.assign_to_self`." }
         stage:
           oneOf:
             - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
             - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
-          description: Requires `pipeline.update` and the current user must be the assignee. Closed Won and Closed Lost cards cannot move to another stage. Cards with a sold listing or inactive contact cannot change stage.
-        is_active: { type: boolean, description: Requires `pipeline.update` and the current user must be the assignee. Cards with a sold listing or inactive contact can only be marked inactive. }
-        next_task: { type: string, nullable: true, maxLength: 255, description: Requires `pipeline.update` and the current user must be the assignee. Cards with a sold listing or inactive contact cannot update this field. }
-    PipelineStagePayload:
+          description: Requires `leads.update` and the current user must be the assignee. Closed Won and Closed Lost cards cannot move to another stage. Cards with a sold listing or inactive contact cannot change stage.
+        is_active: { type: boolean, description: Requires `leads.update` and the current user must be the assignee. Cards with a sold listing or inactive contact can only be marked inactive. }
+        next_task: { type: string, nullable: true, maxLength: 255, description: Requires `leads.update` and the current user must be the assignee. Cards with a sold listing or inactive contact cannot update this field. }
+    LeadStagePayload:
       type: object
       required: [stage]
       properties:
@@ -1182,7 +1183,7 @@ paths:
     delete:
       tags: [Contacts]
       summary: Delete contact
-      description: Requires `contacts.delete`. Deletes the tenant-scoped contact and related pipeline records through database constraints.
+      description: Requires `contacts.delete`. Deletes the tenant-scoped contact and related Lead records through database constraints.
       parameters:
         - { $ref: "#/components/parameters/ContactId" }
       responses:
@@ -1274,11 +1275,11 @@ paths:
         "403": { description: Missing `listings.update` permission. }
         "404": { description: Listing is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
-  /pipeline:
+  /leads:
     get:
-      tags: [Pipeline]
-      summary: List pipeline deals
-      description: Requires `pipeline.view`. Supports server-side pagination, search, filters, and sorting.
+      tags: [Leads]
+      summary: List leads
+      description: Requires `leads.view`. Supports server-side pagination, search, filters, and sorting.
       parameters:
         - { $ref: "#/components/parameters/Page" }
         - { $ref: "#/components/parameters/PerPage" }
@@ -1308,56 +1309,56 @@ paths:
           name: filter[source]
           schema: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
           description: Filter by one or more readable source labels. Use comma-separated values for multiple sources. Top-level `source` is also accepted.
-        - { $ref: "#/components/parameters/PipelineIncludes" }
+        - { $ref: "#/components/parameters/LeadIncludes" }
       responses:
-        "200": { description: Paginated tenant-scoped pipeline deals. }
-        "403": { description: Missing `pipeline.view` permission. }
+        "200": { description: Paginated tenant-scoped leads. }
+        "403": { description: Missing `leads.view` permission. }
     post:
-      tags: [Pipeline]
-      summary: Create pipeline deal
-      description: "Requires `pipeline.create`. Assignee selection requires `pipeline.change_assignee`; assigning the current user also allows `pipeline.assign_to_self`."
+      tags: [Leads]
+      summary: Create lead
+      description: "Requires `leads.create`. Assignee selection requires `leads.change_assignee`; assigning the current user also allows `leads.assign_to_self`."
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PipelineStorePayload" }
+            schema: { $ref: "#/components/schemas/LeadStorePayload" }
       responses:
         "201": { description: Deal created. }
-        "403": { description: Missing the required pipeline create or assignment permission. }
+        "403": { description: Missing the required lead create or assignment permission. }
         "422": { description: Validation failed. }
-  /pipeline/{pipeline}:
+  /leads/{lead}:
     patch:
-      tags: [Pipeline]
-      summary: Update pipeline overview
-      description: "Updates overview fields. Assignee changes require `pipeline.change_assignee`, or `pipeline.assign_to_self` when assigning the current user. Progress fields require `pipeline.update` and the current user must be the assignee. Contact/listing changes are limited to manual-entry deals."
+      tags: [Leads]
+      summary: Update lead overview
+      description: "Updates overview fields. Assignee changes require `leads.change_assignee`, or `leads.assign_to_self` when assigning the current user. Progress fields require `leads.update` and the current user must be the assignee. Contact/listing changes are limited to manual-entry deals."
       parameters:
-        - { $ref: "#/components/parameters/PipelineId" }
+        - { $ref: "#/components/parameters/LeadId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PipelineUpdatePayload" }
+            schema: { $ref: "#/components/schemas/LeadUpdatePayload" }
       responses:
         "200": { description: Deal updated. }
-        "403": { description: Missing the required pipeline update or assignment permission. }
-        "404": { description: Pipeline deal is outside current tenant scope or not found. }
+        "403": { description: Missing the required Lead update or assignment permission. }
+        "404": { description: Lead is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
-  /pipeline/{pipeline}/stage:
+  /leads/{lead}/stage:
     patch:
-      tags: [Pipeline]
-      summary: Move pipeline deal to a new stage
-      description: Requires `pipeline.update`. Closed Won and Closed Lost are final stages. Moving to Closed Won marks the related listing Sold. Cards with a sold listing or inactive contact cannot change stage.
+      tags: [Leads]
+      summary: Move lead to a new stage
+      description: Requires `leads.update`. Closed Won and Closed Lost are final stages. Moving to Closed Won marks the related listing Sold. Cards with a sold listing or inactive contact cannot change stage.
       parameters:
-        - { $ref: "#/components/parameters/PipelineId" }
+        - { $ref: "#/components/parameters/LeadId" }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/PipelineStagePayload" }
+            schema: { $ref: "#/components/schemas/LeadStagePayload" }
       responses:
         "200": { description: Deal stage updated. }
-        "403": { description: Missing `pipeline.update` permission. }
-        "404": { description: Pipeline deal is outside current tenant scope or not found. }
+        "403": { description: Missing `leads.update` permission. }
+        "404": { description: Lead is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
   /references:
     get:

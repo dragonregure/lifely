@@ -1,11 +1,11 @@
 import { useCallback } from "react";
 import type { ServerMultiSelectLoadParams, ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
 import { getContactsPage, getListingsPage, getMembersPage } from "@/services/api";
-import { PIPELINE_SOURCES } from "./pipelineConstants";
-import { contactToOption, listingToOption, sourceToOption, userToOption } from "./pipelineUtils";
-import type { AssigneeOption, ContactOption, ListingOption, SourceOption } from "./pipelineTypes";
+import { LEAD_SOURCES } from "./leadConstants";
+import { contactToOption, listingToOption, sourceToOption, userToOption } from "./leadUtils";
+import type { AssigneeOption, ContactOption, ListingOption, SourceOption } from "./leadTypes";
 
-export function usePipelineOptions() {
+export function useLeadOptions() {
   const loadContactOptions = useCallback(
     async ({ search, page, pageSize, signal }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<ContactOption>> => {
       const result = await getContactsPage(
@@ -69,7 +69,7 @@ export function usePipelineOptions() {
   const loadSourceOptions = useCallback(
     async ({ search, page, pageSize }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<SourceOption>> => {
       const normalizedSearch = search.trim().toLowerCase();
-      const matchingOptions = PIPELINE_SOURCES.filter((source) => source.toLowerCase().includes(normalizedSearch)).map(sourceToOption);
+      const matchingOptions = LEAD_SOURCES.filter((source) => source.toLowerCase().includes(normalizedSearch)).map(sourceToOption);
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
 

@@ -30,11 +30,11 @@ final class Permissions
     public const LISTINGS_CREATE = 'listings.create';
     public const LISTINGS_UPDATE = 'listings.update';
 
-    public const PIPELINE_VIEW = 'pipeline.view';
-    public const PIPELINE_CREATE = 'pipeline.create';
-    public const PIPELINE_UPDATE = 'pipeline.update';
-    public const PIPELINE_CHANGE_ASSIGNEE = 'pipeline.change_assignee';
-    public const PIPELINE_ASSIGN_TO_SELF = 'pipeline.assign_to_self';
+    public const LEADS_VIEW = 'leads.view';
+    public const LEADS_CREATE = 'leads.create';
+    public const LEADS_UPDATE = 'leads.update';
+    public const LEADS_CHANGE_ASSIGNEE = 'leads.change_assignee';
+    public const LEADS_ASSIGN_TO_SELF = 'leads.assign_to_self';
 
     public const EMAIL_CAMPAIGNS_VIEW = 'email_campaigns.view';
     public const EMAIL_CAMPAIGNS_CREATE = 'email_campaigns.create';
@@ -75,11 +75,11 @@ final class Permissions
             self::LISTINGS_VIEW,
             self::LISTINGS_CREATE,
             self::LISTINGS_UPDATE,
-            self::PIPELINE_VIEW,
-            self::PIPELINE_CREATE,
-            self::PIPELINE_UPDATE,
-            self::PIPELINE_CHANGE_ASSIGNEE,
-            self::PIPELINE_ASSIGN_TO_SELF,
+            self::LEADS_VIEW,
+            self::LEADS_CREATE,
+            self::LEADS_UPDATE,
+            self::LEADS_CHANGE_ASSIGNEE,
+            self::LEADS_ASSIGN_TO_SELF,
             self::EMAIL_CAMPAIGNS_VIEW,
             self::EMAIL_CAMPAIGNS_CREATE,
             self::ACTIVITY_LOGS_VIEW,

@@ -8,10 +8,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   return {
     newLeads: response.data.new_leads,
     pendingTasks: response.data.pending_tasks,
-    pipelineValue: response.data.pipeline_value,
+    leadValue: response.data.lead_value,
     winRate: response.data.win_rate,
     leadHealth: response.data.lead_health,
-    pipelinePerformance: response.data.pipeline_by_stage.map((item) => ({
+    leadPerformance: response.data.lead_by_stage.map((item) => ({
       label: item.stage,
       value: item.value,
     })),

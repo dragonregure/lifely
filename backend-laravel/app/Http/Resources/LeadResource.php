@@ -2,13 +2,13 @@
 
 namespace App\Http\Resources;
 
-use App\Models\Pipeline;
+use App\Models\Lead;
 use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-/** @mixin Pipeline */
-class PipelineResource extends JsonResource
+/** @mixin Lead */
+class LeadResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
@@ -18,9 +18,9 @@ class PipelineResource extends JsonResource
             'contact_id' => $this->contact_id,
             'listing_id' => $this->listing_id,
             'user_id' => $this->user_id,
-            'stage' => Pipeline::stageLabel((int) $this->stage),
+            'stage' => Lead::stageLabel((int) $this->stage),
             'source_id' => (int) $this->source,
-            'source' => Pipeline::sourceLabel((int) $this->source),
+            'source' => Lead::sourceLabel((int) $this->source),
             'is_active' => (bool) $this->is_active,
             'value' => $this->listingValue(),
             'next_task' => $this->next_task,

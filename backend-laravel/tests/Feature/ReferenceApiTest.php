@@ -76,7 +76,7 @@ class ReferenceApiTest extends TestCase
             'value' => 'Integer',
         ]);
         Reference::factory()->system()->create([
-            'group' => 'pipeline_stage',
+            'group' => 'lead_stage',
             'reference_key' => 'new_lead',
             'value' => 'New Lead',
         ]);
@@ -91,12 +91,12 @@ class ReferenceApiTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['label' => 'String', 'value' => 'string'])
             ->assertJsonFragment(['label' => 'Integer', 'value' => 'int'])
-            ->assertJsonMissing(['label' => 'Pipeline Stage', 'value' => 'pipeline_stage']);
+            ->assertJsonMissing(['label' => 'Lead Stage', 'value' => 'lead_stage']);
 
         $this->withHeader('X-Tenant-Id', $this->tenant->id)
             ->getJson('/api/v1/references/groups')
             ->assertOk()
-            ->assertJsonFragment(['label' => 'Pipeline Stage', 'value' => 'pipeline_stage'])
+            ->assertJsonFragment(['label' => 'Lead Stage', 'value' => 'lead_stage'])
             ->assertJsonFragment(['label' => 'Reference Type', 'value' => Reference::GROUP_REFERENCE_TYPE]);
     }
 

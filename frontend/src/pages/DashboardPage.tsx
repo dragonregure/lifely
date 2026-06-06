@@ -8,14 +8,14 @@ import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { getActivityLogs, getContacts, getDashboardSummary, getListings, getPipelineDeals } from "@/services/api";
+import { getActivityLogs, getContacts, getDashboardSummary, getListings, getLeadDeals } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
-import type { ActivityLog, Contact, DashboardSummary, Listing, PipelineDeal } from "@/types";
+import type { ActivityLog, Contact, DashboardSummary, Listing, LeadDeal } from "@/types";
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [deals, setDeals] = useState<PipelineDeal[]>([]);
+  const [deals, setDeals] = useState<LeadDeal[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
@@ -32,8 +32,8 @@ export function DashboardPage() {
         setSummary(dashboard);
       }
 
-      const pipeline = await getPipelineDeals().catch(() => []);
-      if (isMounted) setDeals(pipeline);
+      const leadDeals = await getLeadDeals().catch(() => []);
+      if (isMounted) setDeals(leadDeals);
 
       const activity = await getActivityLogs().catch(() => []);
       if (isMounted) setLogs(activity);
@@ -68,11 +68,11 @@ export function DashboardPage() {
         <PermissionGate permission={PERMISSIONS.contacts.view}>
           <MetricCard label="New leads" value={`${summary?.newLeads ?? 0}`} note="Fresh contacts this week" icon={UsersRound} isLoading={isLoading} />
         </PermissionGate>
-        <PermissionGate permission={PERMISSIONS.pipeline.view}>
+        <PermissionGate permission={PERMISSIONS.leads.view}>
           <MetricCard label="Pending tasks" value={`${summary?.pendingTasks ?? 0}`} note="Due across active deals" icon={Clock3} isLoading={isLoading} />
           <MetricCard
-            label="Pipeline value"
-            value={formatCurrency(summary?.pipelineValue ?? 0)}
+            label="Lead value"
+            value={formatCurrency(summary?.leadValue ?? 0)}
             note="Weighted active opportunities"
             icon={DollarSign}
             isLoading={isLoading}
@@ -84,10 +84,10 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <PermissionGate anyOf={[PERMISSIONS.pipeline.view, PERMISSIONS.reports.view]}>
+        <PermissionGate anyOf={[PERMISSIONS.leads.view, PERMISSIONS.reports.view]}>
           <Card>
             <CardHeader>
-              <CardTitle>Pipeline performance</CardTitle>
+              <CardTitle>Lead performance</CardTitle>
               <CardDescription>Monthly closed and forecasted deal value.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -96,9 +96,9 @@ export function DashboardPage() {
                   <LoadingState className="h-full" label="Loading chart" />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={summary?.pipelinePerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
+                    <AreaChart data={summary?.leadPerformance ?? []} margin={{ left: 0, right: 16, top: 8, bottom: 0 }}>
                       <defs>
-                        <linearGradient id="pipelineFill" x1="0" x2="0" y1="0" y2="1">
+                        <linearGradient id="leadFill" x1="0" x2="0" y1="0" y2="1">
                           <stop offset="5%" stopColor="#0EA5E9" stopOpacity={0.22} />
                           <stop offset="95%" stopColor="#0EA5E9" stopOpacity={0.02} />
                         </linearGradient>
@@ -107,7 +107,7 @@ export function DashboardPage() {
                       <XAxis dataKey="label" tickLine={false} axisLine={false} />
                       <YAxis tickLine={false} axisLine={false} tickFormatter={(value) => `$${Number(value) / 1000}k`} />
                       <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                      <Area type="monotone" dataKey="value" stroke="#0EA5E9" strokeWidth={2} fill="url(#pipelineFill)" />
+                      <Area type="monotone" dataKey="value" stroke="#0EA5E9" strokeWidth={2} fill="url(#leadFill)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 )}
@@ -138,7 +138,7 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        <PermissionGate permission={PERMISSIONS.pipeline.view}>
+        <PermissionGate permission={PERMISSIONS.leads.view}>
           <Card>
             <CardHeader>
               <CardTitle>Priority deals</CardTitle>
