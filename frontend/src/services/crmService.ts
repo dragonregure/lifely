@@ -52,12 +52,18 @@ export type PipelineDealPayload = {
 
 export type ListingInclude = "documents" | "contacts" | "users";
 
+export type PipelineInclude = "contact" | "listing" | "user";
+
 type ListingRequestOptions = Pick<RequestInit, "signal"> & {
   include?: readonly ListingInclude[];
 };
 
 type ListingPageRequestOptions = Pick<RequestInit, "signal"> & {
   include?: readonly ListingInclude[];
+};
+
+type PipelinePageRequestOptions = Pick<RequestInit, "signal"> & {
+  include?: readonly PipelineInclude[];
 };
 
 function toBackendContactPayload(payload: Partial<ContactPayload>) {
@@ -100,7 +106,7 @@ function toBackendPipelineDealPayload(payload: Partial<PipelineDealPayload>) {
   };
 }
 
-function appendIncludes(query: URLSearchParams, includes: readonly ListingInclude[] = []) {
+function appendIncludes(query: URLSearchParams, includes: readonly string[] = []) {
   includes.forEach((include) => query.append("include[]", include));
 }
 
@@ -246,15 +252,18 @@ export async function updateListing(listingId: string, payload: Partial<ListingP
   return mapListing(response.data);
 }
 
-export async function getPipelineDeals() {
-  return (await getPipelineDealsPage({ page: 1, pageSize: 100 })).data;
+export async function getPipelineDeals(options: PipelinePageRequestOptions = {}) {
+  return (await getPipelineDealsPage({ page: 1, pageSize: 100 }, options)).data;
 }
 
 export async function getPipelineDealsPage(
   params?: ServerDataTableParams,
-  options: Pick<RequestInit, "signal"> = {},
+  options: PipelinePageRequestOptions = {},
 ): Promise<PaginatedResult<ReturnType<typeof mapDeal>>> {
-  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/pipeline?${toQueryString(params)}`, options);
+  const { include = [], ...requestOptions } = options;
+  const query = new URLSearchParams(toQueryString(params));
+  appendIncludes(query, include);
+  const response = await apiRequest<ApiPaginatedEnvelope<BackendDeal>>(`/pipeline?${query.toString()}`, requestOptions);
 
   return {
     data: response.data.map(mapDeal),

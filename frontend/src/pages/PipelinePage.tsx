@@ -42,6 +42,7 @@ const statusOptions = [
 ] as const;
 
 const MANUAL_ENTRY_SOURCE: PipelineSource = "Manual Entry";
+const PIPELINE_BOARD_INCLUDES = ["contact", "listing", "user"] as const;
 
 type ContactOption = ServerMultiSelectOption & {
   contact: Contact;
@@ -210,7 +211,12 @@ function PipelineOverviewDialog({
 
     try {
       const savedDeal = Object.keys(payload).length > 0 ? await updatePipelineDeal(deal.id, payload) : deal;
-      onSaved(savedDeal);
+      onSaved({
+        ...savedDeal,
+        contact: draft.contact,
+        listing: draft.listing,
+        user: draft.assignee,
+      });
       onOpenChange(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to save pipeline deal.");
@@ -367,7 +373,7 @@ export function PipelinePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getPipelineDeals()
+    getPipelineDeals({ include: PIPELINE_BOARD_INCLUDES })
       .then(setDeals)
       .catch((caught) => setError(caught instanceof Error ? caught.message : "Unable to load pipeline."))
       .finally(() => setIsLoading(false));
