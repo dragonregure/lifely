@@ -27,11 +27,11 @@ export default function App() {
             <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/contacts"]} />}>
               <Route path="/contacts" element={<ContactsPage />} />
             </Route>
-            <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/leads"]} />}>
-              <Route path="/leads" element={<LeadsPage />} />
-            </Route>
             <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/listings"]} />}>
               <Route path="/listings" element={<ListingsPage />} />
+            </Route>
+            <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/leads"]} />}>
+              <Route path="/leads" element={<LeadsPage />} />
             </Route>
             <Route element={<PermissionRoute anyOf={ROUTE_PERMISSIONS["/email"]} />}>
               <Route path="/email" element={<BulkEmailPage />} />
