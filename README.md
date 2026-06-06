@@ -1,19 +1,28 @@
 # Lifely
 
-Lifely is a decoupled real estate CRM with a React frontend and Laravel API backend. The local Docker stack runs the frontend, backend, MySQL, Redis, and a queue worker.
+Lifely is a decoupled, multi-tenant real estate CRM portfolio project. It combines a React single-page app with a Laravel API backend for tenant-scoped contacts, listings, leads, bulk email campaigns, activity logs, reports, settings, and RBAC.
 
-## Folder Structure
+The Docker stack is the main local workflow. It runs the frontend, backend, queue worker, MySQL, Redis, and phpMyAdmin without requiring local PHP, Composer, Node.js, MySQL, or Redis.
+
+## Stack
+
+- Frontend: React 18, TypeScript, Vite 6, Tailwind CSS, Radix/shadcn-style primitives, Lucide icons, Recharts
+- Backend: PHP 8.4, Laravel 13, Laravel Sanctum bearer-token auth, Spatie Laravel Permission, L5-Swagger
+- Data and jobs: MySQL 8.4, Redis 7, Laravel queue worker
+- Local runtime: Docker Compose, Nginx, PHP-FPM, Vite
+
+## Repository Structure
 
 ```text
 lifely/
-|-- frontend/
-|-- backend-laravel/
-|-- docker/
-|-- docker-compose.yml
-|-- .env.example
-|-- Makefile
-|-- README.md
-`-- docs/
+|-- backend-laravel/   Laravel API, migrations, tests, OpenAPI spec
+|-- frontend/          React CRM app and API service layer
+|-- docker/            Backend/frontend Docker image config
+|-- docs/              Architecture, API, RBAC, and component docs
+|-- docker-compose.yml Local multi-service stack
+|-- Makefile           Docker command shortcuts
+|-- AGENTS.md          Project instructions for coding agents
+`-- README.md
 ```
 
 ## Requirements
@@ -22,7 +31,10 @@ lifely/
 - Docker Compose
 - Optional: Make, for shorter container command aliases
 
-You do not need local PHP, Composer, Node.js, MySQL, or Redis for the Docker workflow.
+For non-Docker setup, use the stack-specific guides:
+
+- [Backend setup](backend-laravel/README.md)
+- [Frontend setup](frontend/README.md)
 
 ## Quick Start
 
@@ -44,24 +56,25 @@ You do not need local PHP, Composer, Node.js, MySQL, or Redis for the Docker wor
    docker compose up
    ```
 
-   If Dockerfiles or dependency manifests change, rebuild explicitly:
+   Rebuild when Dockerfiles or dependency manifests change:
 
    ```bash
    docker compose up --build
    ```
 
-3. Open the apps.
+3. Open the local services.
 
    ```text
-   Frontend: http://localhost:5173
+   Frontend:       http://localhost:5173
    Backend health: http://localhost:8000/api/v1/health
-   API docs: http://localhost:8000/api/documentation
-   phpMyAdmin: http://localhost:8080
+   Swagger UI:     http://localhost:8000/api/documentation
+   OpenAPI YAML:   http://localhost:8000/api/docs
+   phpMyAdmin:     http://localhost:8080
    ```
 
-## Local Demo Login
+The backend container runs migrations and seeders on startup when the Docker flags in `docker-compose.yml` are enabled, so a fresh Docker database is login-ready after the stack finishes booting.
 
-The backend container entrypoint runs migrations and seeds demo data on startup.
+## Demo Login
 
 ```text
 Email: maya@skyline.example
@@ -70,12 +83,28 @@ Password: password
 
 ## Services
 
-- `frontend`: Vite React app
-- `backend`: Laravel API served by Nginx and PHP-FPM
+- `frontend`: Vite React app served on port `5173`
+- `backend`: Laravel API served by Nginx/PHP-FPM on port `8000`
 - `queue`: Laravel Redis queue worker
 - `mysql`: MySQL database
-- `phpmyadmin`: Browser database admin UI
 - `redis`: Redis queue/cache service
+- `phpmyadmin`: browser database admin UI on port `8080`
+
+## Ports And Environment
+
+Defaults are configured in the root `.env.example` and can be overridden in `.env`.
+
+```text
+BACKEND_PORT=8000
+FRONTEND_PORT=5173
+MYSQL_PORT=3307
+MYSQL_DATABASE=lifely
+MYSQL_ROOT_PASSWORD=secret
+PHPMYADMIN_PORT=8080
+REDIS_PORT=6380
+```
+
+The frontend receives `VITE_API_BASE_URL=http://localhost:8000/api/v1` from Docker Compose. The backend receives its Docker database, Redis, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`.
 
 ## Useful Commands
 
@@ -110,27 +139,32 @@ docker compose exec frontend npm run build
 docker compose exec frontend npm run lint
 ```
 
-## Ports
+## Validation
 
-Defaults can be changed in the root `.env`.
+Run relevant validation before handing off code changes:
 
-```text
-Frontend: 5173
-Backend: 8000
-phpMyAdmin: 8080
-MySQL: 3307 on the host, 3306 inside Docker
-Redis: 6380 on the host, 6379 inside Docker
+```bash
+docker compose exec backend composer test
+docker compose exec backend composer analyse
+docker compose exec backend composer lint
+docker compose exec frontend npm run build
+docker compose exec frontend npm run lint
 ```
+
+For focused local iteration, see the commands in the backend and frontend README files.
+
+## Documentation
+
+Project handoff docs live in [docs/](docs/README.md):
+
+- [Architecture](docs/architecture.md): runtime shape, backend/frontend layers, tenancy, CRM modules, data tables, and local operations
+- [API conventions](docs/api-conventions.md): auth, tenant headers, request/resource patterns, server-side query params, OpenAPI, and activity log payloads
+- [Permission system](docs/permission-system.md): RBAC source of truth, roles, permission constants, and frontend visibility
+- [Custom components](docs/custom-components.md): shared table, selector, dialog, RBAC, loading, page, and service patterns
 
 ## phpMyAdmin
 
-Open:
-
-```text
-http://localhost:8080
-```
-
-Default local credentials:
+Open `http://localhost:8080` and use:
 
 ```text
 Server: mysql
@@ -139,13 +173,12 @@ Password: secret
 Database: lifely
 ```
 
+If you changed `MYSQL_ROOT_PASSWORD` or `MYSQL_DATABASE` in `.env`, use those values instead.
+
 ## Notes
 
-- Laravel environment values for Docker are injected from `docker-compose.yml`.
-- The backend Docker image runs Nginx on port `8000` and forwards PHP requests to PHP-FPM.
-- Xdebug is installed in the backend image, and its settings are mounted from `docker/backend/xdebug.ini`.
-- The API container enables `LIFELY_RUN_MIGRATIONS=true` and `LIFELY_RUN_SEEDERS=true`, so fresh Docker databases are login-ready after startup.
-- The backend code is bind-mounted for local development, while `vendor/` is kept in a Docker named volume.
-- Laravel's Docker config cache is kept in a Docker named volume, so local `.env` values do not leak into the container.
-- The frontend code is bind-mounted for local development, while `node_modules/` is kept in a Docker named volume.
-- MySQL and Redis data are stored in Docker named volumes.
+- Docker bind-mounts backend and frontend source for local development.
+- Backend `vendor/`, frontend `node_modules/`, Laravel config cache, MySQL data, and Redis data are stored in Docker named volumes.
+- Xdebug is installed in the backend image and configured through `docker/backend/xdebug.ini`.
+- Backend API routes are versioned under `/api/v1`.
+- Protected API routes use Sanctum bearer tokens and tenant context. Backend authorization is the source of truth; frontend RBAC controls only route and UI visibility.
