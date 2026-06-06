@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Plus, Search, SlidersHorizontal, UserCheck, X } from "lucide-react";
+import { CircleAvatar } from "@/components/CircleAvatar";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
@@ -984,6 +985,7 @@ export function PipelinePage() {
                 {column.deals.map((deal) => {
                   const contact = deal.contact;
                   const listing = deal.listing;
+                  const assignee = deal.user;
                   const displayName = contact ? contactName(contact) : "Unassigned contact";
 
                   return (
@@ -997,7 +999,17 @@ export function PipelinePage() {
                         <CardContent className="min-w-0 p-3">
                           <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">{listing?.title ?? "Unassigned listing"}</p>
-                          <p className="mt-2 truncate text-sm font-semibold">{formatCurrency(deal.value)}</p>
+                          <div className="mt-2 flex min-h-7 items-end justify-between gap-2">
+                            <p className="min-w-0 truncate text-sm font-semibold">{formatCurrency(deal.value)}</p>
+                            {assignee ? (
+                              <CircleAvatar
+                                name={assignee.name}
+                                initials={assignee.avatarInitials}
+                                size="sm"
+                                aria-label={`Assigned to ${assignee.name}`}
+                              />
+                            ) : null}
+                          </div>
                         </CardContent>
                       </Card>
                     </button>
