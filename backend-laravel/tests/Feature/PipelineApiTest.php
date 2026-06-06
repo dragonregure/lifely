@@ -31,7 +31,11 @@ class PipelineApiTest extends TestCase
     public function test_authorized_user_can_create_pipeline_with_readable_stage_and_listing_value(): void
     {
         $tenant = Tenant::factory()->create();
-        $actor = $this->actingUserWithPermissions($tenant, [Permissions::PIPELINE_CREATE, Permissions::PIPELINE_VIEW]);
+        $actor = $this->actingUserWithPermissions($tenant, [
+            Permissions::PIPELINE_CREATE,
+            Permissions::PIPELINE_VIEW,
+            Permissions::PIPELINE_ASSIGN_TO_SELF,
+        ]);
         $contact = $this->createContact($tenant, $actor);
         $listing = $this->createListing($tenant, 875000);
 
@@ -77,6 +81,56 @@ class PipelineApiTest extends TestCase
             ->assertJsonPath('data.0.contact.email', 'ethan.pipeline@example.com')
             ->assertJsonPath('data.0.listing.title', 'Harbor View Residence')
             ->assertJsonPath('data.0.user_id', $actor->id);
+    }
+
+    public function test_assign_to_self_permission_can_create_pipeline_for_current_user_only(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $actor = $this->actingUserWithPermissions($tenant, [
+            Permissions::PIPELINE_CREATE,
+            Permissions::PIPELINE_ASSIGN_TO_SELF,
+        ]);
+        $otherUser = User::factory()->create(['tenant_id' => $tenant->id]);
+        $contact = $this->createContact($tenant, $actor);
+        $listing = $this->createListing($tenant, 875000);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/pipeline', [
+                'contact_id' => $contact->id,
+                'listing_id' => $listing->id,
+                'user_id' => $otherUser->id,
+            ])
+            ->assertForbidden();
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/pipeline', [
+                'contact_id' => $contact->id,
+                'listing_id' => $listing->id,
+                'user_id' => $actor->id,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.user_id', $actor->id);
+    }
+
+    public function test_change_assignee_permission_can_create_pipeline_for_another_user(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $actor = $this->actingUserWithPermissions($tenant, [
+            Permissions::PIPELINE_CREATE,
+            Permissions::PIPELINE_CHANGE_ASSIGNEE,
+        ]);
+        $assignee = User::factory()->create(['tenant_id' => $tenant->id]);
+        $contact = $this->createContact($tenant, $actor);
+        $listing = $this->createListing($tenant, 875000);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/pipeline', [
+                'contact_id' => $contact->id,
+                'listing_id' => $listing->id,
+                'user_id' => $assignee->id,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.user_id', $assignee->id);
     }
 
     public function test_authorized_user_can_update_pipeline_stage_with_integer_storage(): void

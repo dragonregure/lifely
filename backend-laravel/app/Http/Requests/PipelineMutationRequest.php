@@ -109,6 +109,34 @@ abstract class PipelineMutationRequest extends FormRequest
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function authorizePipelineCreate(array $data): void
+    {
+        $user = $this->user();
+
+        if (! $user instanceof User) {
+            throw new HttpException(Response::HTTP_FORBIDDEN);
+        }
+
+        if ($user->can(Permissions::SYSTEM_BYPASS)) {
+            return;
+        }
+
+        if (! array_key_exists('user_id', $data)) {
+            return;
+        }
+
+        $isAssigningToSelf = (string) $data['user_id'] === (string) $user->id;
+
+        $this->denyUnless(
+            $user->can(Permissions::PIPELINE_CHANGE_ASSIGNEE)
+                || ($isAssigningToSelf && $user->can(Permissions::PIPELINE_ASSIGN_TO_SELF)),
+            'You do not have permission to set this pipeline assignee.'
+        );
+    }
+
     private function tenantIdForAuthorization(): string
     {
         $tenantId = $this->tenantIdForValidation();

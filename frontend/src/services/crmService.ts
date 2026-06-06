@@ -274,6 +274,15 @@ export async function getPipelineDealsPage(
   };
 }
 
+export async function createPipelineDeal(payload: PipelineDealPayload) {
+  const response = await apiRequest<ApiEnvelope<BackendDeal>>("/pipeline", {
+    method: "POST",
+    body: JSON.stringify(toBackendPipelineDealPayload(payload)),
+  });
+
+  return mapDeal(response.data);
+}
+
 export async function updatePipelineDeal(dealId: string, payload: Partial<PipelineDealPayload>) {
   const response = await apiRequest<ApiEnvelope<BackendDeal>>(`/pipeline/${dealId}`, {
     method: "PATCH",

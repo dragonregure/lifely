@@ -2,6 +2,7 @@ export { login, logout, register } from "@/services/authService";
 export {
   createListing,
   createContact,
+  createPipelineDeal,
   deleteContact,
   getActivityLogs,
   getActivityLogsPage,

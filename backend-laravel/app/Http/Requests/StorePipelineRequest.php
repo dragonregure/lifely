@@ -13,6 +13,11 @@ class StorePipelineRequest extends PipelineMutationRequest
         return $this->user()?->can(Permissions::PIPELINE_CREATE) ?? false;
     }
 
+    protected function passedValidation(): void
+    {
+        $this->authorizePipelineCreate($this->validated());
+    }
+
     public function rules(): array
     {
         $tenantId = $this->tenantIdForValidation();
