@@ -18,14 +18,12 @@ class ReportingService implements ReportingServiceInterface
     public function dashboard(string $tenantId): array
     {
         $contactsByStatus = $this->contacts->countByStatus($tenantId);
-        $totalContacts = max(1, (int) $contactsByStatus->sum());
-        $closedContacts = (int) ($contactsByStatus['Closed'] ?? 0);
 
         return [
-            'new_leads' => (int) ($contactsByStatus['New'] ?? 0),
+            'new_leads' => (int) ($contactsByStatus['Active'] ?? 0),
             'pending_tasks' => $this->pipeline->pendingTaskCount($tenantId),
             'pipeline_value' => $this->pipeline->totalValue($tenantId),
-            'win_rate' => round(($closedContacts / $totalContacts) * 100, 1),
+            'win_rate' => 0,
             'lead_health' => $contactsByStatus
                 ->map(fn ($total, $status) => ['label' => $status, 'value' => (int) $total])
                 ->values()

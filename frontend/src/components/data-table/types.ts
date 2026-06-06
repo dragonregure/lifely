@@ -1,4 +1,5 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { ServerMultiSelectLoadParams, ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
 
 export type DataTableSortDirection = "asc" | "desc";
 
@@ -36,12 +37,15 @@ export type DataTableColumn<TData extends object> = {
 export type DataTableFilterOption = {
   label: string;
   value: string;
+  description?: string;
 };
 
 export type DataTableFilter<TData extends object> = {
   id: string;
   label: string;
-  options: DataTableFilterOption[];
+  type?: "select" | "multi-select";
+  options?: DataTableFilterOption[];
+  loadOptions?: (params: ServerMultiSelectLoadParams) => Promise<ServerMultiSelectLoadResult<DataTableFilterOption>>;
   defaultValue?: string;
   predicate: (row: TData, selectedValue: string) => boolean;
 };

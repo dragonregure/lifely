@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Contact;
-use App\Models\Reference;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -21,12 +20,6 @@ class ContactFactory extends Factory
      */
     public function definition(): array
     {
-        $statusId = Reference::query()
-            ->where('group', Contact::STATUS_REFERENCE_GROUP)
-            ->inRandomOrder()
-            ->firstOrFail()
-            ->getKey();
-
         return [
             'tenant_id' => Tenant::factory(),
             'email' => fake()->unique()->safeEmail(),
@@ -34,9 +27,9 @@ class ContactFactory extends Factory
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'phone' => fake()->phoneNumber(),
-            'status_id' => $statusId,
+            'status' => true,
             'budget' => fake()->numberBetween(100000, 1000000),
-            'source' => 'Open house',
+            'source' => Contact::SOURCE_OPEN_HOUSE,
         ];
     }
 

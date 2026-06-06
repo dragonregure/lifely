@@ -52,7 +52,25 @@ export type Reference = {
   updatedAt?: string | null;
 };
 
-export type ContactStatus = string;
+export type ContactStatus = "Active" | "Inactive";
+
+export type ContactSource =
+  | "Manual Entry"
+  | "Website"
+  | "Listing Inquiry"
+  | "Social Media"
+  | "Referral"
+  | "Phone Call"
+  | "Messaging"
+  | "Email"
+  | "Paid Ads"
+  | "Portal"
+  | "Exhibition"
+  | "Integration"
+  | "Walk-in"
+  | "Open House"
+  | "Developer Partner"
+  | "Bulk Import";
 
 export type ListingStatus = 1 | 2 | 3 | 4;
 
@@ -109,10 +127,11 @@ export type Contact = {
   lastName: string;
   email: string;
   phone: string;
-  statusId?: string | null;
   status: ContactStatus;
+  statusValue: boolean;
   budget: number;
-  source: string;
+  sourceId: number | null;
+  source: ContactSource | "";
   ownerId: string;
   lastContactedAt: string;
 };

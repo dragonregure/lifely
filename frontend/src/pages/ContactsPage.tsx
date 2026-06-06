@@ -14,11 +14,9 @@ import { useAuth } from "@/context/AuthContext";
 import {
   createContact,
   deleteContact,
-  getContactStatusOptions,
   getContactsPage,
   getMembersPage,
   updateContact,
-  type ReferenceOption,
 } from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
 import { formatCurrency } from "@/lib/utils";
@@ -26,10 +24,10 @@ import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
 import { ContactAssignmentFields, ContactAssignmentView, ContactProfileFields, ContactProfileView } from "./contacts/ContactFields";
 import type { ContactDraft, MemberOption, PendingContactAction } from "./contacts/contactTypes";
+import { CONTACT_SOURCE_OPTIONS, CONTACT_STATUS_OPTIONS } from "./contacts/contactConstants";
 import {
   blankDraft,
   contactName,
-  defaultContactStatusId,
   draftFromContact,
   memberToOption,
   nullableDate,
@@ -50,7 +48,6 @@ export function ContactsPage() {
   const [assignmentDraft, setAssignmentDraft] = useState<ContactDraft>(() => blankDraft());
   const [assignmentOwnerDetails, setAssignmentOwnerDetails] = useState<User | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingContactAction | null>(null);
-  const [statusOptions, setStatusOptions] = useState<ReferenceOption[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,35 +58,6 @@ export function ContactsPage() {
   const { can } = useAuthorization();
   const canUpdateContacts = can(PERMISSIONS.contacts.update);
   const canDeleteContacts = can(PERMISSIONS.contacts.delete);
-  const defaultStatusId = defaultContactStatusId(statusOptions);
-  const statusIdByLabel = useMemo(
-    () => new Map(statusOptions.map((status) => [status.label, status.value])),
-    [statusOptions],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    getContactStatusOptions({ signal: controller.signal })
-      .then((options) => {
-        if (controller.signal.aborted) return;
-
-        setStatusOptions(options);
-      })
-      .catch((caught) => {
-        if (!isAbortError(caught)) {
-          setLoadError(caught instanceof Error ? caught.message : "Unable to load contact statuses.");
-        }
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  useEffect(() => {
-    if (!defaultStatusId) return;
-
-    setCreateDraft((draft) => (draft.statusId ? draft : updateDraft(draft, { statusId: defaultStatusId })));
-  }, [defaultStatusId]);
 
   const handleQueryChange = useCallback((nextQuery: DataTableQueryState, context: DataTableQueryContext) => {
     setLoadError("");
@@ -177,7 +145,7 @@ export function ContactsPage() {
     setCreateOpen(open);
 
     if (!open) {
-      setCreateDraft(blankDraft("", defaultStatusId));
+      setCreateDraft(blankDraft());
       setCreateOwnerDetails(null);
     }
   };
@@ -192,7 +160,7 @@ export function ContactsPage() {
     try {
       await createContact(payloadFromDraft(createDraft));
 
-      setCreateDraft(blankDraft("", defaultStatusId));
+      setCreateDraft(blankDraft());
       setCreateOwnerDetails(null);
       setCreateOpen(false);
       refreshContacts();
@@ -263,14 +231,8 @@ export function ContactsPage() {
           setSelectedContactId(null);
         }
       } else {
-        const nextStatusId = statusIdByLabel.get(pendingAction.type === "archive" ? "Dormant" : "New");
-
-        if (!nextStatusId) {
-          throw new Error("Contact status reference is unavailable.");
-        }
-
         const contact = await updateContact(pendingAction.contact.id, {
-          statusId: nextStatusId,
+          status: pendingAction.type === "activate",
         });
         setContacts((current) => current.map((item) => (item.id === pendingAction.contact.id ? contact : item)));
       }
@@ -287,13 +249,13 @@ export function ContactsPage() {
 
   const selectedOwner = selectedContact ? members.find((user) => user.id === selectedContact.ownerId) : undefined;
   const actionLabel =
-    pendingAction?.type === "delete" ? "Delete contact" : pendingAction?.type === "archive" ? "Archive contact" : "Activate contact";
+    pendingAction?.type === "delete" ? "Delete contact" : pendingAction?.type === "deactivate" ? "Deactivate contact" : "Activate contact";
   const actionDescription =
     pendingAction?.type === "delete"
       ? `${pendingAction.contact.firstName} ${pendingAction.contact.lastName} will be deleted from this tenant.`
-      : pendingAction?.type === "archive"
-        ? `${pendingAction.contact.firstName} ${pendingAction.contact.lastName} will move to Dormant status.`
-        : `${pendingAction?.contact.firstName} ${pendingAction?.contact.lastName} will move back to New status.`;
+      : pendingAction?.type === "deactivate"
+        ? `${pendingAction.contact.firstName} ${pendingAction.contact.lastName} will be marked inactive.`
+        : `${pendingAction?.contact.firstName} ${pendingAction?.contact.lastName} will be marked active.`;
 
   const detailTabs: DetailDialogTab[] | undefined = selectedContact
     ? [
@@ -301,7 +263,7 @@ export function ContactsPage() {
           value: "profile",
           label: "Profile",
           viewContent: <ContactProfileView contact={selectedContact} />,
-          editContent: <ContactProfileFields fieldPrefix="profile" draft={profileDraft} statusOptions={statusOptions} setDraft={setProfileDraft} />,
+          editContent: <ContactProfileFields fieldPrefix="profile" draft={profileDraft} setDraft={setProfileDraft} />,
           onSave: saveProfile,
         },
         {
@@ -328,7 +290,7 @@ export function ContactsPage() {
     {
       value: "profile",
       label: "Profile",
-      content: <ContactProfileFields fieldPrefix="create" draft={createDraft} statusOptions={statusOptions} setDraft={setCreateDraft} />,
+      content: <ContactProfileFields fieldPrefix="create" draft={createDraft} setDraft={setCreateDraft} />,
     },
     {
       value: "assignment",
@@ -399,14 +361,34 @@ export function ContactsPage() {
         id: "status",
         label: "Status",
         defaultValue: "all",
-        options: [
-          { label: "All statuses", value: "all" },
-          ...statusOptions,
-        ],
-        predicate: (contact, selectedValue) => selectedValue === "all" || contact.statusId === selectedValue,
+        options: [...CONTACT_STATUS_OPTIONS],
+        predicate: (contact, selectedValue) => selectedValue === "all" || contact.status.toLowerCase() === selectedValue,
+      },
+      {
+        id: "owner_id",
+        label: "Owner",
+        type: "multi-select",
+        defaultValue: "all",
+        loadOptions: async (params) => {
+          const result = await loadMemberOptions(params);
+
+          return {
+            options: result.options.map(({ value, label, description }) => ({ value, label, description })),
+            hasMore: result.hasMore,
+          };
+        },
+        predicate: (contact, selectedValue) => selectedValue.split(",").some((ownerId) => ownerId === contact.ownerId),
+      },
+      {
+        id: "source",
+        label: "Source",
+        type: "multi-select",
+        defaultValue: "all",
+        options: CONTACT_SOURCE_OPTIONS,
+        predicate: (contact, selectedValue) => selectedValue.split(",").some((sourceId) => sourceId === String(contact.sourceId)),
       },
     ],
-    [statusOptions],
+    [loadMemberOptions],
   );
 
   return (
@@ -441,7 +423,7 @@ export function ContactsPage() {
 
       <DataTable
         actions={(contact) => {
-          const isDormant = contact.status === "Dormant";
+          const isInactive = !contact.statusValue;
 
           return (
             <>
@@ -452,11 +434,11 @@ export function ContactsPage() {
                 <Button
                   variant="outline"
                   size="icon"
-                  title={isDormant ? "Activate contact" : "Archive contact"}
-                  aria-label={isDormant ? "Activate contact" : "Archive contact"}
-                  onClick={() => setPendingAction({ type: isDormant ? "activate" : "archive", contact })}
+                  title={isInactive ? "Activate contact" : "Deactivate contact"}
+                  aria-label={isInactive ? "Activate contact" : "Deactivate contact"}
+                  onClick={() => setPendingAction({ type: isInactive ? "activate" : "deactivate", contact })}
                 >
-                  {isDormant ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                  {isInactive ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                 </Button>
               </PermissionGate>
               <PermissionGate permission={PERMISSIONS.contacts.delete}>
@@ -508,7 +490,7 @@ export function ContactsPage() {
         <ConfirmationDialog
           title={actionLabel}
           description={actionDescription}
-          confirmLabel={pendingAction.type === "delete" ? "Delete" : pendingAction.type === "archive" ? "Archive" : "Activate"}
+          confirmLabel={pendingAction.type === "delete" ? "Delete" : pendingAction.type === "deactivate" ? "Deactivate" : "Activate"}
           variant={pendingAction.type === "delete" ? "destructive" : "default"}
           open={Boolean(pendingAction)}
           isSubmitting={isMutating}

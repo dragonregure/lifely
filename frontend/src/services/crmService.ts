@@ -22,9 +22,9 @@ export type ContactPayload = {
   lastName?: string;
   email?: string;
   phone?: string | null;
-  statusId?: string;
+  status?: boolean;
   budget?: number | null;
-  source?: string | null;
+  source?: number | null;
   lastContactedAt?: string | null;
 };
 
@@ -87,7 +87,7 @@ function toBackendContactPayload(payload: Partial<ContactPayload>) {
     ...(payload.lastName !== undefined ? { last_name: payload.lastName } : {}),
     ...(payload.email !== undefined ? { email: payload.email } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "phone") ? { phone: payload.phone } : {}),
-    ...(payload.statusId !== undefined ? { status_id: payload.statusId } : {}),
+    ...(payload.status !== undefined ? { status: payload.status } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "budget") ? { budget: payload.budget } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "source") ? { source: payload.source } : {}),
     ...(Object.prototype.hasOwnProperty.call(payload, "lastContactedAt") ? { last_contacted_at: payload.lastContactedAt } : {}),

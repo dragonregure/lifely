@@ -6,15 +6,15 @@ export type ContactDraft = {
   lastName: string;
   email: string;
   phone: string;
-  statusId: string;
+  status: "active" | "inactive";
   budget: string;
-  source: string;
+  sourceId: string;
   ownerId: string;
   lastContactedAt: string;
 };
 
 export type PendingContactAction = {
-  type: "archive" | "activate" | "delete";
+  type: "deactivate" | "activate" | "delete";
   contact: Contact;
 };
 

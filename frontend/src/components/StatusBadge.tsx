@@ -9,9 +9,9 @@ export function StatusBadge({ status }: StatusBadgeProps) {
       ? "success"
       : status === "Negotiating" || status === "Under Contract" || status === "Queued"
         ? "warning"
-        : status === "New" || status === "Available" || status === "Draft"
+        : status === "New" || status === "Available" || status === "Draft" || status === "Active"
           ? "info"
-          : status === "Dormant"
+          : status === "Dormant" || status === "Inactive"
             ? "muted"
             : "secondary";
 

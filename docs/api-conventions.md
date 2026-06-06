@@ -85,6 +85,12 @@ Frontend helpers:
 - `DataTable`
 - `toQueryString` in `frontend/src/services/dataTableParams.ts`
 
+## Contact API
+
+Contact status is fixed to Active/Inactive. Store it as `contacts.status` boolean, expose API `status` as boolean, and keep display labels at serialization/UI boundaries.
+
+Contact source is a fixed integer enum. Keep allowed backend values centralized in `App\Models\Contact::SOURCE_LABELS` and mirror them in frontend static contact source options.
+
 ## OpenAPI
 
 Update `backend-laravel/public/docs/openapi.yaml` for:

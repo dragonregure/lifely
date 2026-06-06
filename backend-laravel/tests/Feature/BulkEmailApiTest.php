@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Contracts\EmailCampaignRepositoryInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
-use App\Models\Reference;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
@@ -37,8 +36,6 @@ class BulkEmailApiTest extends TestCase
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
         $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
         Sanctum::actingAs($user, ['access']);
-        $qualifiedStatus = $this->contactStatus('qualified');
-        $viewingStatus = $this->contactStatus('viewing');
 
         $firstContact = Contact::query()->create([
             'tenant_id' => $tenant->id,
@@ -46,7 +43,7 @@ class BulkEmailApiTest extends TestCase
             'first_name' => 'Ethan',
             'last_name' => 'Miller',
             'email' => 'ethan@example.com',
-            'status_id' => $qualifiedStatus->id,
+            'status' => true,
         ]);
         $secondContact = Contact::query()->create([
             'tenant_id' => $tenant->id,
@@ -54,7 +51,7 @@ class BulkEmailApiTest extends TestCase
             'first_name' => 'Priya',
             'last_name' => 'Shah',
             'email' => 'priya@example.com',
-            'status_id' => $viewingStatus->id,
+            'status' => true,
         ]);
 
         $this->app->bind(EmailCampaignRepositoryInterface::class, fn () => new class implements EmailCampaignRepositoryInterface {
@@ -94,14 +91,5 @@ class BulkEmailApiTest extends TestCase
             ->assertAccepted()
             ->assertJsonPath('data.status', 'Queued')
             ->assertJsonPath('data.recipient_count', 2);
-    }
-
-    private function contactStatus(string $key): Reference
-    {
-        return Reference::query()
-            ->whereNull('tenant_id')
-            ->where('group', Contact::STATUS_REFERENCE_GROUP)
-            ->where('reference_key', $key)
-            ->firstOrFail();
     }
 }

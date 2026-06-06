@@ -26,6 +26,7 @@ import type {
   UserAccess,
   ListingStatus,
   ListingType,
+  ContactSource,
 } from "@/types";
 
 function initials(name: string) {
@@ -113,10 +114,11 @@ export function mapContact(contact: BackendContact): Contact {
     lastName: contact.last_name,
     email: contact.email,
     phone: contact.phone ?? "",
-    statusId: contact.status_id ?? null,
-    status: contact.status,
+    status: contact.status_label ?? (contact.status ? "Active" : "Inactive"),
+    statusValue: contact.status,
     budget: Number(contact.budget ?? 0),
-    source: contact.source ?? "",
+    sourceId: contact.source_id ?? null,
+    source: (contact.source ?? "") as ContactSource | "",
     lastContactedAt: contact.last_contacted_at ?? contact.created_at ?? new Date().toISOString(),
   };
 }

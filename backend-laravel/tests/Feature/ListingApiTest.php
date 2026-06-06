@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Contact;
 use App\Models\Document;
 use App\Models\Listing;
-use App\Models\Reference;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
@@ -334,20 +333,11 @@ class ListingApiTest extends TestCase
             'last_name' => 'Miller',
             'email' => $email,
             'phone' => '+62812345678',
-            'status_id' => $this->contactStatus('new')->id,
+            'status' => true,
             'budget' => 500000,
-            'source' => 'Website',
+            'source' => Contact::SOURCE_WEBSITE,
             'last_contacted_at' => now(),
         ]);
-    }
-
-    private function contactStatus(string $key): Reference
-    {
-        return Reference::query()
-            ->whereNull('tenant_id')
-            ->where('group', Contact::STATUS_REFERENCE_GROUP)
-            ->where('reference_key', $key)
-            ->firstOrFail();
     }
 
     private function createUser(Tenant $tenant, string $name, string $email): User

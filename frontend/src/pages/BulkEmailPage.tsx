@@ -31,9 +31,9 @@ export function BulkEmailPage() {
   useEffect(() => {
     Promise.all([getContacts(), getEmailCampaigns()])
       .then(([leadData, campaignData]) => {
-        setContacts(leadData.filter((contact) => contact.status !== "Dormant"));
+        setContacts(leadData.filter((contact) => contact.status !== "Inactive"));
         setCampaigns(campaignData);
-        setSelected(leadData.filter((contact) => contact.status === "Qualified" || contact.status === "Viewing").map((contact) => contact.id));
+        setSelected(leadData.filter((contact) => contact.status === "Active").map((contact) => contact.id));
       })
       .finally(() => setIsLoading(false));
   }, []);

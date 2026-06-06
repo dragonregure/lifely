@@ -265,10 +265,18 @@ components:
         last_name: { type: string }
         email: { type: string, format: email }
         phone: { type: string, nullable: true }
-        status_id: { type: string, format: uuid, nullable: true, description: Reference UUID from the contact_status group. }
-        status: { type: string, nullable: true, example: New, description: Resolved contact_status reference value. }
+        status: { type: boolean, example: true, description: True means Active; false means Inactive. }
+        status_label: { type: string, enum: [Active, Inactive] }
         budget: { type: number, nullable: true }
-        source: { type: string, nullable: true }
+        source_id:
+          type: integer
+          nullable: true
+          enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+          description: "0=Manual Entry, 1=Website, 2=Listing Inquiry, 3=Social Media, 4=Referral, 5=Phone Call, 6=Messaging, 7=Email, 8=Paid Ads, 9=Portal, 10=Exhibition, 11=Integration, 12=Walk-in, 13=Open House, 14=Developer Partner, 15=Bulk Import."
+        source:
+          type: string
+          nullable: true
+          enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration, Walk-in, Open House, Developer Partner, Bulk Import]
         last_contacted_at: { type: string, format: date-time, nullable: true }
         created_at: { type: string, format: date-time, nullable: true }
     Document:
@@ -358,8 +366,8 @@ components:
             subject_id: 0197066f-2aa2-73f8-93d1-56a73ad14220
             changes:
               status:
-                old: New
-                new: Qualified
+                old: true
+                new: false
         created_at: { type: string, format: date-time, nullable: true }
     EmailCampaign:
       type: object
@@ -419,7 +427,7 @@ components:
           items:
             type: object
             properties:
-              label: { type: string, example: Qualified }
+              label: { type: string, example: Active }
               value: { type: integer }
     RegisterPayload:
       type: object
@@ -521,9 +529,13 @@ components:
         last_name: { type: string, maxLength: 120 }
         email: { type: string, format: email, maxLength: 255 }
         phone: { type: string, nullable: true, maxLength: 40 }
-        status_id: { type: string, format: uuid, description: Active reference UUID from the contact_status group. Defaults to the New status when omitted. }
+        status: { type: boolean, default: true, description: True means Active; false means Inactive. }
         budget: { type: number, nullable: true, minimum: 0 }
-        source: { type: string, nullable: true, maxLength: 120 }
+        source:
+          type: integer
+          nullable: true
+          enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+          description: "0=Manual Entry, 1=Website, 2=Listing Inquiry, 3=Social Media, 4=Referral, 5=Phone Call, 6=Messaging, 7=Email, 8=Paid Ads, 9=Portal, 10=Exhibition, 11=Integration, 12=Walk-in, 13=Open House, 14=Developer Partner, 15=Bulk Import."
         last_contacted_at: { type: string, format: date-time, nullable: true }
     ContactUpdatePayload:
       type: object
@@ -533,9 +545,13 @@ components:
         last_name: { type: string, maxLength: 120 }
         email: { type: string, format: email, maxLength: 255 }
         phone: { type: string, nullable: true, maxLength: 40 }
-        status_id: { type: string, format: uuid, description: Active reference UUID from the contact_status group. }
+        status: { type: boolean, description: True means Active; false means Inactive. }
         budget: { type: number, nullable: true, minimum: 0 }
-        source: { type: string, nullable: true, maxLength: 120 }
+        source:
+          type: integer
+          nullable: true
+          enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+          description: "0=Manual Entry, 1=Website, 2=Listing Inquiry, 3=Social Media, 4=Referral, 5=Phone Call, 6=Messaging, 7=Email, 8=Paid Ads, 9=Portal, 10=Exhibition, 11=Integration, 12=Walk-in, 13=Open House, 14=Developer Partner, 15=Bulk Import."
         last_contacted_at: { type: string, format: date-time, nullable: true }
     ListingStorePayload:
       type: object
@@ -1094,16 +1110,16 @@ paths:
         - { $ref: "#/components/parameters/Direction" }
         - in: query
           name: filter[status]
-          schema: { type: string }
-          description: Filter by contact status reference UUID. Status labels are accepted for backwards compatibility. Top-level `status` is also accepted.
+          schema: { type: string, enum: [active, inactive] }
+          description: Filter by contact status. Top-level `status` is also accepted.
         - in: query
           name: filter[source]
           schema: { type: string }
-          description: Filter by source. Top-level `source` is also accepted.
+          description: Filter by one or more contact source IDs or labels. Use comma-separated values for multiple sources. Top-level `source` is also accepted.
         - in: query
           name: filter[owner_id]
-          schema: { type: string, format: uuid }
-          description: Filter by owner user UUID. Top-level `owner_id` is also accepted.
+          schema: { type: string }
+          description: Filter by one or more owner user UUIDs. Use comma-separated values for multiple owners. Top-level `owner_id` is also accepted.
       responses:
         "200": { description: Paginated tenant-scoped contacts. }
         "403": { description: Missing `contacts.view` permission. }

@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils";
-import type { ReferenceOption } from "@/services/api";
 import type { Contact, User } from "@/types";
+import { CONTACT_SOURCE_OPTIONS, CONTACT_STATUS_OPTIONS } from "./contactConstants";
 import type { ContactDraft, MemberOption } from "./contactTypes";
 import { updateDraft } from "./contactUtils";
 
@@ -44,11 +44,10 @@ export function ContactProfileView({ contact }: { contact: Contact }) {
 type ContactProfileFieldsProps = {
   fieldPrefix: string;
   draft: ContactDraft;
-  statusOptions: ReferenceOption[];
   setDraft: Dispatch<SetStateAction<ContactDraft>>;
 };
 
-export function ContactProfileFields({ fieldPrefix, draft, statusOptions, setDraft }: ContactProfileFieldsProps) {
+export function ContactProfileFields({ fieldPrefix, draft, setDraft }: ContactProfileFieldsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <div className="grid gap-2">
@@ -69,9 +68,8 @@ export function ContactProfileFields({ fieldPrefix, draft, statusOptions, setDra
       </div>
       <div className="grid gap-2">
         <Label htmlFor={`${fieldPrefix}-status`}>Status</Label>
-        <Select id={`${fieldPrefix}-status`} value={draft.statusId} onChange={(event) => setDraft(updateDraft(draft, { statusId: event.target.value }))}>
-          {statusOptions.length === 0 && <option value="">Loading statuses...</option>}
-          {statusOptions.map((item) => (
+        <Select id={`${fieldPrefix}-status`} value={draft.status} onChange={(event) => setDraft(updateDraft(draft, { status: event.target.value as ContactDraft["status"] }))}>
+          {CONTACT_STATUS_OPTIONS.filter((option) => option.value !== "all").map((item) => (
             <option key={item.value} value={item.value}>
               {item.label}
             </option>
@@ -84,7 +82,13 @@ export function ContactProfileFields({ fieldPrefix, draft, statusOptions, setDra
       </div>
       <div className="grid gap-2 md:col-span-2">
         <Label htmlFor={`${fieldPrefix}-source`}>Source</Label>
-        <Input id={`${fieldPrefix}-source`} value={draft.source} onChange={(event) => setDraft(updateDraft(draft, { source: event.target.value }))} />
+        <Select id={`${fieldPrefix}-source`} value={draft.sourceId} onChange={(event) => setDraft(updateDraft(draft, { sourceId: event.target.value }))}>
+          {CONTACT_SOURCE_OPTIONS.map((item) => (
+            <option key={item.value} value={item.value}>
+              {item.label}
+            </option>
+          ))}
+        </Select>
       </div>
     </div>
   );

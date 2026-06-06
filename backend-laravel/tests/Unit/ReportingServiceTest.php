@@ -50,7 +50,7 @@ class ReportingServiceTest extends TestCase
 
             public function countByStatus(string $tenantId): Collection
             {
-                return collect(['New' => 3, 'Closed' => 1]);
+                return collect(['Active' => 3, 'Inactive' => 1]);
             }
         };
 
@@ -106,7 +106,7 @@ class ReportingServiceTest extends TestCase
         $this->assertSame(3, $summary['new_leads']);
         $this->assertSame(5, $summary['pending_tasks']);
         $this->assertSame(1200000.0, $summary['pipeline_value']);
-        $this->assertSame(25.0, $summary['win_rate']);
+        $this->assertSame(0, $summary['win_rate']);
         $this->assertSame('Viewing Scheduled', $summary['pipeline_by_stage'][0]['stage']);
     }
 }

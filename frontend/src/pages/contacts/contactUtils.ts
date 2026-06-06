@@ -1,5 +1,6 @@
-import type { ContactPayload, ReferenceOption } from "@/services/api";
+import type { ContactPayload } from "@/services/api";
 import type { Contact, User } from "@/types";
+import { DEFAULT_CONTACT_SOURCE_ID } from "./contactConstants";
 import type { ContactDraft, MemberOption } from "./contactTypes";
 
 export function contactName(contact: Contact) {
@@ -27,6 +28,10 @@ export function nullableNumber(value: string) {
   return value.trim() === "" ? null : Number(value);
 }
 
+export function nullableSource(value: string) {
+  return value === "" ? null : Number(value);
+}
+
 export function payloadFromDraft(draft: ContactDraft): ContactPayload {
   return {
     ownerId: draft.ownerId || null,
@@ -34,9 +39,9 @@ export function payloadFromDraft(draft: ContactDraft): ContactPayload {
     lastName: draft.lastName.trim(),
     email: draft.email.trim(),
     phone: nullableText(draft.phone),
-    ...(draft.statusId ? { statusId: draft.statusId } : {}),
+    status: draft.status === "active",
     budget: nullableNumber(draft.budget),
-    source: nullableText(draft.source),
+    source: nullableSource(draft.sourceId),
     lastContactedAt: nullableDate(draft.lastContactedAt),
   };
 }
@@ -47,21 +52,21 @@ export function profilePayloadFromDraft(draft: ContactDraft): ContactPayload {
     lastName: draft.lastName.trim(),
     email: draft.email.trim(),
     phone: nullableText(draft.phone),
-    ...(draft.statusId ? { statusId: draft.statusId } : {}),
+    status: draft.status === "active",
     budget: nullableNumber(draft.budget),
-    source: nullableText(draft.source),
+    source: nullableSource(draft.sourceId),
   };
 }
 
-export function blankDraft(ownerId = "", statusId = ""): ContactDraft {
+export function blankDraft(ownerId = ""): ContactDraft {
   return {
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
-    statusId,
+    status: "active",
     budget: "",
-    source: "Website",
+    sourceId: DEFAULT_CONTACT_SOURCE_ID,
     ownerId,
     lastContactedAt: new Date().toISOString().slice(0, 10),
   };
@@ -73,9 +78,9 @@ export function draftFromContact(contact: Contact): ContactDraft {
     lastName: contact.lastName,
     email: contact.email,
     phone: contact.phone,
-    statusId: contact.statusId ?? "",
+    status: contact.statusValue ? "active" : "inactive",
     budget: String(contact.budget),
-    source: contact.source,
+    sourceId: contact.sourceId === null ? "" : String(contact.sourceId),
     ownerId: contact.ownerId,
     lastContactedAt: toDateInputValue(contact.lastContactedAt),
   };
@@ -92,8 +97,4 @@ export function memberToOption(member: User): MemberOption {
     description: member.email,
     member,
   };
-}
-
-export function defaultContactStatusId(statusOptions: ReferenceOption[]) {
-  return statusOptions.find((status) => status.label === "New")?.value ?? statusOptions[0]?.value ?? "";
 }

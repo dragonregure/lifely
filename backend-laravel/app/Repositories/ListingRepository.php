@@ -104,7 +104,6 @@ class ListingRepository implements ListingRepositoryInterface
         $relations = [
             'documents' => fn ($query) => $query->where('tenant_id', $tenantId),
             'contacts' => fn ($query) => $query->where('tenant_id', $tenantId)
-                ->with('statusReference')
                 ->orderBy('first_name')
                 ->orderBy('last_name'),
             'users' => fn ($query) => $query->where('tenant_id', $tenantId)

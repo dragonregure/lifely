@@ -267,7 +267,7 @@ class PipelineRepository implements PipelineRepositoryInterface
     private function relations(string $tenantId, array $includes): array
     {
         $relations = [
-            'contact' => fn ($query) => $query->where('tenant_id', $tenantId)->with('statusReference'),
+            'contact' => fn ($query) => $query->where('tenant_id', $tenantId),
             'listing' => fn ($query) => $query->where('tenant_id', $tenantId),
             'user' => fn ($query) => $query->where('tenant_id', $tenantId),
         ];
