@@ -164,6 +164,14 @@ export function isClosedLeadStage(stage: LeadStage) {
 }
 
 export function leadDealProblems(deal: LeadDeal) {
+  if (!deal.isActive) {
+    return [];
+  }
+
+  return leadDealBlockingProblems(deal);
+}
+
+export function leadDealBlockingProblems(deal: LeadDeal) {
   if (deal.stage === "Closed Won") {
     return [];
   }
@@ -176,6 +184,10 @@ export function leadDealProblems(deal: LeadDeal) {
 
 export function hasLeadDealProblem(deal: LeadDeal) {
   return leadDealProblems(deal).length > 0;
+}
+
+export function hasLeadDealBlockingProblem(deal: LeadDeal) {
+  return leadDealBlockingProblems(deal).length > 0;
 }
 
 export function leadProblemLabel(deal: LeadDeal) {

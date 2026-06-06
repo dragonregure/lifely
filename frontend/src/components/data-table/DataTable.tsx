@@ -17,6 +17,7 @@ export function DataTable<TData extends object>({
   pageSizeOptions,
   refreshKey,
   rowKey,
+  rowClassName,
   search = false,
   serverPageCount,
   serverSide = false,
@@ -65,6 +66,7 @@ export function DataTable<TData extends object>({
         isLoading={isLoading}
         onSort={table.handleSort}
         paginatedData={table.paginatedData}
+        rowClassName={rowClassName}
         rowKey={rowKey}
         sortState={table.sortState}
       />

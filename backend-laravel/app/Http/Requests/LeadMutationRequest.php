@@ -206,13 +206,7 @@ abstract class LeadMutationRequest extends FormRequest
 
         if ($blockedFields !== []) {
             throw ValidationException::withMessages([
-                'lead' => ['Lead cards with a sold listing or inactive contact can only be marked inactive.'],
-            ]);
-        }
-
-        if (array_key_exists('is_active', $data) && (bool) $data['is_active'] !== false) {
-            throw ValidationException::withMessages([
-                'is_active' => ['Lead cards with a sold listing or inactive contact can only be marked inactive.'],
+                'lead' => ['Lead cards with a sold listing or inactive contact can only change active status.'],
             ]);
         }
     }

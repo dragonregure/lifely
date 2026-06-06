@@ -14,6 +14,7 @@ async function loadAllLeadDeals(filters: LeadFilters, signal: AbortSignal) {
       pageSize: LEAD_PAGE_SIZE,
       search: filters.search,
       filters: {
+        is_active: "active",
         user_id: assigneeFilter,
         source: sourceFilter,
       },
@@ -32,6 +33,7 @@ async function loadAllLeadDeals(filters: LeadFilters, signal: AbortSignal) {
         pageSize: LEAD_PAGE_SIZE,
         search: filters.search,
         filters: {
+          is_active: "active",
           user_id: assigneeFilter,
           source: sourceFilter,
         },

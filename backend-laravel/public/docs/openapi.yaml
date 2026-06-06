@@ -648,7 +648,7 @@ components:
             - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
             - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
           description: Requires `leads.update` and the current user must be the assignee. Closed Won and Closed Lost cards cannot move to another stage. Cards with a sold listing or inactive contact cannot change stage.
-        is_active: { type: boolean, description: Requires `leads.update` and the current user must be the assignee. Cards with a sold listing or inactive contact can only be marked inactive. }
+        is_active: { type: boolean, description: Requires `leads.update` and the current user must be the assignee. Cards with a sold listing or inactive contact can only change this status field. }
         next_task: { type: string, nullable: true, maxLength: 255, description: Requires `leads.update` and the current user must be the assignee. Cards with a sold listing or inactive contact cannot update this field. }
     LeadStagePayload:
       type: object
@@ -1309,6 +1309,10 @@ paths:
           name: filter[source]
           schema: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
           description: Filter by one or more readable source labels. Use comma-separated values for multiple sources. Top-level `source` is also accepted.
+        - in: query
+          name: filter[is_active]
+          schema: { type: string, enum: [active, inactive, "1", "0", "true", "false"] }
+          description: Filter by lead active status. Top-level `is_active` is also accepted.
         - { $ref: "#/components/parameters/LeadIncludes" }
       responses:
         "200": { description: Paginated tenant-scoped leads. }

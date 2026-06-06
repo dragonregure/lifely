@@ -135,6 +135,10 @@ class Lead extends Model
 
     public function hasBlockingProblem(): bool
     {
+        if ((int) $this->stage === self::STAGE_CLOSED_WON) {
+            return false;
+        }
+
         $listing = $this->relationLoaded('listing') ? $this->getRelation('listing') : $this->listing;
         $contact = $this->relationLoaded('contact') ? $this->getRelation('contact') : $this->contact;
 

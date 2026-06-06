@@ -224,6 +224,14 @@ class LeadApiTest extends TestCase
             [$leadA->id, $leadB->id],
             array_column($response->json('data'), 'id'),
         );
+
+        $leadB->update(['is_active' => false]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->getJson('/api/v1/leads?filter[is_active]=inactive')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $leadB->id);
     }
 
     public function test_authorized_user_can_update_lead_stage_with_integer_storage(): void
@@ -329,7 +337,7 @@ class LeadApiTest extends TestCase
                 'stage' => 'Qualified',
             ])
             ->assertUnprocessable()
-            ->assertJsonPath('errors.lead.0', 'Lead cards with a sold listing or inactive contact can only be marked inactive.');
+            ->assertJsonPath('errors.lead.0', 'Lead cards with a sold listing or inactive contact can only change active status.');
 
         $this->withHeader('X-Tenant-Id', $tenant->id)
             ->patchJson("/api/v1/leads/{$lead->id}", [
@@ -338,10 +346,17 @@ class LeadApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.is_active', false);
 
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->patchJson("/api/v1/leads/{$lead->id}", [
+                'is_active' => true,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.is_active', true);
+
         $this->assertDatabaseHas('leads', [
             'id' => $lead->id,
             'stage' => Lead::STAGE_CONTACTED,
-            'is_active' => false,
+            'is_active' => true,
         ]);
     }
 

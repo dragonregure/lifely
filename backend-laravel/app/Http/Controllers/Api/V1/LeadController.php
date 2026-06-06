@@ -29,7 +29,7 @@ class LeadController extends BaseApiController
 
         return LeadResource::collection($this->leads->paginate(
             $this->tenantId($request),
-            DataTableQuery::fromRequest($request, ['stage', 'source', 'user_id', 'contact_id', 'listing_id']),
+            DataTableQuery::fromRequest($request, ['stage', 'source', 'user_id', 'contact_id', 'listing_id', 'is_active']),
             $this->includes($request)
         ));
     }

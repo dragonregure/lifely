@@ -38,6 +38,7 @@ class LeadRepository implements LeadRepositoryInterface
         $this->applyStageFilter($query, $dataTable);
         $this->applyAssigneeFilter($query, $dataTable);
         $this->applySourceFilter($query, $dataTable);
+        $this->applyActiveFilter($query, $dataTable);
         $this->applySearch($query, $dataTable, $tenantId);
 
         return EloquentDataTable::paginate(
@@ -189,6 +190,29 @@ class LeadRepository implements LeadRepositoryInterface
 
         if ($sources !== []) {
             $query->whereIn('leads.source', $sources);
+        }
+    }
+
+    /**
+     * @param  Builder<Lead>  $query
+     */
+    private function applyActiveFilter(Builder $query, DataTableQuery $dataTable): void
+    {
+        $status = $dataTable->filter('is_active');
+
+        if (! is_string($status) || trim($status) === '') {
+            return;
+        }
+
+        $normalized = strtolower(trim($status));
+        if ($normalized === 'active' || $normalized === '1' || $normalized === 'true') {
+            $query->where('leads.is_active', true);
+
+            return;
+        }
+
+        if ($normalized === 'inactive' || $normalized === '0' || $normalized === 'false') {
+            $query->where('leads.is_active', false);
         }
     }
 

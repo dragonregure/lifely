@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { SearchInput } from "@/components/query/SearchInput";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
@@ -14,11 +15,12 @@ import { updateLeadDeal } from "@/services/api";
 import type { AppLayoutContext } from "@/components/AppLayout";
 import type { LeadDeal, LeadStage } from "@/types";
 import { LeadBoard } from "./leads/LeadBoard";
+import { LeadAllTable } from "./leads/LeadAllTable";
 import { LeadCreateDialog, LeadOverviewDialog } from "./leads/LeadDealDialogs";
 import { LeadFiltersMenu } from "./leads/LeadFiltersMenu";
 import { MANUAL_ENTRY_SOURCE } from "./leads/leadConstants";
 import type { LeadCreatePermissions, LeadEditPermissions, LeadFilters } from "./leads/leadTypes";
-import { dealMatchesFilters, emptyLeadFilters, hasLeadDealProblem, isClosedLeadStage } from "./leads/leadUtils";
+import { dealMatchesFilters, emptyLeadFilters, hasLeadDealBlockingProblem, isClosedLeadStage } from "./leads/leadUtils";
 import { useLeadDeals } from "./leads/useLeadDeals";
 import { useLeadOptions } from "./leads/useLeadOptions";
 
@@ -26,6 +28,8 @@ type PendingStageMove = {
   deal: LeadDeal;
   targetStage: LeadStage;
 };
+
+type LeadTab = "pipeline" | "all";
 
 export function LeadsPage() {
   const layoutContext = useOutletContext<AppLayoutContext | null>();
@@ -38,13 +42,15 @@ export function LeadsPage() {
   const [movingDealIds, setMovingDealIds] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [pendingStageMove, setPendingStageMove] = useState<PendingStageMove | null>(null);
+  const [activeTab, setActiveTab] = useState<LeadTab>("pipeline");
+  const [allTableRefreshKey, setAllTableRefreshKey] = useState(0);
   const [filters, setFilters] = useState<LeadFilters>(emptyLeadFilters);
   const { loadAssigneeOptions, loadContactOptions, loadListingOptions, loadSourceOptions } = useLeadOptions();
   const { deals, grouped, isLoading, error, reloadDeals, setDeals, setError } = useLeadDeals(filters);
 
   const canMoveDeal = useCallback(
     (deal: LeadDeal) =>
-      can(PERMISSIONS.leads.update) && deal.userId === user?.id && !isClosedLeadStage(deal.stage) && !hasLeadDealProblem(deal),
+      can(PERMISSIONS.leads.update) && deal.userId === user?.id && !isClosedLeadStage(deal.stage) && !hasLeadDealBlockingProblem(deal),
     [can, user?.id],
   );
 
@@ -55,14 +61,14 @@ export function LeadsPage() {
     const canEditAssignee = can(PERMISSIONS.leads.changeAssignee);
     const canAssignToSelf = can(PERMISSIONS.leads.assignToSelf);
     const isAssignee = selectedDeal.userId === user?.id;
-    const hasProblem = hasLeadDealProblem(selectedDeal);
+    const hasProblem = hasLeadDealBlockingProblem(selectedDeal);
 
     return {
       canEditManualFields: canUpdateLead && selectedDeal.source === MANUAL_ENTRY_SOURCE && !hasProblem,
       canEditAssignee: canEditAssignee && !hasProblem,
       canAssignToSelf: canAssignToSelf && !hasProblem,
       canEditStage: canUpdateLead && isAssignee && !isClosedLeadStage(selectedDeal.stage) && !hasProblem,
-      canEditStatus: canUpdateLead && isAssignee && (!hasProblem || selectedDeal.isActive),
+      canEditStatus: canUpdateLead && isAssignee,
       canEditNextTask: canUpdateLead && isAssignee && !hasProblem,
     };
   }, [can, selectedDeal, user?.id]);
@@ -76,12 +82,14 @@ export function LeadsPage() {
   );
 
   const handleCreatedDeal = (deal: LeadDeal) => {
-    setDeals((current) => (dealMatchesFilters(deal, filters) ? [deal, ...current] : current));
+    setDeals((current) => (deal.isActive && dealMatchesFilters(deal, filters) ? [deal, ...current] : current));
+    setAllTableRefreshKey((current) => current + 1);
   };
 
   const handleSavedDeal = (deal: LeadDeal) => {
-    setDeals((current) => (dealMatchesFilters(deal, filters) ? current.map((item) => (item.id === deal.id ? deal : item)) : current.filter((item) => item.id !== deal.id)));
+    setDeals((current) => (deal.isActive && dealMatchesFilters(deal, filters) ? current.map((item) => (item.id === deal.id ? deal : item)) : current.filter((item) => item.id !== deal.id)));
     setSelectedDeal(null);
+    setAllTableRefreshKey((current) => current + 1);
 
     if (deal.stage === "Closed Won") {
       void reloadDeals();
@@ -170,6 +178,7 @@ export function LeadsPage() {
             : item,
         ),
       );
+      setAllTableRefreshKey((current) => current + 1);
 
       if (targetStage === "Closed Won") {
         await reloadDeals();
@@ -194,6 +203,18 @@ export function LeadsPage() {
     setDragOverStage(null);
   };
 
+  const handleTabChange = (value: string) => {
+    const nextTab = value as LeadTab;
+
+    setActiveTab((currentTab) => {
+      if (currentTab === "all" && nextTab === "pipeline") {
+        void reloadDeals();
+      }
+
+      return nextTab;
+    });
+  };
+
   return (
     <div>
       <PageHeader
@@ -212,37 +233,50 @@ export function LeadsPage() {
 
       {error ? <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div> : null}
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <SearchInput
-          id="leads-search"
-          label="Search"
-          placeholder="Search contact, listing, or assignee"
-          value={filters.search}
-          onChange={(search) => setFilters((current) => ({ ...current, search }))}
-        />
-        <div className="flex justify-end">
-          <LeadFiltersMenu filters={filters} onChange={setFilters} loadAssigneeOptions={loadAssigneeOptions} loadSourceOptions={loadSourceOptions} />
-        </div>
-      </div>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList>
+          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+        </TabsList>
 
-      {isLoading ? (
-        <LoadingState className="border bg-white" label="Loading leads" />
-      ) : (
-        <LeadBoard
-          columns={grouped}
-          draggedDealId={draggedDealId}
-          dragOverStage={dragOverStage}
-          isSidebarMinimized={isSidebarMinimized}
-          movingDealIds={movingDealIds}
-          canMoveDeal={canMoveDeal}
-          onCardClick={setSelectedDeal}
-          onCardDragEnd={handleCardDragEnd}
-          onCardDragStart={handleCardDragStart}
-          onColumnDragLeave={handleColumnDragLeave}
-          onColumnDragOver={handleColumnDragOver}
-          onDrop={handleCardDrop}
-        />
-      )}
+        <TabsContent value="pipeline">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <SearchInput
+              id="leads-search"
+              label="Search"
+              placeholder="Search contact, listing, or assignee"
+              value={filters.search}
+              onChange={(search) => setFilters((current) => ({ ...current, search }))}
+            />
+            <div className="flex justify-end">
+              <LeadFiltersMenu filters={filters} onChange={setFilters} loadAssigneeOptions={loadAssigneeOptions} loadSourceOptions={loadSourceOptions} />
+            </div>
+          </div>
+
+          {isLoading ? (
+            <LoadingState className="border bg-white" label="Loading leads" />
+          ) : (
+            <LeadBoard
+              columns={grouped}
+              draggedDealId={draggedDealId}
+              dragOverStage={dragOverStage}
+              isSidebarMinimized={isSidebarMinimized}
+              movingDealIds={movingDealIds}
+              canMoveDeal={canMoveDeal}
+              onCardClick={setSelectedDeal}
+              onCardDragEnd={handleCardDragEnd}
+              onCardDragStart={handleCardDragStart}
+              onColumnDragLeave={handleColumnDragLeave}
+              onColumnDragOver={handleColumnDragOver}
+              onDrop={handleCardDrop}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="all">
+          <LeadAllTable refreshKey={allTableRefreshKey} loadAssigneeOptions={loadAssigneeOptions} onOpenOverview={setSelectedDeal} />
+        </TabsContent>
+      </Tabs>
 
       <LeadOverviewDialog
         deal={selectedDeal}

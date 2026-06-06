@@ -14,6 +14,7 @@ type DataTableContentProps<TData extends object> = {
   isLoading: boolean;
   onSort: (column: DataTableColumn<TData>) => void;
   paginatedData: TData[];
+  rowClassName?: DataTableProps<TData>["rowClassName"];
   rowKey: DataTableProps<TData>["rowKey"];
   sortState: DataTableSortState | null;
 };
@@ -26,6 +27,7 @@ export function DataTableContent<TData extends object>({
   isLoading,
   onSort,
   paginatedData,
+  rowClassName,
   rowKey,
   sortState,
 }: DataTableContentProps<TData>) {
@@ -81,14 +83,17 @@ export function DataTableContent<TData extends object>({
             </TableRow>
           ) : paginatedData.length > 0 ? (
             paginatedData.map((row, index) => (
-              <TableRow key={getRowKey(row, index, rowKey)} className="group">
+              <TableRow
+                key={getRowKey(row, index, rowKey)}
+                className={cn("group", typeof rowClassName === "function" ? rowClassName(row, index) : rowClassName)}
+              >
                 {columns.map((column) => (
                   <TableCell key={column.id} className={column.className}>
                     {column.cell ? column.cell(row) : getAccessorValue(row, column.accessor)}
                   </TableCell>
                 ))}
                 {actionConfig && (
-                  <TableCell className={cn(DEFAULT_ACTION_COLUMN_CLASS, "transition-colors group-hover:bg-muted/50", actionConfig.className)}>
+                  <TableCell className={cn(DEFAULT_ACTION_COLUMN_CLASS, "bg-inherit transition-colors group-hover:bg-inherit", actionConfig.className)}>
                     <div className={cn("flex justify-end gap-1", actionConfig.wrapperClassName)}>{actionConfig.cell(row)}</div>
                   </TableCell>
                 )}

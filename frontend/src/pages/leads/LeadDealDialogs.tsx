@@ -18,7 +18,6 @@ import {
   contactToOption,
   createLeadDraft,
   draftFromDeal,
-  hasLeadDealProblem,
   isClosedLeadStage,
   listingToOption,
   userToOption,
@@ -48,11 +47,13 @@ export function LeadCreateDialog({
   const [draft, setDraft] = useState(() => createLeadDraft(currentUser));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCloseCreateConfirmOpen, setIsCloseCreateConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
       setDraft(createLeadDraft(currentUser));
       setError(null);
+      setIsCloseCreateConfirmOpen(false);
     }
   }, [currentUser, open]);
 
@@ -68,9 +69,7 @@ export function LeadCreateDialog({
     setDraft((current) => ({ ...current, assignee: currentUser }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const saveDraft = async () => {
     if (!draft.contact || !draft.listing || !draft.assignee) {
       setError("Contact, listing, and assignee are required.");
       return;
@@ -100,6 +99,7 @@ export function LeadCreateDialog({
         listing: draft.listing,
         user: draft.assignee,
       });
+      setIsCloseCreateConfirmOpen(false);
       onOpenChange(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to create lead.");
@@ -108,120 +108,143 @@ export function LeadCreateDialog({
     }
   };
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (isClosedLeadStage(draft.stage)) {
+      setIsCloseCreateConfirmOpen(true);
+      return;
+    }
+
+    await saveDraft();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Create lead deal</DialogTitle>
-          <DialogDescription>Manual Entry</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create lead deal</DialogTitle>
+            <DialogDescription>Manual Entry</DialogDescription>
+          </DialogHeader>
 
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          {error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            {error ? <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="new-lead-contact">Contact Name</Label>
-              <ServerMultiSelect<ContactOption>
-                id="new-lead-contact"
-                value={selectedContact}
-                onChange={(value) => setDraft((current) => ({ ...current, contact: value[0]?.contact ?? null }))}
-                loadOptions={loadContactOptions}
-                placeholder="Select contact"
-                searchPlaceholder="Search contacts..."
-                emptyLabel="No contacts found."
-                maxSelected={1}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="new-lead-contact">Contact Name</Label>
+                <ServerMultiSelect<ContactOption>
+                  id="new-lead-contact"
+                  value={selectedContact}
+                  onChange={(value) => setDraft((current) => ({ ...current, contact: value[0]?.contact ?? null }))}
+                  loadOptions={loadContactOptions}
+                  placeholder="Select contact"
+                  searchPlaceholder="Search contacts..."
+                  emptyLabel="No contacts found."
+                  maxSelected={1}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="new-lead-listing">Listing Title</Label>
+                <ServerMultiSelect<ListingOption>
+                  id="new-lead-listing"
+                  value={selectedListing}
+                  onChange={(value) => setDraft((current) => ({ ...current, listing: value[0]?.listing ?? null }))}
+                  loadOptions={loadListingOptions}
+                  placeholder="Select listing"
+                  searchPlaceholder="Search listings..."
+                  emptyLabel="No listings found."
+                  maxSelected={1}
+                />
+              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="new-lead-listing">Listing Title</Label>
-              <ServerMultiSelect<ListingOption>
-                id="new-lead-listing"
-                value={selectedListing}
-                onChange={(value) => setDraft((current) => ({ ...current, listing: value[0]?.listing ?? null }))}
-                loadOptions={loadListingOptions}
-                placeholder="Select listing"
-                searchPlaceholder="Search listings..."
-                emptyLabel="No listings found."
-                maxSelected={1}
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-            <div className="grid gap-2">
-              <Label htmlFor="new-lead-assignee">Assignee</Label>
-              <ServerMultiSelect<AssigneeOption>
-                id="new-lead-assignee"
-                value={selectedAssignee}
-                onChange={(value) => setDraft((current) => ({ ...current, assignee: value[0]?.user ?? null }))}
-                loadOptions={loadAssigneeOptions}
-                placeholder="Select assignee"
-                searchPlaceholder="Search users..."
-                emptyLabel="No users found."
-                maxSelected={1}
-                disabled={!permissions.canChangeAssignee}
-              />
-            </div>
-            <Button type="button" variant="outline" disabled={!permissions.canAssignToSelf || !currentUser || draft.assignee?.id === currentUser.id} onClick={assignToCurrentUser}>
-              <UserCheck className="h-4 w-4" />
-              Assign to me
-            </Button>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="grid gap-2">
-              <Label htmlFor="new-lead-stage">Stage</Label>
-              <Select id="new-lead-stage" value={draft.stage} onChange={(event) => setDraft((current) => ({ ...current, stage: event.target.value as LeadStage }))}>
-                {LEAD_STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="new-lead-source">Source</Label>
-              <Input id="new-lead-source" value={MANUAL_ENTRY_SOURCE} readOnly />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="new-lead-status">Status</Label>
-              <Select id="new-lead-status" value={draft.isActive ? "active" : "inactive"} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.value === "active" }))}>
-                {LEAD_STATUS_OPTIONS.map((status) => (
-                  <option key={status.value} value={status.value}>
-                    {status.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="new-lead-next-task">Next Task</Label>
-            <Textarea
-              id="new-lead-next-task"
-              value={draft.nextTask}
-              onChange={(event) => setDraft((current) => ({ ...current, nextTask: event.target.value }))}
-              placeholder="Add the next follow-up task"
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div className="grid gap-2">
+                <Label htmlFor="new-lead-assignee">Assignee</Label>
+                <ServerMultiSelect<AssigneeOption>
+                  id="new-lead-assignee"
+                  value={selectedAssignee}
+                  onChange={(value) => setDraft((current) => ({ ...current, assignee: value[0]?.user ?? null }))}
+                  loadOptions={loadAssigneeOptions}
+                  placeholder="Select assignee"
+                  searchPlaceholder="Search users..."
+                  emptyLabel="No users found."
+                  maxSelected={1}
+                  disabled={!permissions.canChangeAssignee}
+                />
+              </div>
+              <Button type="button" variant="outline" disabled={!permissions.canAssignToSelf || !currentUser || draft.assignee?.id === currentUser.id} onClick={assignToCurrentUser}>
+                <UserCheck className="h-4 w-4" />
+                Assign to me
               </Button>
-            </DialogClose>
-            <Button type="submit" disabled={!canSave} isLoading={isSaving} loadingLabel="Saving">
-              Save and Close
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-2">
+                <Label htmlFor="new-lead-stage">Stage</Label>
+                <Select id="new-lead-stage" value={draft.stage} onChange={(event) => setDraft((current) => ({ ...current, stage: event.target.value as LeadStage }))}>
+                  {LEAD_STAGES.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="new-lead-source">Source</Label>
+                <Input id="new-lead-source" value={MANUAL_ENTRY_SOURCE} readOnly />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="new-lead-status">Status</Label>
+                <Select id="new-lead-status" value={draft.isActive ? "active" : "inactive"} onChange={(event) => setDraft((current) => ({ ...current, isActive: event.target.value === "active" }))}>
+                  {LEAD_STATUS_OPTIONS.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="new-lead-next-task">Next Task</Label>
+              <Textarea
+                id="new-lead-next-task"
+                value={draft.nextTask}
+                onChange={(event) => setDraft((current) => ({ ...current, nextTask: event.target.value }))}
+                placeholder="Add the next follow-up task"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={!canSave} isLoading={isSaving} loadingLabel="Saving">
+                Save and Close
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmationDialog
+        open={isCloseCreateConfirmOpen}
+        onOpenChange={setIsCloseCreateConfirmOpen}
+        title={`Create as ${draft.stage}?`}
+        description="Closed Won and Closed Lost are final lead stages. After confirming, this card cannot be moved to another stage."
+        confirmLabel="Create lead"
+        isSubmitting={isSaving}
+        onConfirm={saveDraft}
+      />
+    </>
   );
 }
 
@@ -268,8 +291,6 @@ export function LeadOverviewDialog({
   const selectedAssignee = draft.assignee ? [userToOption(draft.assignee)] : [];
   const canSave = Boolean(draft.contact && draft.listing && draft.assignee);
   const overviewTitle = draft.contact ? contactName(draft.contact) : "lead deal";
-  const hasProblem = hasLeadDealProblem(deal);
-  const statusOptions = hasProblem && deal.isActive ? LEAD_STATUS_OPTIONS.filter((status) => status.value === "active" || status.value === "inactive") : LEAD_STATUS_OPTIONS;
 
   const assignToCurrentUser = () => {
     if (!currentUser || !permissions.canAssignToSelf) return;
@@ -411,7 +432,7 @@ export function LeadOverviewDialog({
               <div className="grid gap-2">
                 <Label htmlFor="lead-status">Status</Label>
                 <Select id="lead-status" value={draft.isActive ? "active" : "inactive"} disabled={!permissions.canEditStatus} onChange={(event) => setDraft((current) => (current ? { ...current, isActive: event.target.value === "active" } : current))}>
-                  {statusOptions.map((status) => (
+                  {LEAD_STATUS_OPTIONS.map((status) => (
                     <option key={status.value} value={status.value}>
                       {status.label}
                     </option>
