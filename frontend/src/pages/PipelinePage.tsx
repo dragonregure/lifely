@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 import { useOutletContext } from "react-router-dom";
 import { Plus, Search, SlidersHorizontal, UserCheck, X } from "lucide-react";
 import { CircleAvatar } from "@/components/CircleAvatar";
@@ -755,6 +755,9 @@ export function PipelinePage() {
   const { can } = useAuthorization();
   const [deals, setDeals] = useState<PipelineDeal[]>([]);
   const [selectedDeal, setSelectedDeal] = useState<PipelineDeal | null>(null);
+  const [draggedDealId, setDraggedDealId] = useState<string | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<PipelineStage | null>(null);
+  const [movingDealIds, setMovingDealIds] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -879,6 +882,11 @@ export function PipelinePage() {
     }));
   }, [deals]);
 
+  const canMoveDeal = useCallback(
+    (deal: PipelineDeal) => can(PERMISSIONS.pipeline.update) && deal.userId === user?.id,
+    [can, user?.id],
+  );
+
   const selectedDealPermissions = useMemo<PipelineEditPermissions | null>(() => {
     if (!selectedDeal) return null;
 
@@ -910,6 +918,82 @@ export function PipelinePage() {
   const handleSavedDeal = (deal: PipelineDeal) => {
     setDeals((current) => (dealMatchesFilters(deal, filters) ? current.map((item) => (item.id === deal.id ? deal : item)) : current.filter((item) => item.id !== deal.id)));
     setSelectedDeal(null);
+  };
+
+  const handleCardDragStart = (event: DragEvent<HTMLButtonElement>, deal: PipelineDeal) => {
+    if (!canMoveDeal(deal)) {
+      event.preventDefault();
+      return;
+    }
+
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", deal.id);
+    setDraggedDealId(deal.id);
+    setError(null);
+  };
+
+  const handleColumnDragOver = (event: DragEvent<HTMLDivElement>, stage: PipelineStage) => {
+    if (!draggedDealId) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragOverStage(stage);
+  };
+
+  const handleColumnDragLeave = (event: DragEvent<HTMLDivElement>, stage: PipelineStage) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setDragOverStage((current) => (current === stage ? null : current));
+    }
+  };
+
+  const handleCardDrop = async (event: DragEvent<HTMLDivElement>, targetStage: PipelineStage) => {
+    event.preventDefault();
+
+    const dealId = event.dataTransfer.getData("text/plain") || draggedDealId;
+    const deal = deals.find((item) => item.id === dealId);
+    setDraggedDealId(null);
+    setDragOverStage(null);
+
+    if (!deal || deal.stage === targetStage) {
+      return;
+    }
+
+    if (!canMoveDeal(deal)) {
+      setError("You do not have permission to move this pipeline card.");
+      return;
+    }
+
+    const previousStage = deal.stage;
+    setDeals((current) => current.map((item) => (item.id === deal.id ? { ...item, stage: targetStage } : item)));
+    setMovingDealIds((current) => (current.includes(deal.id) ? current : [...current, deal.id]));
+    setError(null);
+
+    try {
+      const savedDeal = await updatePipelineDeal(deal.id, { stage: targetStage });
+      setDeals((current) =>
+        current.map((item) =>
+          item.id === deal.id
+            ? {
+                ...item,
+                ...savedDeal,
+                contact: item.contact,
+                listing: item.listing,
+                user: item.user,
+              }
+            : item,
+        ),
+      );
+    } catch (caught) {
+      setDeals((current) => current.map((item) => (item.id === deal.id ? { ...item, stage: previousStage } : item)));
+      setError(caught instanceof Error ? caught.message : "Unable to move pipeline card.");
+    } finally {
+      setMovingDealIds((current) => current.filter((id) => id !== deal.id));
+    }
+  };
+
+  const handleCardDragEnd = () => {
+    setDraggedDealId(null);
+    setDragOverStage(null);
   };
 
   return (
@@ -966,7 +1050,16 @@ export function PipelinePage() {
           )}
         >
           {grouped.map((column) => (
-            <div key={column.stage} className="min-w-0">
+            <div
+              key={column.stage}
+              className={cn(
+                "min-h-56 min-w-0 rounded-lg border border-transparent p-1 transition-colors",
+                dragOverStage === column.stage && "border-primary/40 bg-primary/5",
+              )}
+              onDragOver={(event) => handleColumnDragOver(event, column.stage)}
+              onDragLeave={(event) => handleColumnDragLeave(event, column.stage)}
+              onDrop={(event) => handleCardDrop(event, column.stage)}
+            >
               <div className={cn("mb-2 flex items-start gap-2", isSidebarMinimized && "min-h-10")}>
                 <h2
                   className={cn("min-w-0 flex-1 text-sm font-semibold leading-tight", isSidebarMinimized ? "whitespace-normal break-words" : "truncate")}
@@ -981,19 +1074,31 @@ export function PipelinePage() {
                   {column.deals.length}
                 </span>
               </div>
-              <div className="grid gap-3">
+              <div className="grid min-h-32 content-start gap-3">
                 {column.deals.map((deal) => {
                   const contact = deal.contact;
                   const listing = deal.listing;
                   const assignee = deal.user;
                   const displayName = contact ? contactName(contact) : "Unassigned contact";
+                  const isMovable = canMoveDeal(deal);
+                  const isDragging = draggedDealId === deal.id;
+                  const isMoving = movingDealIds.includes(deal.id);
 
                   return (
                     <button
                       key={deal.id}
                       type="button"
-                      className="min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-ring"
+                      draggable={isMovable && !isMoving}
+                      className={cn(
+                        "min-w-0 text-left focus:outline-none focus:ring-2 focus:ring-ring",
+                        isMovable && "cursor-grab active:cursor-grabbing",
+                        isDragging && "opacity-60",
+                        isMoving && "cursor-wait opacity-70",
+                      )}
                       onClick={() => setSelectedDeal(deal)}
+                      onDragStart={(event) => handleCardDragStart(event, deal)}
+                      onDragEnd={handleCardDragEnd}
+                      aria-label={`${displayName} pipeline card${isMovable ? ". Drag to move between stages." : ""}`}
                     >
                       <Card className="min-w-0 overflow-hidden shadow-sm transition hover:border-primary/40 hover:shadow-md">
                         <CardContent className="min-w-0 p-3">
