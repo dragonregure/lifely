@@ -109,7 +109,7 @@ components:
       schema:
         type: array
         items: { type: string, enum: [contact, listing, user] }
-      description: Optional lead relations to include. Omit this parameter for main lead fields only.
+      description: Optional lead relations to include for relation-aware board or detail state. Omit this parameter for main lead fields only.
     LeadId:
       in: path
       name: lead
@@ -640,8 +640,8 @@ components:
     LeadUpdatePayload:
       type: object
       properties:
-        contact_id: { type: string, format: uuid, description: Editable only for manual-entry deals. }
-        listing_id: { type: string, format: uuid, description: Editable only for manual-entry deals. }
+        contact_id: { type: string, format: uuid, description: Editable only for manual-entry leads. }
+        listing_id: { type: string, format: uuid, description: Editable only for manual-entry leads. }
         user_id: { type: string, format: uuid, description: "Requires `leads.change_assignee`; assigning the current user also allows `leads.assign_to_self`." }
         stage:
           oneOf:
@@ -1291,8 +1291,11 @@ paths:
         - { $ref: "#/components/parameters/Direction" }
         - in: query
           name: filter[stage]
-          schema: { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
-          description: Filter by readable stage label. Top-level `stage` is also accepted.
+          schema:
+            oneOf:
+              - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8] }
+              - { type: string, enum: [New Lead, Contacted, Qualified, Viewing Scheduled, Viewed, Negotiating, Closed Won, Closed Lost, Dormant] }
+          description: Filter by stage label or numeric stage ID. Top-level `stage` is also accepted.
         - in: query
           name: filter[user_id]
           schema: { type: string, format: uuid }
@@ -1307,8 +1310,11 @@ paths:
           description: Filter by listing UUID. Top-level `listing_id` is also accepted.
         - in: query
           name: filter[source]
-          schema: { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
-          description: Filter by one or more readable source labels. Use comma-separated values for multiple sources. Top-level `source` is also accepted.
+          schema:
+            oneOf:
+              - { type: integer, enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }
+              - { type: string, enum: [Manual Entry, Website, Listing Inquiry, Social Media, Referral, Phone Call, Messaging, Email, Paid Ads, Portal, Exhibition, Integration] }
+          description: Filter by one or more source labels or numeric source IDs. Use comma-separated values for multiple sources. Top-level `source` is also accepted.
         - in: query
           name: filter[is_active]
           schema: { type: string, enum: [active, inactive, "1", "0", "true", "false"] }
@@ -1327,14 +1333,14 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LeadStorePayload" }
       responses:
-        "201": { description: Deal created. }
+        "201": { description: Lead created. }
         "403": { description: Missing the required lead create or assignment permission. }
         "422": { description: Validation failed. }
   /leads/{lead}:
     patch:
       tags: [Leads]
       summary: Update lead overview
-      description: "Updates overview fields. Assignee changes require `leads.change_assignee`, or `leads.assign_to_self` when assigning the current user. Progress fields require `leads.update` and the current user must be the assignee. Contact/listing changes are limited to manual-entry deals."
+      description: "Updates overview fields. Assignee changes require `leads.change_assignee`, or `leads.assign_to_self` when assigning the current user. Progress fields require `leads.update` and the current user must be the assignee. Contact/listing changes are limited to manual-entry leads."
       parameters:
         - { $ref: "#/components/parameters/LeadId" }
       requestBody:
@@ -1343,15 +1349,15 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LeadUpdatePayload" }
       responses:
-        "200": { description: Deal updated. }
-        "403": { description: Missing the required Lead update or assignment permission. }
+        "200": { description: Lead updated. }
+        "403": { description: Missing the required lead update or assignment permission. }
         "404": { description: Lead is outside current tenant scope or not found. }
         "422": { description: Validation failed. }
   /leads/{lead}/stage:
     patch:
       tags: [Leads]
       summary: Move lead to a new stage
-      description: Requires `leads.update`. Closed Won and Closed Lost are final stages. Moving to Closed Won marks the related listing Sold. Cards with a sold listing or inactive contact cannot change stage.
+      description: Requires `leads.update`, and the authenticated user must be the assigned user unless system bypass applies. Closed Won and Closed Lost are final stages. Moving to Closed Won marks the related listing Sold. Cards with a sold listing or inactive contact cannot change stage.
       parameters:
         - { $ref: "#/components/parameters/LeadId" }
       requestBody:
@@ -1360,7 +1366,7 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/LeadStagePayload" }
       responses:
-        "200": { description: Deal stage updated. }
+        "200": { description: Lead stage updated. }
         "403": { description: Missing `leads.update` permission. }
         "404": { description: Lead is outside current tenant scope or not found. }
         "422": { description: Validation failed. }

@@ -45,6 +45,14 @@ References and roles can be tenant-scoped or system-scoped. System-scoped rows u
 
 Activity logs are stored in `activity_logs`. Current activity-producing CRM models are observed by model observers in `app/Observers`. Update logs include structured changed fields in `activity_logs.properties.changes`.
 
+## CRM Modules
+
+- Contacts store people with a boolean Active/Inactive status and a fixed source enum.
+- Listings store property inventory and can expose heavier document, contact, and user relations through explicit includes.
+- Leads are the sales workflow records previously modeled as pipelines. The backend route surface is `/api/v1/leads`, the database table is `leads`, reference stages use the `lead_stage` group, and permissions use the `leads.*` namespace.
+- The Leads page has a pipeline board for active workflow and an all-leads table for searchable, server-side list management. Both views use the same lead API and request relation includes only when rendering relation-aware state.
+- Closed Won and Closed Lost are final lead stages. Moving a lead to Closed Won marks the related listing as Sold. Lead cards tied to a sold listing or inactive contact can only change active status until the blocking issue is resolved.
+
 ## Data Tables
 
 Lifely tables are server-side by default for scalable modules. Frontend `DataTable` sends query state through service functions. Backend modules parse query state with `DataTableQuery` and paginate through `EloquentDataTable`.

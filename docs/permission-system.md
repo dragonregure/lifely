@@ -60,6 +60,16 @@ Use `roles.manage_system` when a workflow needs to create, update, delete, view,
 
 When adding a backend permission, mirror it in `frontend/src/rbac/permissions.ts` only if the frontend needs to hide or show UI for it.
 
+Lead workflow permissions use the `leads.*` namespace:
+
+- `leads.view`
+- `leads.create`
+- `leads.update`
+- `leads.change_assignee`
+- `leads.assign_to_self`
+
+Do not add new `pipeline.*` permissions. Existing migrations may rename historical pipeline permissions to the current lead permissions for upgrade compatibility.
+
 ## API Endpoints
 
 RBAC endpoints are under `/api/v1` and require Sanctum access tokens:

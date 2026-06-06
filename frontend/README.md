@@ -1,6 +1,6 @@
 # Lifely Frontend
 
-Lifely frontend is a React CRM single-page app for real estate offices. It talks to the Laravel API through a configurable base URL and uses the backend for authentication, contacts, listings, Lead, email campaign, activity, and reporting data.
+Lifely frontend is a React CRM single-page app for real estate offices. It talks to the Laravel API through a configurable base URL and uses the backend for authentication, contacts, listings, leads, email campaign, activity, and reporting data.
 
 ## Tech Stack
 

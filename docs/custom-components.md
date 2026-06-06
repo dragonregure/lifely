@@ -19,6 +19,7 @@ Location: `frontend/src/components/data-table`
 - Optional search
 - Optional filters
 - Optional actions column
+- Optional per-row class names for state-aware table rows
 - Server-side pagination, search, filtering, and sorting
 - Page size choices up to 100
 - Loading states
@@ -33,6 +34,8 @@ getContactsPage(query, { signal })
 ```
 
 The service should call `toQueryString(query)` and return `PaginatedResult<T>`.
+
+Use `refreshKey` when a sibling workflow changes data that the table owns, such as the Leads pipeline board updating the all-leads table. Use `rowClassName` for state styling that belongs to the row itself, such as inactive or blocked records.
 
 ## ServerMultiSelect
 

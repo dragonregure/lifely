@@ -91,6 +91,16 @@ Contact status is fixed to Active/Inactive. Store it as `contacts.status` boolea
 
 Contact source is a fixed integer enum. Keep allowed backend values centralized in `App\Models\Contact::SOURCE_LABELS` and mirror them in frontend static contact source options.
 
+## Lead API
+
+Leads use `/api/v1/leads`, the `leads` table, the `lead_stage` reference group, and `leads.*` permissions. Avoid reintroducing `pipeline.*` API names for new work; historical migrations may still contain pipeline names for schema compatibility.
+
+Lead list requests support server-side pagination, search, sorting, filters, and optional `include[]=contact|listing|user`. Stage and source inputs may be readable labels or numeric enum values. Comma-separated filters are accepted for assignees and sources.
+
+Lead creation requires `contact_id`, `listing_id`, and `user_id`. Setting an assignee requires `leads.change_assignee`, or `leads.assign_to_self` when assigning the authenticated user.
+
+Lead progress fields (`stage`, `is_active`, `next_task`) require `leads.update` and the authenticated user must be the assignee unless system bypass applies. Contact/listing changes are limited to manual-entry leads. Closed Won and Closed Lost are final stages, Closed Won marks the related listing Sold, and leads tied to a sold listing or inactive contact can only change `is_active`.
+
 ## OpenAPI
 
 Update `backend-laravel/public/docs/openapi.yaml` for:
