@@ -85,6 +85,10 @@ Frontend helpers:
 - `DataTable`
 - `toQueryString` in `frontend/src/services/dataTableParams.ts`
 
+## Exports
+
+Use `App\Contracts\ExportServiceInterface` for file download generation. Controllers should authorize, validate filters, gather rows, and record any domain-specific audit event, then delegate CSV streaming to the export service.
+
 ## Contact API
 
 Contact status is fixed to Active/Inactive. Store it as `contacts.status` boolean, expose API `status` as boolean, and keep display labels at serialization/UI boundaries.

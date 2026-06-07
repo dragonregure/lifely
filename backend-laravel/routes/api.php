@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\ListingController;
 use App\Http\Controllers\Api\V1\PermissionController;
 use App\Http\Controllers\Api\V1\LeadController;
 use App\Http\Controllers\Api\V1\ReferenceController;
+use App\Http\Controllers\Api\V1\ReportingController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\TenantController;
 use App\Http\Controllers\Api\V1\UserAccessController;
@@ -50,6 +51,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('references/groups', [ReferenceController::class, 'groups']);
         Route::apiResource('references', ReferenceController::class);
         Route::get('activity-logs', [ActivityLogController::class, 'index']);
+        Route::get('reports', [ReportingController::class, 'index']);
+        Route::get('reports/{report}/rows', [ReportingController::class, 'rows']);
+        Route::get('reports/{report}/export', [ReportingController::class, 'export']);
         Route::get('email-campaigns', [EmailCampaignController::class, 'index']);
         Route::post('bulk-emails', [EmailCampaignController::class, 'store']);
     });

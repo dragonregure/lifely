@@ -144,6 +144,45 @@ export type BackendDashboard = {
   win_rate: number;
   lead_health: Array<{ label: ContactStatus; value: number }>;
   lead_by_stage: Array<{ stage: string; deals: number; value: number }>;
+  executive?: {
+    total_active_clients: number;
+    new_clients: number;
+    total_visits: number | null;
+    completed_visits: number | null;
+    missed_visits: number | null;
+    cancelled_visits: number | null;
+    active_caregivers: number | null;
+    caregiver_utilization: number | null;
+    revenue: number;
+    outstanding_payments: number | null;
+    pipeline_value: number;
+    client_satisfaction_score: number | null;
+  };
+  module_debt?: string[];
+};
+
+export type BackendReportDefinition = {
+  key: string;
+  category: string;
+  name: string;
+  description: string;
+  implemented: boolean;
+  columns: Array<{
+    key: string;
+    label: string;
+    type: "text" | "number" | "currency" | "date" | "datetime" | "list";
+    sortable: boolean;
+  }>;
+};
+
+export type BackendReportingOverview = {
+  dashboard: BackendDashboard;
+  reports: BackendReportDefinition[];
+  export_formats: Array<{
+    key: string;
+    label: string;
+    implemented: boolean;
+  }>;
 };
 
 export type BackendPermission = {

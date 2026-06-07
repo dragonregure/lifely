@@ -219,4 +219,49 @@ export type DashboardSummary = {
   winRate: number;
   leadHealth: Array<{ label: ContactStatus; value: number }>;
   leadPerformance: Array<{ label: string; value: number }>;
+  executive?: ReportingExecutiveMetrics;
+  moduleDebt?: string[];
+};
+
+export type ReportingExecutiveMetrics = {
+  totalActiveClients: number;
+  newClients: number;
+  totalVisits: number | null;
+  completedVisits: number | null;
+  missedVisits: number | null;
+  cancelledVisits: number | null;
+  activeCaregivers: number | null;
+  caregiverUtilization: number | null;
+  revenue: number;
+  outstandingPayments: number | null;
+  pipelineValue: number;
+  clientSatisfactionScore: number | null;
+};
+
+export type ReportColumnType = "text" | "number" | "currency" | "date" | "datetime" | "list";
+
+export type ReportDefinition = {
+  key: string;
+  category: string;
+  name: string;
+  description: string;
+  implemented: boolean;
+  columns: Array<{
+    key: string;
+    label: string;
+    type: ReportColumnType;
+    sortable: boolean;
+  }>;
+};
+
+export type ReportRow = Record<string, string | number | null | string[]>;
+
+export type ReportingOverview = {
+  dashboard: DashboardSummary;
+  reports: ReportDefinition[];
+  exportFormats: Array<{
+    key: string;
+    label: string;
+    implemented: boolean;
+  }>;
 };

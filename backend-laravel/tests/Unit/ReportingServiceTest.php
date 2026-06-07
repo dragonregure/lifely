@@ -2,111 +2,99 @@
 
 namespace Tests\Unit;
 
-use App\Contracts\ContactRepositoryInterface;
-use App\Contracts\LeadRepositoryInterface;
+use App\Contracts\ReportingServiceInterface;
 use App\Models\Contact;
 use App\Models\Lead;
-use App\Services\ReportingService;
+use App\Models\Listing;
+use App\Models\Tenant;
+use App\Models\User;
 use App\Support\DataTables\DataTableQuery;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
-use Illuminate\Pagination\LengthAwarePaginator as Paginator;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class ReportingServiceTest extends TestCase
 {
-    public function test_it_calculates_dashboard_summary_from_domain_repositories(): void
+    use RefreshDatabase;
+
+    public function test_it_calculates_dashboard_summary_from_current_crm_modules(): void
     {
-        $contacts = new class implements ContactRepositoryInterface {
-            public function all(string $tenantId, array $filters = []): Collection
-            {
-                return collect();
-            }
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $contact = Contact::factory()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'status' => true,
+            'created_at' => now(),
+        ]);
+        $listing = Listing::query()->create([
+            'tenant_id' => $tenant->id,
+            'title' => 'Canal Villa',
+            'address' => '100 Marina Way',
+            'price' => 1200000,
+            'status' => Listing::STATUS_SOLD,
+            'bedrooms' => 4,
+            'bathrooms' => 3,
+            'property_type' => Listing::TYPE_VILLA,
+        ]);
 
-            public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
-            {
-                return new Paginator([], 0, $dataTable->perPage);
-            }
+        Lead::query()->create([
+            'tenant_id' => $tenant->id,
+            'contact_id' => $contact->id,
+            'listing_id' => $listing->id,
+            'user_id' => $user->id,
+            'stage' => Lead::STAGE_CLOSED_WON,
+            'source' => Lead::SOURCE_REFERRAL,
+            'is_active' => true,
+        ]);
+        $openListing = Listing::query()->create([
+            'tenant_id' => $tenant->id,
+            'title' => 'Garden Apartment',
+            'address' => '200 Palm Street',
+            'price' => 500000,
+            'status' => Listing::STATUS_AVAILABLE,
+            'bedrooms' => 2,
+            'bathrooms' => 2,
+            'property_type' => Listing::TYPE_APARTMENT,
+        ]);
 
-            public function find(string $tenantId, string $contactId): ?Contact
-            {
-                return null;
-            }
+        foreach (range(1, 2) as $_) {
+            Lead::query()->create([
+                'tenant_id' => $tenant->id,
+                'contact_id' => $contact->id,
+                'listing_id' => $openListing->id,
+                'user_id' => $user->id,
+                'stage' => Lead::STAGE_NEW_LEAD,
+                'source' => Lead::SOURCE_WEBSITE,
+                'is_active' => true,
+            ]);
+        }
 
-            public function create(string $tenantId, array $data): Contact
-            {
-                return new Contact();
-            }
+        $reports = app(ReportingServiceInterface::class);
+        $summary = $reports->dashboard($tenant->id);
+        $stageValues = collect($summary['lead_by_stage'])->keyBy('stage');
+        $clientRows = $reports->reportRows(
+            $tenant->id,
+            'client-summary',
+            new DataTableQuery(1, 15, null, null, 'desc', []),
+        );
 
-            public function update(string $tenantId, string $contactId, array $data): ?Contact
-            {
-                return null;
-            }
+        $this->assertSame(1, $summary['new_leads']);
+        $this->assertSame(1, $summary['executive']['total_active_clients']);
+        $this->assertSame(1200000.0, $summary['executive']['revenue']);
+        $this->assertSame(500000.0, $summary['executive']['pipeline_value']);
+        $this->assertSame(1700000.0, $summary['lead_value']);
+        $this->assertSame(100.0, $summary['win_rate']);
+        $this->assertSame(2, $stageValues['New Lead']['deals']);
+        $this->assertSame(500000.0, $stageValues['New Lead']['value']);
+        $this->assertSame('Closed Won', $stageValues['Closed Won']['stage']);
+        $this->assertSame(500000.0, $clientRows->items()[0]['pipeline_value']);
+    }
 
-            public function delete(string $tenantId, string $contactId): bool
-            {
-                return false;
-            }
+    public function test_it_exposes_implemented_report_definitions(): void
+    {
+        $definitions = app(ReportingServiceInterface::class)->reportDefinitions();
 
-            public function countByStatus(string $tenantId): Collection
-            {
-                return collect(['Active' => 3, 'Inactive' => 1]);
-            }
-        };
-
-        $lead = new class implements LeadRepositoryInterface {
-            public function all(string $tenantId): Collection
-            {
-                return collect();
-            }
-
-            public function paginate(string $tenantId, DataTableQuery $dataTable, array $includes = []): LengthAwarePaginator
-            {
-                return new Paginator([], 0, $dataTable->perPage);
-            }
-
-            public function find(string $tenantId, string $leadId): ?Lead
-            {
-                return null;
-            }
-
-            public function create(string $tenantId, array $data): Lead
-            {
-                return new Lead();
-            }
-
-            public function update(string $tenantId, string $leadId, array $data): ?Lead
-            {
-                return null;
-            }
-
-            public function updateStage(string $tenantId, string $leadId, int $stage): ?Lead
-            {
-                return null;
-            }
-
-            public function pendingTaskCount(string $tenantId): int
-            {
-                return 5;
-            }
-
-            public function totalValue(string $tenantId): float
-            {
-                return 1200000.0;
-            }
-
-            public function valueByStage(string $tenantId): Collection
-            {
-                return collect([(object) ['stage' => Lead::STAGE_VIEWING_SCHEDULED, 'deals' => 2, 'value' => 800000]]);
-            }
-        };
-
-        $summary = (new ReportingService($contacts, $lead))->dashboard('tenant-1');
-
-        $this->assertSame(3, $summary['new_leads']);
-        $this->assertSame(5, $summary['pending_tasks']);
-        $this->assertSame(1200000.0, $summary['lead_value']);
-        $this->assertSame(0, $summary['win_rate']);
-        $this->assertSame('Viewing Scheduled', $summary['lead_by_stage'][0]['stage']);
+        $this->assertContains('client-summary', array_column($definitions, 'key'));
+        $this->assertContains('financial-revenue', array_column($definitions, 'key'));
     }
 }

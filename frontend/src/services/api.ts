@@ -24,7 +24,8 @@ export {
   updateLeadDeal,
 } from "@/services/crmService";
 export type { ContactPayload, ListingInclude, ListingPayload, LeadDealPayload, LeadInclude } from "@/services/crmService";
-export { getDashboardSummary } from "@/services/reportingService";
+export { exportReportCsv, getDashboardSummary, getReportingOverview, getReportRows } from "@/services/reportingService";
+export type { ReportFilters } from "@/services/reportingService";
 export {
   createReference,
   deleteReference,

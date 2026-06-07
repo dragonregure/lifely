@@ -21,6 +21,8 @@ tags:
     description: Roles, permissions, and user access assignment.
   - name: Dashboard
     description: CRM summary and reporting data.
+  - name: Reporting
+    description: CRM-backed operational reports and audited CSV exports.
   - name: Contacts
     description: Tenant-scoped CRM contacts and leads.
   - name: Listings
@@ -430,6 +432,65 @@ components:
             properties:
               label: { type: string, example: Active }
               value: { type: integer }
+        executive:
+          type: object
+          properties:
+            total_active_clients: { type: integer }
+            new_clients: { type: integer }
+            total_visits: { type: integer, nullable: true }
+            completed_visits: { type: integer, nullable: true }
+            missed_visits: { type: integer, nullable: true }
+            cancelled_visits: { type: integer, nullable: true }
+            active_caregivers: { type: integer, nullable: true }
+            caregiver_utilization: { type: number, nullable: true }
+            revenue: { type: number }
+            outstanding_payments: { type: number, nullable: true }
+            pipeline_value: { type: number }
+            client_satisfaction_score: { type: number, nullable: true }
+        module_debt:
+          type: array
+          items: { type: string }
+    ReportColumn:
+      type: object
+      properties:
+        key: { type: string, example: client }
+        label: { type: string, example: Client }
+        type: { type: string, enum: [text, number, currency, date, datetime, list] }
+        sortable: { type: boolean }
+    ReportDefinition:
+      type: object
+      properties:
+        key: { type: string, example: client-summary }
+        category: { type: string, example: Client Reports }
+        name: { type: string, example: Client Summary Report }
+        description: { type: string }
+        implemented: { type: boolean }
+        columns:
+          type: array
+          items: { $ref: "#/components/schemas/ReportColumn" }
+    ReportRow:
+      type: object
+      additionalProperties:
+        oneOf:
+          - { type: string, nullable: true }
+          - { type: number }
+          - type: array
+            items: { type: string }
+    ReportingOverview:
+      type: object
+      properties:
+        dashboard: { $ref: "#/components/schemas/DashboardSummary" }
+        reports:
+          type: array
+          items: { $ref: "#/components/schemas/ReportDefinition" }
+        export_formats:
+          type: array
+          items:
+            type: object
+            properties:
+              key: { type: string, example: csv }
+              label: { type: string, example: CSV }
+              implemented: { type: boolean }
     RegisterPayload:
       type: object
       required: [tenant_name, name, email, password, password_confirmation]
@@ -1095,6 +1156,125 @@ paths:
                 properties:
                   data: { $ref: "#/components/schemas/DashboardSummary" }
         "403": { description: Missing `reports.view` permission. }
+  /reports:
+    get:
+      tags: [Reporting]
+      summary: Reporting overview
+      description: Requires `reports.view`. Returns the CRM-backed dashboard, implemented report definitions, supported export formats, and explicit future-module debt.
+      parameters:
+        - in: query
+          name: filter[date_from]
+          schema: { type: string, format: date }
+          description: Start date for report calculations. Top-level `date_from` is also accepted.
+        - in: query
+          name: filter[date_to]
+          schema: { type: string, format: date }
+          description: End date for report calculations. Top-level `date_to` is also accepted.
+        - in: query
+          name: filter[owner_id]
+          schema: { type: string, format: uuid }
+          description: Team member/user filter where supported by the report.
+        - in: query
+          name: filter[source]
+          schema: { type: string }
+          description: Lead/contact source ID or label where supported.
+        - in: query
+          name: filter[stage]
+          schema: { type: string }
+          description: Lead stage ID or label where supported.
+      responses:
+        "200":
+          description: Reporting dashboard and definitions.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/ReportingOverview" }
+        "403": { description: Missing `reports.view` permission. }
+  /reports/{report}/rows:
+    get:
+      tags: [Reporting]
+      summary: Paginated report rows
+      description: Requires `reports.view`. Supports server-side pagination, search, sorting, and report filters for implemented CRM-backed reports.
+      parameters:
+        - in: path
+          name: report
+          required: true
+          schema: { type: string, enum: [client-summary, client-activity, high-risk-clients, workforce-performance, operations-service-volume, financial-revenue] }
+        - { $ref: "#/components/parameters/Page" }
+        - { $ref: "#/components/parameters/PerPage" }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string }
+          description: Whitelisted report column key. Unknown values fall back to the report default.
+        - { $ref: "#/components/parameters/Direction" }
+        - in: query
+          name: filter[date_from]
+          schema: { type: string, format: date }
+        - in: query
+          name: filter[date_to]
+          schema: { type: string, format: date }
+        - in: query
+          name: filter[owner_id]
+          schema: { type: string, format: uuid }
+        - in: query
+          name: filter[source]
+          schema: { type: string }
+        - in: query
+          name: filter[stage]
+          schema: { type: string }
+        - in: query
+          name: filter[status]
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: filter[risk_threshold_days]
+          schema: { type: integer, minimum: 1, maximum: 365, default: 30 }
+      responses:
+        "200":
+          description: Paginated report rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/ReportRow" }
+                  meta:
+                    type: object
+        "403": { description: Missing `reports.view` permission. }
+        "404": { description: Report not found. }
+  /reports/{report}/export:
+    get:
+      tags: [Reporting]
+      summary: Export report
+      description: Requires `reports.view`. CSV export is implemented and audited to activity logs; Excel and PDF are future work.
+      parameters:
+        - in: path
+          name: report
+          required: true
+          schema: { type: string, enum: [client-summary, client-activity, high-risk-clients, workforce-performance, operations-service-volume, financial-revenue] }
+        - in: query
+          name: format
+          schema: { type: string, enum: [csv], default: csv }
+        - { $ref: "#/components/parameters/Search" }
+        - in: query
+          name: sort
+          schema: { type: string }
+        - { $ref: "#/components/parameters/Direction" }
+      responses:
+        "200":
+          description: CSV file download.
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "403": { description: Missing `reports.view` permission. }
+        "404": { description: Report not found. }
+        "422": { description: Unsupported export format. }
   /contacts:
     get:
       tags: [Contacts]

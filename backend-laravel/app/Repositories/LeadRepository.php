@@ -130,25 +130,35 @@ class LeadRepository implements LeadRepositoryInterface
 
     public function totalValue(string $tenantId): float
     {
-        return (float) Lead::query()
+        $listingValues = Lead::query()
             ->join('listings', function ($join) use ($tenantId): void {
                 $join->on('listings.id', '=', 'leads.listing_id')
                     ->where('listings.tenant_id', '=', $tenantId);
             })
             ->where('leads.tenant_id', $tenantId)
-            ->sum('listings.price');
+            ->selectRaw('listings.id as listing_id, MAX(listings.price) as value')
+            ->groupBy('listings.id');
+
+        return (float) DB::query()
+            ->fromSub($listingValues, 'lead_listing_values')
+            ->sum('value');
     }
 
     public function valueByStage(string $tenantId): Collection
     {
-        return Lead::query()
+        $listingValues = Lead::query()
             ->join('listings', function ($join) use ($tenantId): void {
                 $join->on('listings.id', '=', 'leads.listing_id')
                     ->where('listings.tenant_id', '=', $tenantId);
             })
             ->where('leads.tenant_id', $tenantId)
-            ->selectRaw('leads.stage, count(*) as deals, sum(listings.price) as value')
-            ->groupBy('leads.stage')
+            ->selectRaw('leads.stage, listings.id as listing_id, count(*) as deals, MAX(listings.price) as value')
+            ->groupBy('leads.stage', 'listings.id');
+
+        return DB::query()
+            ->fromSub($listingValues, 'lead_stage_listing_values')
+            ->selectRaw('stage, SUM(deals) as deals, SUM(value) as value')
+            ->groupBy('stage')
             ->get();
     }
 
