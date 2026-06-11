@@ -23,7 +23,7 @@ export {
   updateListing,
   updateLeadDeal,
 } from "@/services/crmService";
-export type { ContactPayload, ListingInclude, ListingPayload, LeadDealPayload, LeadInclude } from "@/services/crmService";
+export type { BulkEmailPayload, ContactPayload, ListingInclude, ListingPayload, LeadDealPayload, LeadInclude } from "@/services/crmService";
 export { exportReportCsv, getDashboardSummary, getReportingOverview, getReportRows } from "@/services/reportingService";
 export type { ReportFilters } from "@/services/reportingService";
 export {

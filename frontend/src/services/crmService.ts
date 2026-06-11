@@ -50,6 +50,14 @@ export type LeadDealPayload = {
   nextTask?: string | null;
 };
 
+export type BulkEmailPayload = {
+  contactIds?: string[];
+  allActiveContacts?: boolean;
+  excludedContactIds?: string[];
+  subject: string;
+  body: string;
+};
+
 export type ListingInclude = "documents" | "contacts" | "users";
 
 export type LeadInclude = "contact" | "listing" | "user";
@@ -344,11 +352,12 @@ export async function getEmailCampaignsPage(
   };
 }
 
-export async function sendBulkEmailDraft(payload: { contactIds: string[]; subject: string; body: string }) {
+export async function sendBulkEmailDraft(payload: BulkEmailPayload) {
   const response = await apiRequest<ApiEnvelope<BackendCampaign>>("/bulk-emails", {
     method: "POST",
     body: JSON.stringify({
-      contact_ids: payload.contactIds,
+      ...(payload.allActiveContacts ? { all_active_contacts: true } : { contact_ids: payload.contactIds ?? [] }),
+      ...(payload.allActiveContacts && payload.excludedContactIds ? { excluded_contact_ids: payload.excludedContactIds } : {}),
       subject: payload.subject,
       body: payload.body,
     }),
