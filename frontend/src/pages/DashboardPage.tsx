@@ -8,17 +8,20 @@ import { PermissionGate } from "@/components/rbac/PermissionGate";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { getActivityLogs, getContacts, getDashboardSummary, getListings, getLeadDeals } from "@/services/api";
+import { getActivityLogsPage, getDashboardSummary, getLeadDealsPage } from "@/services/api";
 import { formatCurrency } from "@/lib/utils";
 import { PERMISSIONS } from "@/rbac/permissions";
-import type { ActivityLog, Contact, DashboardSummary, Listing, LeadDeal } from "@/types";
+import { useAuthorization } from "@/rbac/useAuthorization";
+import type { ActivityLog, DashboardSummary, LeadDeal } from "@/types";
 
 export function DashboardPage() {
+  const { can } = useAuthorization();
+  const canViewActivityLogs = can(PERMISSIONS.activityLogs.view);
+  const canViewLeads = can(PERMISSIONS.leads.view);
+  const canViewReports = can(PERMISSIONS.reports.view);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [deals, setDeals] = useState<LeadDeal[]>([]);
   const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -26,23 +29,23 @@ export function DashboardPage() {
 
     async function loadDashboard() {
       setIsLoading(true);
-      const dashboard = await getDashboardSummary().catch(() => null);
+      const [dashboard, leadDeals, activity] = await Promise.all([
+        canViewReports ? getDashboardSummary().catch(() => null) : Promise.resolve(null),
+        canViewLeads
+          ? getLeadDealsPage(
+              { page: 1, pageSize: 4 },
+              { include: ["contact", "listing"] },
+            ).catch(() => null)
+          : Promise.resolve(null),
+        canViewActivityLogs ? getActivityLogsPage({ page: 1, pageSize: 5 }).catch(() => null) : Promise.resolve(null),
+      ]);
 
       if (isMounted && dashboard) {
         setSummary(dashboard);
       }
 
-      const leadDeals = await getLeadDeals().catch(() => []);
-      if (isMounted) setDeals(leadDeals);
-
-      const activity = await getActivityLogs().catch(() => []);
-      if (isMounted) setLogs(activity);
-
-      const contactData = await getContacts().catch(() => []);
-      if (isMounted) setContacts(contactData);
-
-      const listingData = await getListings().catch(() => []);
-      if (isMounted) setListings(listingData);
+      if (isMounted) setDeals(leadDeals?.data ?? []);
+      if (isMounted) setLogs(activity?.data ?? []);
 
       if (isMounted) setIsLoading(false);
     }
@@ -52,9 +55,7 @@ export function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  const topDeals = deals.slice(0, 4);
+  }, [canViewActivityLogs, canViewLeads, canViewReports]);
 
   return (
     <div>
@@ -145,9 +146,9 @@ export function DashboardPage() {
               <CardDescription>Deals with near-term tasks and high office impact.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
-              {isLoading ? <LoadingState label="Loading deals" /> : topDeals.map((deal) => {
-                const contact = deal.contact ?? contacts.find((item) => item.id === deal.contactId);
-                const listing = deal.listing ?? listings.find((item) => item.id === deal.listingId);
+              {isLoading ? <LoadingState label="Loading deals" /> : deals.map((deal) => {
+                const contact = deal.contact;
+                const listing = deal.listing;
                 return (
                   <div key={deal.id} className="rounded-lg border bg-slate-50 p-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
