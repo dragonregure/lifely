@@ -172,6 +172,8 @@ export function ReportsPage() {
 
   const dashboard = overview?.dashboard;
   const executive = dashboard?.executive;
+  const filterFieldClassName = "grid min-w-0 gap-1.5";
+  const filterSelectClassName = "w-full min-w-0";
 
   return (
     <div>
@@ -197,38 +199,38 @@ export function ReportsPage() {
             <CardDescription>Date, owner, source, stage, and status filters apply to available CRM-backed reports.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <div className="grid gap-1.5">
+            <div className={filterFieldClassName}>
               <Label htmlFor="report-date-from">From</Label>
               <Input id="report-date-from" type="date" value={filters.dateFrom ?? ""} onChange={(event) => setFilters((current) => ({ ...current, dateFrom: event.target.value }))} />
             </div>
-            <div className="grid gap-1.5">
+            <div className={filterFieldClassName}>
               <Label htmlFor="report-date-to">To</Label>
               <Input id="report-date-to" type="date" value={filters.dateTo ?? ""} onChange={(event) => setFilters((current) => ({ ...current, dateTo: event.target.value }))} />
             </div>
-            <div className="grid gap-1.5">
+            <div className={filterFieldClassName}>
               <Label htmlFor="report-owner">Team member</Label>
-              <Select id="report-owner" value={filters.ownerId ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, ownerId: event.target.value }))}>
+              <Select id="report-owner" className={filterSelectClassName} value={filters.ownerId ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, ownerId: event.target.value }))}>
                 <option value="all">All team members</option>
                 {members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className={filterFieldClassName}>
               <Label htmlFor="report-source">Source</Label>
-              <Select id="report-source" value={filters.source ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, source: event.target.value }))}>
+              <Select id="report-source" className={filterSelectClassName} value={filters.source ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, source: event.target.value }))}>
                 <option value="all">All sources</option>
                 {CONTACT_SOURCE_OPTIONS.map((source) => <option key={source.value} value={source.value}>{source.label}</option>)}
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className={filterFieldClassName}>
               <Label htmlFor="report-stage">Stage</Label>
-              <Select id="report-stage" value={filters.stage ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, stage: event.target.value }))}>
+              <Select id="report-stage" className={filterSelectClassName} value={filters.stage ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, stage: event.target.value }))}>
                 <option value="all">All stages</option>
                 {LEAD_STAGES.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
               </Select>
             </div>
-            <div className="grid gap-1.5">
+            <div className={filterFieldClassName}>
               <Label htmlFor="report-status">Client status</Label>
-              <Select id="report-status" value={filters.status ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
+              <Select id="report-status" className={filterSelectClassName} value={filters.status ?? "all"} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
                 {CONTACT_STATUS_OPTIONS.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
               </Select>
             </div>
