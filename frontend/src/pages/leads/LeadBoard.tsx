@@ -1,6 +1,7 @@
 import type { DragEvent } from "react";
 import { CircleAvatar } from "@/components/CircleAvatar";
 import { DangerTriangleIcon } from "@/components/DangerTriangleIcon";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { LeadDeal, LeadStage } from "@/types";
@@ -13,6 +14,7 @@ type LeadBoardProps = {
   dragOverStage: LeadStage | null;
   isSidebarMinimized: boolean;
   movingDealIds: string[];
+  loadingMoreStage: LeadStage | null;
   canMoveDeal: (deal: LeadDeal) => boolean;
   onCardClick: (deal: LeadDeal) => void;
   onCardDragEnd: () => void;
@@ -20,6 +22,7 @@ type LeadBoardProps = {
   onColumnDragLeave: (event: DragEvent<HTMLDivElement>, stage: LeadStage) => void;
   onColumnDragOver: (event: DragEvent<HTMLDivElement>, stage: LeadStage) => void;
   onDrop: (event: DragEvent<HTMLDivElement>, stage: LeadStage) => void;
+  onLoadMore: (stage: LeadStage) => void;
 };
 
 export function LeadBoard({
@@ -28,6 +31,7 @@ export function LeadBoard({
   dragOverStage,
   isSidebarMinimized,
   movingDealIds,
+  loadingMoreStage,
   canMoveDeal,
   onCardClick,
   onCardDragEnd,
@@ -35,6 +39,7 @@ export function LeadBoard({
   onColumnDragLeave,
   onColumnDragOver,
   onDrop,
+  onLoadMore,
 }: LeadBoardProps) {
   return (
     <div
@@ -59,7 +64,7 @@ export function LeadBoard({
               {column.stage}
             </h2>
             <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs text-muted-foreground" aria-label={`${column.stage} deal count`}>
-              {column.deals.length}
+              {column.total > column.deals.length ? `${column.deals.length}/${column.total}` : column.deals.length}
             </span>
           </div>
           <div className="grid min-h-32 content-start gap-3">
@@ -108,6 +113,19 @@ export function LeadBoard({
                 </button>
               );
             })}
+            {column.page < column.pageCount ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                isLoading={loadingMoreStage === column.stage}
+                loadingLabel="Loading cards"
+                onClick={() => onLoadMore(column.stage)}
+              >
+                Load more
+              </Button>
+            ) : null}
           </div>
         </div>
       ))}

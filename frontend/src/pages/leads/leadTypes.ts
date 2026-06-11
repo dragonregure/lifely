@@ -49,4 +49,7 @@ export type LeadCreatePermissions = {
 export type LeadColumn = {
   stage: LeadStage;
   deals: LeadDeal[];
+  page: number;
+  pageCount: number;
+  total: number;
 };

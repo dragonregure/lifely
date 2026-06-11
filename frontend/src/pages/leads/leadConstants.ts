@@ -21,6 +21,7 @@ export const CLOSED_LEAD_STAGES = ["Closed Won", "Closed Lost"] as const satisfi
 export const MANUAL_ENTRY_SOURCE: LeadSource = "Manual Entry";
 export const LEAD_BOARD_INCLUDES = ["contact", "listing", "user"] as const;
 export const LEAD_PAGE_SIZE = 100;
+export const LEAD_PIPELINE_COLUMN_PAGE_SIZE = 5;
 
 export const LEAD_SOURCES: LeadSource[] = [
   "Manual Entry",
