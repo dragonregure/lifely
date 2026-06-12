@@ -73,7 +73,7 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
       SESSION_DRIVER: file
-      CACHE_STORE: database
+      CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
@@ -114,7 +114,7 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
       SESSION_DRIVER: file
-      CACHE_STORE: database
+      CACHE_STORE: redis
       QUEUE_CONNECTION: redis
       REDIS_CLIENT: phpredis
       REDIS_HOST: redis
@@ -132,7 +132,51 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: php artisan queue:work --tries=3 --timeout=90
+    command: php artisan queue:work --queue=emails,leads,default --tries=3 --timeout=90
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: lifely-scheduler
+    restart: unless-stopped
+    volumes:
+      - ./backend-laravel:/var/www/html
+      - ./docker/backend/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
+      - lifely_backend_vendor:/var/www/html/vendor
+      - lifely_backend_bootstrap_cache:/var/www/html/bootstrap/cache
+    environment:
+      APP_NAME: Lifely
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: "http://localhost:${BACKEND_PORT:-8000}"
+      FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: "${MYSQL_DATABASE:-lifely}"
+      DB_USERNAME: root
+      DB_PASSWORD: "${MYSQL_ROOT_PASSWORD:-secret}"
+      SESSION_DRIVER: file
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      MAIL_MAILER: log
+      LIFELY_ACCESS_TOKEN_MINUTES: 15
+      LIFELY_REFRESH_TOKEN_DAYS: 30
+      LIFELY_RUN_MIGRATIONS: "false"
+      LIFELY_RUN_SEEDERS: "false"
+    depends_on:
+      backend:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: php artisan schedule:work
 
   frontend:
     build:

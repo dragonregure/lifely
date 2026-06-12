@@ -2,13 +2,13 @@
 
 Lifely is a decoupled, multi-tenant real estate CRM portfolio project. It combines a React single-page app with a Laravel API backend for tenant-scoped contacts, listings, leads, bulk email campaigns, activity logs, reports, settings, and RBAC.
 
-The Docker stack is the main local workflow. It runs the frontend, backend, queue worker, MySQL, Redis, and phpMyAdmin without requiring local PHP, Composer, Node.js, MySQL, or Redis.
+The Docker stack is the main local workflow. It runs the frontend, backend, queue worker, scheduler, MySQL, Redis, and phpMyAdmin without requiring local PHP, Composer, Node.js, MySQL, or Redis.
 
 ## Stack
 
 - Frontend: React 18, TypeScript, Vite 6, Tailwind CSS, Radix/shadcn-style primitives, Lucide icons, Recharts
 - Backend: PHP 8.4, Laravel 13, Laravel Sanctum bearer-token auth, Spatie Laravel Permission, L5-Swagger
-- Data and jobs: MySQL 8.4, Redis 7, Laravel queue worker
+- Data and jobs: MySQL 8.4, Redis 7, Laravel queue worker and scheduler
 - Local runtime: Docker Compose, Nginx, PHP-FPM, Vite
 
 ## Repository Structure
@@ -85,7 +85,8 @@ Password: password
 
 - `frontend`: Vite React app served on port `5173`
 - `backend`: Laravel API served by Nginx/PHP-FPM on port `8000`
-- `queue`: Laravel Redis queue worker
+- `queue`: Laravel Redis queue worker for `emails`, `leads`, and `default`
+- `scheduler`: Laravel scheduler process for due scheduled tasks
 - `mysql`: MySQL database
 - `redis`: Redis queue/cache service
 - `phpmyadmin`: browser database admin UI on port `8080`

@@ -9,6 +9,7 @@ import { SearchInput } from "@/components/query/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { LISTING_STATUS } from "@/lib/listingOptions";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
 import { updateLeadDeal } from "@/services/api";
@@ -46,7 +47,7 @@ export function LeadsPage() {
   const [allTableRefreshKey, setAllTableRefreshKey] = useState(0);
   const [filters, setFilters] = useState<LeadFilters>(emptyLeadFilters);
   const { loadAssigneeOptions, loadContactOptions, loadListingOptions, loadSourceOptions } = useLeadOptions();
-  const { deals, grouped, isLoading, error, reloadDeals, setDeals, setError } = useLeadDeals(filters);
+  const { deals, grouped, isLoading, loadingMoreStage, error, loadMoreStage, reloadDeals, setDeals, setError } = useLeadDeals(filters);
 
   const canMoveDeal = useCallback(
     (deal: LeadDeal) =>
@@ -87,13 +88,22 @@ export function LeadsPage() {
   };
 
   const handleSavedDeal = (deal: LeadDeal) => {
-    setDeals((current) => (deal.isActive && dealMatchesFilters(deal, filters) ? current.map((item) => (item.id === deal.id ? deal : item)) : current.filter((item) => item.id !== deal.id)));
+    const savedDeal =
+      deal.stage === "Closed Won" && deal.listing ? { ...deal, listing: { ...deal.listing, status: LISTING_STATUS.sold } } : deal;
+
+    setDeals((current) => {
+      const syncedDeals = current.map((item) =>
+        savedDeal.stage === "Closed Won" && item.listingId === savedDeal.listingId && item.listing
+          ? { ...item, listing: { ...item.listing, status: LISTING_STATUS.sold } }
+          : item,
+      );
+
+      return savedDeal.isActive && dealMatchesFilters(savedDeal, filters)
+        ? syncedDeals.map((item) => (item.id === savedDeal.id ? savedDeal : item))
+        : syncedDeals.filter((item) => item.id !== savedDeal.id);
+    });
     setSelectedDeal(null);
     setAllTableRefreshKey((current) => current + 1);
-
-    if (deal.stage === "Closed Won") {
-      void reloadDeals();
-    }
   };
 
   const handleCardDragStart = (event: DragEvent<HTMLButtonElement>, deal: LeadDeal) => {
@@ -166,23 +176,25 @@ export function LeadsPage() {
     try {
       const savedDeal = await updateLeadDeal(matchingDeal.id, { stage: targetStage });
       setDeals((current) =>
-        current.map((item) =>
-          item.id === matchingDeal.id
-            ? {
-                ...item,
-                ...savedDeal,
-                contact: item.contact,
-                listing: targetStage === "Closed Won" && item.listing ? { ...item.listing, status: 4 } : item.listing,
-                user: item.user,
-              }
-            : item,
-        ),
+        current.map((item) => {
+          if (item.id === matchingDeal.id) {
+            return {
+              ...item,
+              ...savedDeal,
+              contact: item.contact,
+              listing: targetStage === "Closed Won" && item.listing ? { ...item.listing, status: LISTING_STATUS.sold } : item.listing,
+              user: item.user,
+            };
+          }
+
+          if (targetStage === "Closed Won" && item.listingId === matchingDeal.listingId && item.listing) {
+            return { ...item, listing: { ...item.listing, status: LISTING_STATUS.sold } };
+          }
+
+          return item;
+        }),
       );
       setAllTableRefreshKey((current) => current + 1);
-
-      if (targetStage === "Closed Won") {
-        await reloadDeals();
-      }
     } catch (caught) {
       setDeals((current) => current.map((item) => (item.id === matchingDeal.id ? { ...item, stage: previousStage } : item)));
       setError(caught instanceof Error ? caught.message : "Unable to move lead card.");
@@ -261,6 +273,7 @@ export function LeadsPage() {
               draggedDealId={draggedDealId}
               dragOverStage={dragOverStage}
               isSidebarMinimized={isSidebarMinimized}
+              loadingMoreStage={loadingMoreStage}
               movingDealIds={movingDealIds}
               canMoveDeal={canMoveDeal}
               onCardClick={setSelectedDeal}
@@ -269,6 +282,7 @@ export function LeadsPage() {
               onColumnDragLeave={handleColumnDragLeave}
               onColumnDragOver={handleColumnDragOver}
               onDrop={handleCardDrop}
+              onLoadMore={loadMoreStage}
             />
           )}
         </TabsContent>

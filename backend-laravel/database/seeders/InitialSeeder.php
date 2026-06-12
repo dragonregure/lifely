@@ -58,6 +58,8 @@ class InitialSeeder extends Seeder
             'next_task' => 'Create first follow-up task',
             'due_at' => now()->addDay(),
         ]);
+
+        $this->call(PerformanceDataSeeder::class);
     }
 
     private function createSysAdmin(): void

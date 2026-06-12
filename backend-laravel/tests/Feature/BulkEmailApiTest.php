@@ -12,6 +12,7 @@ use App\Support\DataTables\DataTableQuery;
 use Database\Seeders\RbacSeeder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Collection;
 use Illuminate\Pagination\LengthAwarePaginator as Paginator;
 use Laravel\Sanctum\Sanctum;
@@ -91,5 +92,69 @@ class BulkEmailApiTest extends TestCase
             ->assertAccepted()
             ->assertJsonPath('data.status', 'Queued')
             ->assertJsonPath('data.recipient_count', 2);
+    }
+
+    public function test_it_queues_all_active_contacts_without_loading_ids_from_the_client(): void
+    {
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $otherTenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $otherUser = User::factory()->create(['tenant_id' => $otherTenant->id]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        $includedContact = Contact::query()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'first_name' => 'Ethan',
+            'last_name' => 'Miller',
+            'email' => 'ethan@example.com',
+            'status' => true,
+        ]);
+        $excludedContact = Contact::query()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'first_name' => 'Priya',
+            'last_name' => 'Shah',
+            'email' => 'priya@example.com',
+            'status' => true,
+        ]);
+        Contact::query()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'first_name' => 'Inactive',
+            'last_name' => 'Lead',
+            'email' => 'inactive@example.com',
+            'status' => false,
+        ]);
+        Contact::query()->create([
+            'tenant_id' => $otherTenant->id,
+            'owner_id' => $otherUser->id,
+            'first_name' => 'Other',
+            'last_name' => 'Tenant',
+            'email' => 'other@example.com',
+            'status' => true,
+        ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'all_active_contacts' => true,
+                'excluded_contact_ids' => [$excludedContact->id],
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertAccepted()
+            ->assertJsonPath('data.status', 'Queued')
+            ->assertJsonPath('data.recipient_count', 1);
+
+        $this->assertDatabaseHas('email_campaigns', [
+            'tenant_id' => $tenant->id,
+            'recipient_count' => 1,
+        ]);
+
+        $campaign = EmailCampaign::query()->where('tenant_id', $tenant->id)->firstOrFail();
+        $this->assertSame([$includedContact->id], $campaign->contact_ids);
     }
 }
