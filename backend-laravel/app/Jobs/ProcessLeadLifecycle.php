@@ -6,6 +6,7 @@ use App\Models\Lead;
 use App\Models\Listing;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Queue\Queueable;
 
 class ProcessLeadLifecycle implements ShouldQueue
@@ -28,25 +29,25 @@ class ProcessLeadLifecycle implements ShouldQueue
 
     private function moveStaleActiveLeadsToDormant(string $cutoffDate): void
     {
-        $this->withoutBlockingProblems(
+        $this->updateMatchingLeads($this->withoutBlockingProblems(
             $this->activeLeadsStaleSince($cutoffDate)
                 ->where('leads.stage', '<>', Lead::STAGE_DORMANT)
-        )->update(['stage' => Lead::STAGE_DORMANT]);
+        ), ['stage' => Lead::STAGE_DORMANT]);
     }
 
     private function deactivateDormantLeads(string $cutoffDate): void
     {
-        $this->withoutBlockingProblems(
+        $this->updateMatchingLeads($this->withoutBlockingProblems(
             $this->activeLeadsStaleSince($cutoffDate)
                 ->where('leads.stage', Lead::STAGE_DORMANT)
-        )->update(['is_active' => false]);
+        ), ['is_active' => false]);
     }
 
     private function deactivateProblematicLeads(string $cutoffDate): void
     {
-        $this->withBlockingProblems(
+        $this->updateMatchingLeads($this->withBlockingProblems(
             $this->activeLeadsStaleSince($cutoffDate)
-        )->update(['is_active' => false]);
+        ), ['is_active' => false]);
     }
 
     /**
@@ -91,5 +92,16 @@ class ProcessLeadLifecycle implements ShouldQueue
                     ->where('contacts.status', false);
             });
         });
+    }
+
+    /**
+     * @param  Builder<Lead>  $query
+     * @param  array<string, mixed>  $attributes
+     */
+    private function updateMatchingLeads(Builder $query, array $attributes): void
+    {
+        $query->chunkById(100, function (Collection $leads) use ($attributes): void {
+            $leads->each(fn (Lead $lead): bool => $lead->update($attributes));
+        }, 'leads.id', 'id');
     }
 }

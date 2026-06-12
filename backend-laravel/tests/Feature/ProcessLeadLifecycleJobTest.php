@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProcessLeadLifecycle;
+use App\Models\ActivityLog;
 use App\Models\Contact;
 use App\Models\Lead;
 use App\Models\Listing;
@@ -79,6 +80,11 @@ class ProcessLeadLifecycleJobTest extends TestCase
         $this->assertLeadState($soldListingLead, Lead::STAGE_CLOSED_WON, false);
         $this->assertLeadState($inactiveContactLead, Lead::STAGE_NEGOTIATING, false);
         $this->assertLeadState($freshProblemLead, Lead::STAGE_CONTACTED, true);
+
+        $this->assertLeadActivityChange($staleActiveLead, 'stage', Lead::STAGE_CONTACTED, Lead::STAGE_DORMANT);
+        $this->assertLeadActivityChange($olderDormantLead, 'is_active', true, false);
+        $this->assertLeadActivityChange($soldListingLead, 'is_active', true, false);
+        $this->assertLeadActivityChange($inactiveContactLead, 'is_active', true, false);
     }
 
     /**
@@ -118,5 +124,23 @@ class ProcessLeadLifecycleJobTest extends TestCase
 
         $this->assertSame($stage, (int) $lead->stage);
         $this->assertSame($isActive, (bool) $lead->is_active);
+    }
+
+    private function assertLeadActivityChange(Lead $lead, string $field, mixed $old, mixed $new): void
+    {
+        $activity = ActivityLog::query()
+            ->where('action_type', 'lead.updated')
+            ->get()
+            ->first(function (ActivityLog $activity) use ($lead, $field): bool {
+                $properties = $activity->properties ?? [];
+                $changes = $properties['changes'] ?? [];
+
+                return ($properties['subject_id'] ?? null) === $lead->id
+                    && array_key_exists($field, $changes);
+            });
+
+        $this->assertNotNull($activity, "Missing lead.updated activity for {$field}.");
+        $this->assertSame($old, data_get($activity->properties, "changes.{$field}.old"));
+        $this->assertSame($new, data_get($activity->properties, "changes.{$field}.new"));
     }
 }

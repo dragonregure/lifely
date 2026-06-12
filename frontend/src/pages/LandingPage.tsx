@@ -30,6 +30,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import lifelyLogo from "@/assets/lifely-logo.png";
 import { cn } from "@/lib/utils";
 
 type IconCard = {
@@ -339,9 +340,7 @@ function HeroDashboardMockup() {
 
   return (
     <div className="relative">
-      <div className="absolute -left-4 top-10 h-36 w-36 rounded-full bg-sky-200/40 blur-3xl" />
-      <div className="absolute -bottom-6 right-4 h-32 w-32 rounded-full bg-emerald-200/40 blur-3xl" />
-      <div className="relative rounded-lg border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/80">
+      <div className="relative rounded-lg border border-slate-200 bg-white p-4 shadow-xl shadow-slate-200/80">
         <div className="flex items-center justify-between border-b pb-4">
           <div>
             <p className="text-xs font-medium uppercase text-sky-600">Today in Lifely</p>
@@ -433,7 +432,7 @@ function ProductPreview() {
   const revenueForecast = [45, 62, 54, 78, 70, 86, 92];
 
   return (
-    <div className="mx-auto mt-10 max-w-6xl rounded-lg border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-3 shadow-2xl shadow-slate-200/70">
+    <div className="mx-auto mt-10 max-w-6xl rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-xl shadow-slate-200/70">
       <div className="rounded-lg border bg-white p-4 sm:p-6">
         <div className="flex flex-col gap-4 border-b pb-5 md:flex-row md:items-center md:justify-between">
           <div>
@@ -517,8 +516,9 @@ export function LandingPage() {
     <main className="min-h-screen bg-[#F8FAFC] text-slate-950">
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="text-lg font-semibold tracking-normal text-slate-950" aria-label="Lifely CRM home">
-            Lifely CRM
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold tracking-normal text-slate-950" aria-label="Lifely CRM home">
+            <img src={lifelyLogo} alt="" className="h-8 w-auto" />
+            <span>Lifely CRM</span>
           </Link>
           <nav className="hidden items-center gap-7 text-sm font-medium text-slate-600 md:flex" aria-label="Primary navigation">
             {navItems.map((item) => (
@@ -546,19 +546,18 @@ export function LandingPage() {
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-24">
-        <div>
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-4xl text-center">
           <Badge variant="info" className="mb-5">
             Calm CRM for growing teams
           </Badge>
-          <h1 className="max-w-3xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
-            Manage leads, customers, and follow-ups in one calm CRM workspace.
+          <h1 className="text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
+            Lifely CRM
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-            Lifely helps growing teams organize contacts, track deals, automate follow-ups, and stay focused without the complexity
-            of traditional CRMs.
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-600">
+            Manage leads, customers, and follow-ups in one calm workspace built for growing teams.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button size="lg" asChild>
               <Link to="/login">
                 Start Free Trial
@@ -573,7 +572,9 @@ export function LandingPage() {
           </div>
           <p className="mt-4 text-sm text-slate-500">No credit card required. Set up your workspace in minutes.</p>
         </div>
-        <HeroDashboardMockup />
+        <div className="mx-auto mt-10 max-w-5xl">
+          <HeroDashboardMockup />
+        </div>
       </section>
 
       <section className="border-y bg-white py-12">

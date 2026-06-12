@@ -129,3 +129,5 @@ Activity logs include:
 - `properties`
 
 Update workflows should include changed fields in `properties.changes`, keyed by field name with `old` and `new` values.
+
+When a background job or scheduler changes an observed CRM model, update model instances in chunks instead of using query-level bulk `update()` so model observers can record the activity history.
