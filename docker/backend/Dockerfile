@@ -8,10 +8,11 @@ RUN apt-get update \
         git \
         nginx \
         supervisor \
+        libicu-dev \
         libzip-dev \
         unzip \
         zip \
-    && docker-php-ext-install pdo_mysql pcntl zip \
+    && docker-php-ext-install pdo_mysql pcntl zip intl \
     && pecl install redis xdebug \
     && docker-php-ext-enable redis \
     && rm -rf /var/lib/apt/lists/*
