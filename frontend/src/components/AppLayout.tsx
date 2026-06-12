@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import lifelyIconUrl from "@/assets/lifely-icon.png";
+import lifelyLogoUrl from "@/assets/lifely-logo.png";
 import { CircleAvatar } from "@/components/CircleAvatar";
 import { LoadingInline } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
@@ -16,12 +18,12 @@ export type AppLayoutContext = {
 
 function Brand({ isMinimized = false }: { isMinimized?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-3", isMinimized && "justify-center")}>
-      <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-sm font-bold text-white">L</div>
-      <div className={cn("min-w-0", isMinimized && "sr-only")}>
-        <p className="truncate text-sm font-semibold">Lifely</p>
-        <p className="truncate text-xs text-muted-foreground">Real estate CRM</p>
-      </div>
+    <div className={cn("flex min-w-0 items-center", isMinimized && "justify-center")}>
+      {isMinimized ? (
+        <img src={lifelyIconUrl} alt="Lifely" className="h-10 w-10 rounded-lg object-contain" />
+      ) : (
+        <img src={lifelyLogoUrl} alt="Lifely" className="h-12 w-auto max-w-[150px] object-contain" />
+      )}
     </div>
   );
 }
