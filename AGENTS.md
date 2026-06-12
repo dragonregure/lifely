@@ -60,6 +60,7 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Frontend UI should use shared primitives for repeated controls such as selects, checkboxes, search fields, filter menus, and pagination instead of hand-rolled class strings.
 - Server-side data tables should handle pagination, search, filtering, and sorting on the backend. Frontend tables should send query state instead of processing large datasets locally.
 - Frontend "get all" service helpers that wrap paginated APIs must page through all available pages or expose pagination; do not silently return only the first page.
+- Frontend public marketing lives at `/`, while login and registration live at `/login`; protected routes should redirect unauthenticated users to `/login`.
 - Update OpenAPI, frontend service types/mappers, and docs when public API request or response shapes change.
 
 ## Verification
