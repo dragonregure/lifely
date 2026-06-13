@@ -202,6 +202,17 @@ php artisan lifely:quicktest-bulk-email --count=3
 
 Add `--sync` to send immediately from the command process instead of waiting for the queue worker.
 
+To send through Resend instead of SMTP/Mailpit, set:
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=re_your_api_key
+MAIL_FROM_ADDRESS=hello@your-verified-domain.example
+LIFELY_EMAIL_SENDER=mail
+```
+
+`LIFELY_EMAIL_SENDER=mail` keeps Lifely on the Laravel Mail abstraction. Laravel then uses `MAIL_MAILER`, so switching from Mailpit, SMTP, log, array, or Resend stays an environment-only change.
+
 Then open:
 
 ```text

@@ -11,6 +11,7 @@ use App\Support\Email\EmailMessage;
 use Illuminate\Mail\Transport\ArrayTransport;
 use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
+use Resend\Laravel\Transport\ResendTransportFactory;
 use Tests\TestCase;
 
 class EmailSenderTest extends TestCase
@@ -67,6 +68,43 @@ class EmailSenderTest extends TestCase
         $this->assertStringContainsString('Hello Maya', $message->getHtmlBody());
         $this->assertSame('Hello Maya', trim((string) $message->getTextBody()));
         $this->assertSame('email-sender', $message->getHeaders()->get('X-Lifely-Test')?->getBodyAsString());
+    }
+
+    public function test_configured_lifely_mailer_uses_laravel_mail(): void
+    {
+        Mail::purge('array');
+        config([
+            'lifely_email.sender' => 'mail',
+            'lifely_email.mailer' => 'array',
+            'mail.default' => 'log',
+        ]);
+
+        $delivery = app(EmailSenderInterface::class)->send(new EmailMessage(
+            to: ['maya@example.com'],
+            subject: 'Configured mailer',
+            text: 'Sent through the configured Laravel mailer.'
+        ));
+
+        $transport = Mail::mailer('array')->getSymfonyTransport();
+
+        $this->assertInstanceOf(ArrayTransport::class, $transport);
+        $this->assertSame('laravel-mail', $delivery->provider);
+        $this->assertSame(['mailer' => 'array'], $delivery->metadata);
+        $this->assertCount(1, $transport->messages());
+    }
+
+    public function test_resend_mailer_resolves_the_resend_transport(): void
+    {
+        Mail::purge('resend');
+        config([
+            'mail.default' => 'resend',
+            'resend.api_key' => 're_test_key',
+            'services.resend.key' => 're_test_key',
+        ]);
+
+        $transport = Mail::mailer()->getSymfonyTransport();
+
+        $this->assertInstanceOf(ResendTransportFactory::class, $transport);
     }
 
     public function test_email_message_requires_a_recipient(): void

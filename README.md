@@ -171,6 +171,16 @@ Project handoff docs live in [docs/](docs/README.md):
 
 Docker Compose routes Laravel mail from the backend, queue worker, and scheduler through Mailpit. Open `http://localhost:8025` to inspect captured emails. The SMTP endpoint is available to containers as `mailpit:1025` and to the host at `localhost:1025` by default.
 
+To send through Resend, keep `LIFELY_EMAIL_SENDER=mail` and set these values in the root `.env` before recreating the backend, queue, and scheduler containers:
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=re_your_api_key
+MAIL_FROM_ADDRESS=hello@your-verified-domain.example
+```
+
+All Lifely email workflows continue to use Laravel Mail, so changing `MAIL_MAILER` switches the provider for queued bulk email, quick-test mail, and future mail workflows without code changes.
+
 ## phpMyAdmin
 
 Open `http://localhost:8080` and use:
