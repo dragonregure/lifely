@@ -1754,7 +1754,7 @@ paths:
     post:
       tags: [Email Campaigns]
       summary: Queue bulk email
-      description: Requires `email_campaigns.create`. Creates a queued campaign and dispatches the send job.
+      description: Requires `email_campaigns.create`. Creates a queued campaign and dispatches the send job. In demo mode, each tenant can reserve up to 3 outgoing email sends across bulk recipients.
       requestBody:
         required: true
         content:

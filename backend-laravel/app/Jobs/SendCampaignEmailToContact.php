@@ -9,6 +9,7 @@ use App\Models\Listing;
 use App\Support\Email\EmailAddress;
 use App\Support\Email\CampaignEmailRenderer;
 use App\Support\Email\EmailMessage;
+use App\Services\Email\DemoEmailLimiter;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -52,7 +53,8 @@ class SendCampaignEmailToContact implements ShouldQueue
             text: $renderer->text($campaign, $listing),
             headers: [
                 'X-Lifely-Campaign-Id' => $campaign->id,
-                'X-Lifely-Tenant-Id' => $campaign->tenant_id,
+                DemoEmailLimiter::TENANT_HEADER => $campaign->tenant_id,
+                DemoEmailLimiter::RESERVED_HEADER => 'true',
             ]
         ));
     }

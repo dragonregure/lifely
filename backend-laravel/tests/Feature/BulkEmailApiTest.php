@@ -7,6 +7,7 @@ use App\Models\Contact;
 use App\Models\EmailCampaign;
 use App\Models\Listing;
 use App\Models\Tenant;
+use App\Models\TenantEmailUsage;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
 use App\Support\DataTables\DataTableQuery;
@@ -184,5 +185,86 @@ class BulkEmailApiTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('included_contact_ids');
+    }
+
+    public function test_demo_mode_rejects_bulk_email_when_recipient_count_exceeds_remaining_limit(): void
+    {
+        config([
+            'lifely.app_mode' => 'demo',
+            'lifely.demo_email_limit' => 3,
+        ]);
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        EmailCampaign::factory()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'recipient_count' => 1,
+            'status' => 'Sent',
+        ]);
+
+        $contacts = Contact::factory()
+            ->count(3)
+            ->create([
+                'tenant_id' => $tenant->id,
+                'owner_id' => $user->id,
+                'status' => true,
+            ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'contact_ids' => $contacts->pluck('id')->all(),
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Email sending in demo limited to 3 times, you have 2 limit left.');
+
+        $this->assertDatabaseCount('email_campaigns', 1);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_demo_mode_allows_bulk_email_that_fits_remaining_limit(): void
+    {
+        config([
+            'lifely.app_mode' => 'demo',
+            'lifely.demo_email_limit' => 3,
+        ]);
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        EmailCampaign::factory()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'recipient_count' => 1,
+            'status' => 'Sent',
+        ]);
+
+        $contacts = Contact::factory()
+            ->count(2)
+            ->create([
+                'tenant_id' => $tenant->id,
+                'owner_id' => $user->id,
+                'status' => true,
+            ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'contact_ids' => $contacts->pluck('id')->all(),
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertAccepted()
+            ->assertJsonPath('data.recipient_count', 2);
+
+        $this->assertSame(3, TenantEmailUsage::query()->whereKey($tenant->id)->firstOrFail()->sent_count);
     }
 }

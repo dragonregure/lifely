@@ -165,6 +165,7 @@ export function BulkEmailPage() {
       setConfirmOpen(false);
     } catch (caught) {
       setQueueError(caught instanceof Error ? caught.message : "Unable to queue email campaign.");
+      setConfirmOpen(false);
     } finally {
       setSending(false);
     }

@@ -36,6 +36,8 @@ use App\Repositories\ListingRepository;
 use App\Repositories\LeadRepository;
 use App\Repositories\ReferenceRepository;
 use App\Repositories\TenantRepository;
+use App\Services\Email\DemoEmailLimiter;
+use App\Services\Email\DemoLimitedEmailSender;
 use App\Services\Email\LaravelMailEmailSender;
 use App\Services\Email\ResendApiEmailSender;
 use App\Services\ExportService;
@@ -65,11 +67,17 @@ class AppServiceProvider extends ServiceProvider
                 throw new InvalidArgumentException('Unsupported email sender configuration.');
             }
 
-            return match ($sender) {
+            $configuredSender = match ($sender) {
                 'mail' => new LaravelMailEmailSender(is_string($mailer) ? $mailer : null),
                 'resend-api' => new ResendApiEmailSender(),
                 default => throw new InvalidArgumentException("Unsupported email sender [{$sender}]."),
             };
+
+            if (config('lifely.app_mode') !== 'demo') {
+                return $configuredSender;
+            }
+
+            return new DemoLimitedEmailSender($configuredSender, $this->app->make(DemoEmailLimiter::class));
         });
         $this->app->bind(ExportServiceInterface::class, ExportService::class);
         $this->app->bind(ListingRepositoryInterface::class, ListingRepository::class);

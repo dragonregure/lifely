@@ -6,13 +6,19 @@ use App\Contracts\EmailCampaignRepositoryInterface;
 use App\Jobs\SendBulkEmailCampaign;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
+use App\Services\Email\DemoEmailLimiter;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
 class EmailCampaignRepository implements EmailCampaignRepositoryInterface
 {
+    public function __construct(private readonly DemoEmailLimiter $demoEmailLimiter)
+    {
+    }
+
     public function all(string $tenantId): Collection
     {
         return EmailCampaign::query()
@@ -41,16 +47,20 @@ class EmailCampaignRepository implements EmailCampaignRepositoryInterface
     {
         $contactIds = $this->recipientContactIds($tenantId, $data);
 
-        $campaign = EmailCampaign::query()->create([
-            'tenant_id' => $tenantId,
-            'user_id' => $data['user_id'] ?? null,
-            'listing_id' => $data['listing_id'] ?? null,
-            'subject' => $data['subject'],
-            'body' => $data['body'],
-            'contact_ids' => $contactIds,
-            'recipient_count' => count($contactIds),
-            'status' => 'Queued',
-        ]);
+        $campaign = DB::transaction(function () use ($tenantId, $data, $contactIds): EmailCampaign {
+            $this->demoEmailLimiter->reserve($tenantId, count($contactIds));
+
+            return EmailCampaign::query()->create([
+                'tenant_id' => $tenantId,
+                'user_id' => $data['user_id'] ?? null,
+                'listing_id' => $data['listing_id'] ?? null,
+                'subject' => $data['subject'],
+                'body' => $data['body'],
+                'contact_ids' => $contactIds,
+                'recipient_count' => count($contactIds),
+                'status' => 'Queued',
+            ]);
+        });
 
         SendBulkEmailCampaign::dispatch($campaign->id);
 

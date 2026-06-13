@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Contracts\EmailSenderInterface;
+use App\Services\Email\DemoLimitedEmailSender;
 use App\Services\Email\LaravelMailEmailSender;
 use App\Services\Email\ResendApiEmailSender;
 use App\Support\Email\EmailAddress;
@@ -23,6 +24,16 @@ class EmailSenderTest extends TestCase
         config(['lifely_email.sender' => 'resend-api']);
 
         $this->assertInstanceOf(ResendApiEmailSender::class, app(EmailSenderInterface::class));
+    }
+
+    public function test_demo_mode_wraps_the_configured_sender_with_the_demo_limiter(): void
+    {
+        config([
+            'lifely.app_mode' => 'demo',
+            'lifely_email.sender' => 'mail',
+        ]);
+
+        $this->assertInstanceOf(DemoLimitedEmailSender::class, app(EmailSenderInterface::class));
     }
 
     public function test_laravel_mail_sender_builds_and_sends_a_message(): void
