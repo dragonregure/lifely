@@ -187,6 +187,12 @@ The API service enables both flags in `docker-compose.yml`, then serves the API 
 Host request -> Nginx :8000 -> PHP-FPM :9000 -> Laravel
 ```
 
+Docker Compose configures the backend, queue worker, and scheduler to send mail through Mailpit at `mailpit:1025`. Open the local inbox at:
+
+```text
+http://localhost:8025
+```
+
 Then open:
 
 ```text
