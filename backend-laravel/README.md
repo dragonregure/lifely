@@ -193,6 +193,15 @@ Docker Compose configures the backend, queue worker, and scheduler to send mail 
 http://localhost:8025
 ```
 
+Quick-test mail commands:
+
+```bash
+php artisan lifely:quicktest-email test@lifely.local
+php artisan lifely:quicktest-bulk-email --count=3
+```
+
+Add `--sync` to send immediately from the command process instead of waiting for the queue worker.
+
 Then open:
 
 ```text

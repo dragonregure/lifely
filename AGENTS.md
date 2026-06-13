@@ -55,6 +55,7 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Put validation, serialization, persistence, and UI concerns in their appropriate layers.
 - Backend authorization is the source of truth. Frontend RBAC is only for route and UI visibility.
 - Keep tenant-scoped database access explicitly constrained by `tenant_id` or documented system-scope rules.
+- Backend workflows that send email should depend on `App\Contracts\EmailSenderInterface`; choose the concrete sender with `LIFELY_EMAIL_SENDER` and Laravel mailer settings, not workflow-specific provider code. Bulk email must fan out through queued jobs on the `emails` queue.
 - APIs that can return heavy or optional relations should keep responses lean by default and expose relation loading through a whitelisted `include[]` query parameter on endpoints that explicitly support relation payloads.
 - Frontend callers should request relation includes only for flows that render or mutate relation-aware state; listing/table pages should use main model fields unless the UI explicitly needs relation data.
 - Frontend UI should use shared primitives for repeated controls such as selects, checkboxes, search fields, filter menus, and pagination instead of hand-rolled class strings.

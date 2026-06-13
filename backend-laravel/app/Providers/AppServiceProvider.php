@@ -6,6 +6,7 @@ use App\Contracts\ActivityRepositoryInterface;
 use App\Contracts\ContactRepositoryInterface;
 use App\Contracts\DocumentRepositoryInterface;
 use App\Contracts\EmailCampaignRepositoryInterface;
+use App\Contracts\EmailSenderInterface;
 use App\Contracts\ExportServiceInterface;
 use App\Contracts\ListingRepositoryInterface;
 use App\Contracts\LeadRepositoryInterface;
@@ -35,11 +36,14 @@ use App\Repositories\ListingRepository;
 use App\Repositories\LeadRepository;
 use App\Repositories\ReferenceRepository;
 use App\Repositories\TenantRepository;
+use App\Services\Email\LaravelMailEmailSender;
+use App\Services\Email\ResendApiEmailSender;
 use App\Services\ExportService;
 use App\Services\ReportingService;
 use App\Support\Rbac\Permissions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use Spatie\Permission\Models\Permission;
 
 class AppServiceProvider extends ServiceProvider
@@ -53,6 +57,20 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(ContactRepositoryInterface::class, ContactRepository::class);
         $this->app->bind(DocumentRepositoryInterface::class, DocumentRepository::class);
         $this->app->bind(EmailCampaignRepositoryInterface::class, EmailCampaignRepository::class);
+        $this->app->bind(EmailSenderInterface::class, function (): EmailSenderInterface {
+            $sender = config('lifely_email.sender', 'mail');
+            $mailer = config('lifely_email.mailer');
+
+            if (! is_string($sender)) {
+                throw new InvalidArgumentException('Unsupported email sender configuration.');
+            }
+
+            return match ($sender) {
+                'mail' => new LaravelMailEmailSender(is_string($mailer) ? $mailer : null),
+                'resend-api' => new ResendApiEmailSender(),
+                default => throw new InvalidArgumentException("Unsupported email sender [{$sender}]."),
+            };
+        });
         $this->app->bind(ExportServiceInterface::class, ExportService::class);
         $this->app->bind(ListingRepositoryInterface::class, ListingRepository::class);
         $this->app->bind(LeadRepositoryInterface::class, LeadRepository::class);

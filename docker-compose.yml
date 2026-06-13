@@ -92,6 +92,7 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM_ADDRESS: "hello@lifely.local"
       MAIL_FROM_NAME: Lifely
+      LIFELY_EMAIL_SENDER: mail
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
       LIFELY_RUN_MIGRATIONS: "true"
@@ -139,6 +140,7 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM_ADDRESS: "hello@lifely.local"
       MAIL_FROM_NAME: Lifely
+      LIFELY_EMAIL_SENDER: mail
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
       LIFELY_RUN_MIGRATIONS: "false"
@@ -189,6 +191,7 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM_ADDRESS: "hello@lifely.local"
       MAIL_FROM_NAME: Lifely
+      LIFELY_EMAIL_SENDER: mail
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
       LIFELY_RUN_MIGRATIONS: "false"
