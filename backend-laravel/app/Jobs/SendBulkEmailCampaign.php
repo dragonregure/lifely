@@ -31,6 +31,7 @@ class SendBulkEmailCampaign implements ShouldQueue
         $campaign->update(['status' => 'Sending']);
 
         Contact::query()
+            ->select('id')
             ->where('tenant_id', $campaign->tenant_id)
             ->whereIn('id', $campaign->contact_ids)
             ->whereNotNull('email')

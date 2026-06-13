@@ -164,6 +164,40 @@ class BulkEmailApiTest extends TestCase
         $this->assertSame([$includedContact->id], $campaign->contact_ids);
     }
 
+    public function test_repository_keeps_campaign_relationships_tenant_scoped(): void
+    {
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $otherTenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $otherUser = User::factory()->create(['tenant_id' => $otherTenant->id]);
+        $tenantContact = Contact::factory()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'status' => true,
+        ]);
+        $otherTenantContact = Contact::factory()->create([
+            'tenant_id' => $otherTenant->id,
+            'owner_id' => $otherUser->id,
+            'status' => true,
+        ]);
+        $otherTenantListing = Listing::factory()->create(['tenant_id' => $otherTenant->id]);
+
+        $campaign = app(EmailCampaignRepositoryInterface::class)->queue($tenant->id, [
+            'user_id' => $otherUser->id,
+            'listing_id' => $otherTenantListing->id,
+            'contact_ids' => [$tenantContact->id, $otherTenantContact->id],
+            'subject' => 'New listings',
+            'body' => 'Here are the latest matched properties.',
+        ]);
+
+        $this->assertNull($campaign->user_id);
+        $this->assertNull($campaign->listing_id);
+        $this->assertSame([$tenantContact->id], $campaign->contact_ids);
+        $this->assertSame(1, $campaign->recipient_count);
+    }
+
     public function test_it_rejects_excluded_contact_ids_for_all_active_campaigns(): void
     {
         $tenant = Tenant::factory()->create();
