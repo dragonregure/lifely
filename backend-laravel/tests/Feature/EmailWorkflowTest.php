@@ -7,8 +7,10 @@ use App\Jobs\SendBulkEmailCampaign;
 use App\Jobs\SendCampaignEmailToContact;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
+use App\Models\Listing;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Email\CampaignEmailRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\Fakes\FakeEmailSender;
@@ -35,7 +37,7 @@ class EmailWorkflowTest extends TestCase
             'status' => 'Queued',
         ]);
 
-        (new SendBulkEmailCampaign($campaign->id))->handle(new FakeEmailSender());
+        (new SendBulkEmailCampaign($campaign->id))->handle(new FakeEmailSender(), app(CampaignEmailRenderer::class));
 
         Queue::assertPushed(SendCampaignEmailToContact::class, 2);
         Queue::assertPushedOn('emails', SendCampaignEmailToContact::class);
@@ -54,9 +56,20 @@ class EmailWorkflowTest extends TestCase
             'last_name' => 'Nguyen',
             'email' => 'maya@example.com',
         ]);
+        $listing = Listing::factory()->create([
+            'tenant_id' => $tenant->id,
+            'title' => 'Skyline Residence',
+            'address' => '123 Market Street',
+            'price' => 950000,
+            'status' => Listing::STATUS_AVAILABLE,
+            'bedrooms' => 3,
+            'bathrooms' => 2,
+            'property_type' => Listing::TYPE_CONDO,
+        ]);
         $campaign = EmailCampaign::factory()->create([
             'tenant_id' => $tenant->id,
             'user_id' => $user->id,
+            'listing_id' => $listing->id,
             'subject' => 'New listings',
             'body' => 'Here are the newest listings.',
             'contact_ids' => [$contact->id],
@@ -64,11 +77,15 @@ class EmailWorkflowTest extends TestCase
             'status' => 'Sending',
         ]);
 
-        (new SendCampaignEmailToContact($campaign->id, $contact->id))->handle($sender);
+        (new SendCampaignEmailToContact($campaign->id, $contact->id))->handle($sender, app(CampaignEmailRenderer::class));
 
         $this->assertCount(1, $sender->messages);
         $this->assertSame('New listings', $sender->messages[0]->subject);
         $this->assertSame('maya@example.com', $sender->messages[0]->recipients()[0]->address);
+        $this->assertStringContainsString('lifely-logo.png', (string) $sender->messages[0]->html);
+        $this->assertStringContainsString('Skyline Residence', (string) $sender->messages[0]->html);
+        $this->assertSame(1, substr_count((string) $sender->messages[0]->html, '<img '));
+        $this->assertStringContainsString('Skyline Residence', (string) $sender->messages[0]->text);
         $this->assertSame($campaign->id, $sender->messages[0]->headers['X-Lifely-Campaign-Id']);
     }
 

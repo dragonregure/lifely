@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\EmailCampaignRepositoryInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
+use App\Models\Listing;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
@@ -54,6 +55,7 @@ class BulkEmailApiTest extends TestCase
             'email' => 'priya@example.com',
             'status' => true,
         ]);
+        $listing = Listing::factory()->create(['tenant_id' => $tenant->id]);
 
         $this->app->bind(EmailCampaignRepositoryInterface::class, fn () => new class implements EmailCampaignRepositoryInterface {
             public function all(string $tenantId): Collection
@@ -71,6 +73,7 @@ class BulkEmailApiTest extends TestCase
                 return new EmailCampaign([
                     'tenant_id' => $tenantId,
                     'user_id' => $data['user_id'] ?? null,
+                    'listing_id' => $data['listing_id'] ?? null,
                     'subject' => $data['subject'],
                     'body' => $data['body'],
                     'contact_ids' => $data['contact_ids'],
@@ -88,13 +91,15 @@ class BulkEmailApiTest extends TestCase
                 ],
                 'subject' => 'New listings',
                 'body' => 'Here are the latest matched properties.',
+                'listing_id' => $listing->id,
             ])
             ->assertAccepted()
             ->assertJsonPath('data.status', 'Queued')
-            ->assertJsonPath('data.recipient_count', 2);
+            ->assertJsonPath('data.recipient_count', 2)
+            ->assertJsonPath('data.listing_id', $listing->id);
     }
 
-    public function test_it_queues_all_active_contacts_without_loading_ids_from_the_client(): void
+    public function test_it_queues_only_included_active_contacts(): void
     {
         Queue::fake();
 
@@ -113,7 +118,7 @@ class BulkEmailApiTest extends TestCase
             'email' => 'ethan@example.com',
             'status' => true,
         ]);
-        $excludedContact = Contact::query()->create([
+        Contact::query()->create([
             'tenant_id' => $tenant->id,
             'owner_id' => $user->id,
             'first_name' => 'Priya',
@@ -141,7 +146,7 @@ class BulkEmailApiTest extends TestCase
         $this->withHeader('X-Tenant-Id', $tenant->id)
             ->postJson('/api/v1/bulk-emails', [
                 'all_active_contacts' => true,
-                'excluded_contact_ids' => [$excludedContact->id],
+                'included_contact_ids' => [$includedContact->id],
                 'subject' => 'New listings',
                 'body' => 'Here are the latest matched properties.',
             ])
@@ -156,5 +161,28 @@ class BulkEmailApiTest extends TestCase
 
         $campaign = EmailCampaign::query()->where('tenant_id', $tenant->id)->firstOrFail();
         $this->assertSame([$includedContact->id], $campaign->contact_ids);
+    }
+
+    public function test_it_rejects_excluded_contact_ids_for_all_active_campaigns(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $contact = Contact::factory()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'status' => true,
+        ]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'all_active_contacts' => true,
+                'excluded_contact_ids' => [$contact->id],
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('included_contact_ids');
     }
 }

@@ -5,7 +5,9 @@ namespace App\Jobs;
 use App\Contracts\EmailSenderInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
+use App\Models\Listing;
 use App\Support\Email\EmailAddress;
+use App\Support\Email\CampaignEmailRenderer;
 use App\Support\Email\EmailMessage;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -21,7 +23,7 @@ class SendCampaignEmailToContact implements ShouldQueue
         $this->onQueue('emails');
     }
 
-    public function handle(EmailSenderInterface $emails): void
+    public function handle(EmailSenderInterface $emails, CampaignEmailRenderer $renderer): void
     {
         $campaign = EmailCampaign::query()->find($this->campaignId);
 
@@ -38,20 +40,20 @@ class SendCampaignEmailToContact implements ShouldQueue
             return;
         }
 
+        $listing = $campaign->listing_id === null ? null : Listing::query()
+            ->where('tenant_id', $campaign->tenant_id)
+            ->whereKey($campaign->listing_id)
+            ->first();
+
         $emails->send(new EmailMessage(
             to: [new EmailAddress($contact->email, trim("{$contact->first_name} {$contact->last_name}"))],
             subject: $campaign->subject,
-            html: $this->htmlBody($campaign->body),
-            text: $campaign->body,
+            html: $renderer->html($campaign, $listing),
+            text: $renderer->text($campaign, $listing),
             headers: [
                 'X-Lifely-Campaign-Id' => $campaign->id,
                 'X-Lifely-Tenant-Id' => $campaign->tenant_id,
             ]
         ));
-    }
-
-    private function htmlBody(string $body): string
-    {
-        return '<p>'.nl2br(e($body), false).'</p>';
     }
 }

@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Contracts\EmailSenderInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
+use App\Support\Email\CampaignEmailRenderer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -19,7 +20,7 @@ class SendBulkEmailCampaign implements ShouldQueue
         $this->onQueue('emails');
     }
 
-    public function handle(EmailSenderInterface $emails): void
+    public function handle(EmailSenderInterface $emails, CampaignEmailRenderer $renderer): void
     {
         $campaign = EmailCampaign::query()->find($this->campaignId);
 
@@ -34,12 +35,12 @@ class SendBulkEmailCampaign implements ShouldQueue
             ->whereIn('id', $campaign->contact_ids)
             ->whereNotNull('email')
             ->orderBy('id')
-            ->chunkById(100, function ($contacts) use ($campaign, $emails): void {
+            ->chunkById(100, function ($contacts) use ($campaign, $emails, $renderer): void {
                 foreach ($contacts as $contact) {
                     $job = new SendCampaignEmailToContact($campaign->id, $contact->id);
 
                     if ($this->sendSynchronously) {
-                        $job->handle($emails);
+                        $job->handle($emails, $renderer);
 
                         continue;
                     }

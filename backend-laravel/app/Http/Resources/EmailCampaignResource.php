@@ -14,6 +14,7 @@ class EmailCampaignResource extends JsonResource
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
             'user_id' => $this->user_id,
+            'listing_id' => $this->listing_id,
             'subject' => $this->subject,
             'recipient_count' => $this->recipient_count,
             'status' => $this->status,

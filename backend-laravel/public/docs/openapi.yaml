@@ -377,6 +377,7 @@ components:
         id: { type: string, format: uuid }
         tenant_id: { type: string, format: uuid }
         user_id: { type: string, format: uuid, nullable: true }
+        listing_id: { type: string, format: uuid, nullable: true }
         subject: { type: string }
         recipient_count: { type: integer }
         status: { type: string, enum: [Queued, Sent] }
@@ -753,18 +754,24 @@ components:
       required: [subject, body]
       properties:
         user_id: { type: string, format: uuid, nullable: true }
+        listing_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional tenant listing UUID. When present, listing details are included in the campaign email body.
         all_active_contacts:
           type: boolean
           default: false
-          description: When true, queues the campaign for every active tenant contact except any `excluded_contact_ids`.
+          description: When true, queues only active tenant contacts explicitly listed in `included_contact_ids`.
         contact_ids:
           type: array
           description: Explicit tenant contact UUIDs. Required when `all_active_contacts` is false or omitted.
           minItems: 1
           items: { type: string, format: uuid }
-        excluded_contact_ids:
+        included_contact_ids:
           type: array
-          description: Tenant contact UUIDs to skip when `all_active_contacts` is true.
+          description: Active tenant contact UUIDs to include when `all_active_contacts` is true.
+          minItems: 1
           items: { type: string, format: uuid }
         subject: { type: string, maxLength: 180 }
         body: { type: string, maxLength: 10000 }

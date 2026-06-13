@@ -44,6 +44,7 @@ class EmailCampaignRepository implements EmailCampaignRepositoryInterface
         $campaign = EmailCampaign::query()->create([
             'tenant_id' => $tenantId,
             'user_id' => $data['user_id'] ?? null,
+            'listing_id' => $data['listing_id'] ?? null,
             'subject' => $data['subject'],
             'body' => $data['body'],
             'contact_ids' => $contactIds,
@@ -68,17 +69,13 @@ class EmailCampaignRepository implements EmailCampaignRepositoryInterface
                 ->where('status', true)
                 ->latest('created_at');
 
-            $excludedContactIds = collect($data['excluded_contact_ids'] ?? [])
+            $includedContactIds = collect($data['included_contact_ids'] ?? [])
                 ->filter(fn (mixed $contactId): bool => is_string($contactId))
                 ->unique()
                 ->values()
                 ->all();
 
-            if ($excludedContactIds !== []) {
-                $query->whereNotIn('id', $excludedContactIds);
-            }
-
-            return $query->pluck('id')->all();
+            return $query->whereIn('id', $includedContactIds)->pluck('id')->all();
         }
 
         return collect($data['contact_ids'] ?? [])

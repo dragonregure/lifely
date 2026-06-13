@@ -194,6 +194,7 @@ export function mapCampaign(campaign: BackendCampaign): EmailCampaign {
   return {
     id: campaign.id,
     tenantId: campaign.tenant_id,
+    listingId: campaign.listing_id ?? null,
     subject: campaign.subject,
     recipientCount: campaign.recipient_count,
     status: campaign.status,

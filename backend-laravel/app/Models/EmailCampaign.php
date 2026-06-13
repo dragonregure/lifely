@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class EmailCampaign extends Model
 {
@@ -13,6 +14,7 @@ class EmailCampaign extends Model
     protected $fillable = [
         'tenant_id',
         'user_id',
+        'listing_id',
         'subject',
         'body',
         'contact_ids',
@@ -25,5 +27,10 @@ class EmailCampaign extends Model
         return [
             'contact_ids' => 'array',
         ];
+    }
+
+    public function listing(): BelongsTo
+    {
+        return $this->belongsTo(Listing::class);
     }
 }
