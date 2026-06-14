@@ -53,7 +53,8 @@ export type LeadDealPayload = {
 export type BulkEmailPayload = {
   contactIds?: string[];
   allActiveContacts?: boolean;
-  excludedContactIds?: string[];
+  includedContactIds?: string[];
+  listingId?: string;
   subject: string;
   body: string;
 };
@@ -357,7 +358,8 @@ export async function sendBulkEmailDraft(payload: BulkEmailPayload) {
     method: "POST",
     body: JSON.stringify({
       ...(payload.allActiveContacts ? { all_active_contacts: true } : { contact_ids: payload.contactIds ?? [] }),
-      ...(payload.allActiveContacts && payload.excludedContactIds ? { excluded_contact_ids: payload.excludedContactIds } : {}),
+      ...(payload.allActiveContacts ? { included_contact_ids: payload.includedContactIds ?? [] } : {}),
+      ...(payload.listingId ? { listing_id: payload.listingId } : {}),
       subject: payload.subject,
       body: payload.body,
     }),

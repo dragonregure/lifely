@@ -4,6 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/Loading";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { PermissionRoute } from "@/components/rbac/PermissionRoute";
+import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ROUTE_PERMISSIONS } from "@/rbac/accessMatrix";
 
@@ -20,7 +21,8 @@ export default function App() {
   return (
     <Suspense fallback={<LoadingState className="m-4 border bg-white" label="Loading page" />}>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -47,7 +49,7 @@ export default function App() {
             </Route>
           </Route>
         </Route>
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

@@ -46,6 +46,14 @@ services:
       timeout: 5s
       retries: 20
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: lifely-mailpit
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_HTTP_PORT:-8025}:8025"
+
   backend:
     build:
       context: .
@@ -79,7 +87,16 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      MAIL_MAILER: log
+      MAIL_MAILER: "${MAIL_MAILER:-smtp}"
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      LIFELY_EMAIL_SENDER: "${LIFELY_EMAIL_SENDER:-mail}"
+      LIFELY_EMAIL_MAILER: "${LIFELY_EMAIL_MAILER:-}"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
       LIFELY_RUN_MIGRATIONS: "true"
@@ -89,6 +106,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   queue:
     build:
@@ -120,7 +139,16 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      MAIL_MAILER: log
+      MAIL_MAILER: "${MAIL_MAILER:-smtp}"
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      LIFELY_EMAIL_SENDER: "${LIFELY_EMAIL_SENDER:-mail}"
+      LIFELY_EMAIL_MAILER: "${LIFELY_EMAIL_MAILER:-}"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
       LIFELY_RUN_MIGRATIONS: "false"
@@ -132,6 +160,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     command: php artisan queue:work --queue=emails,leads,default --tries=3 --timeout=90
 
   scheduler:
@@ -164,7 +194,16 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
-      MAIL_MAILER: log
+      MAIL_MAILER: "${MAIL_MAILER:-smtp}"
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      LIFELY_EMAIL_SENDER: "${LIFELY_EMAIL_SENDER:-mail}"
+      LIFELY_EMAIL_MAILER: "${LIFELY_EMAIL_MAILER:-}"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
       LIFELY_ACCESS_TOKEN_MINUTES: 15
       LIFELY_REFRESH_TOKEN_DAYS: 30
       LIFELY_RUN_MIGRATIONS: "false"
@@ -176,6 +215,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     command: php artisan schedule:work
 
   frontend:

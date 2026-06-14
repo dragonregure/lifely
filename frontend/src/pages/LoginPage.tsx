@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, Building2, ShieldCheck } from "lucide-react";
+import lifelyLogoUrl from "@/assets/lifely-logo.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -70,7 +71,7 @@ export function LoginPage() {
       <div className="grid w-full max-w-5xl gap-6 lg:grid-cols-[1fr_420px]">
         <section className="flex min-h-[520px] flex-col justify-between rounded-lg border bg-white p-8 shadow-subtle">
           <div>
-            <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary text-base font-bold text-white">L</div>
+            <img src={lifelyLogoUrl} alt="Lifely" className="h-16 w-auto max-w-full object-contain" />
             <h1 className="mt-8 max-w-xl text-4xl font-semibold tracking-normal text-slate-950">Lifely</h1>
             <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
               A calm CRM workspace for property offices to manage leads, listings, lead tasks, and queued communication.

@@ -131,6 +131,7 @@ export type BackendCampaign = {
   id: string;
   tenant_id: string;
   user_id?: string | null;
+  listing_id?: string | null;
   subject: string;
   recipient_count: number;
   status: EmailCampaign["status"];

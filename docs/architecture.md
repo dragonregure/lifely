@@ -6,7 +6,7 @@ Lifely is a decoupled, multi-tenant real estate CRM. The repository has a Larave
 
 - Frontend: React 18, TypeScript, Vite, Tailwind CSS, shadcn-style Radix primitives, Lucide icons, Recharts.
 - Backend: PHP 8.4, Laravel 13, Sanctum bearer tokens, MySQL, Redis queues, Spatie Laravel Permission, L5-Swagger.
-- Local stack: `docker compose up` runs frontend, backend through Nginx/PHP-FPM, queue worker, scheduler, MySQL, Redis, and phpMyAdmin.
+- Local stack: `docker compose up` runs frontend, backend through Nginx/PHP-FPM, queue worker, scheduler, MySQL, Redis, phpMyAdmin, and Mailpit.
 - Demo login after seeding: `maya@skyline.example` / `password`.
 
 ## Backend Layers
@@ -24,6 +24,7 @@ Lifely is a decoupled, multi-tenant real estate CRM. The repository has a Larave
 ## Frontend Layers
 
 - Routes are declared in `frontend/src/App.tsx`.
+- Public marketing lives at `/`, login and registration live at `/login`, and protected routes redirect unauthenticated users to `/login`.
 - Auth state lives in `src/context/AuthContext.tsx`.
 - Pages live in `src/pages`.
 - Settings submodules live in `src/pages/settings`.
@@ -44,6 +45,8 @@ References and roles can be tenant-scoped or system-scoped. System-scoped rows u
 ## Activity Logging
 
 Activity logs are stored in `activity_logs`. Current activity-producing CRM models are observed by model observers in `app/Observers`. Update logs include structured changed fields in `activity_logs.properties.changes`.
+
+Background jobs and scheduled workflows that change observed CRM models should update model instances in chunks so observers still record activity logs. Use query-level bulk updates only for changes that intentionally do not need CRM activity history.
 
 ## CRM Modules
 

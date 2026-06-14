@@ -206,6 +206,7 @@ export type ActivityLog = {
 export type EmailCampaign = {
   id: string;
   tenantId: string;
+  listingId?: string | null;
   subject: string;
   recipientCount: number;
   status: "Draft" | "Queued" | "Sent";

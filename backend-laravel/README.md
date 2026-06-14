@@ -187,6 +187,32 @@ The API service enables both flags in `docker-compose.yml`, then serves the API 
 Host request -> Nginx :8000 -> PHP-FPM :9000 -> Laravel
 ```
 
+Docker Compose configures the backend, queue worker, and scheduler to send mail through Mailpit at `mailpit:1025`. Open the local inbox at:
+
+```text
+http://localhost:8025
+```
+
+Quick-test mail commands:
+
+```bash
+php artisan lifely:quicktest-email test@lifely.local
+php artisan lifely:quicktest-bulk-email --count=3
+```
+
+Add `--sync` to send immediately from the command process instead of waiting for the queue worker.
+
+To send through Resend instead of SMTP/Mailpit, set:
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=re_your_api_key
+MAIL_FROM_ADDRESS=hello@your-verified-domain.example
+LIFELY_EMAIL_SENDER=mail
+```
+
+`LIFELY_EMAIL_SENDER=mail` keeps Lifely on the Laravel Mail abstraction. Laravel then uses `MAIL_MAILER`, so switching from Mailpit, SMTP, log, array, or Resend stays an environment-only change.
+
 Then open:
 
 ```text

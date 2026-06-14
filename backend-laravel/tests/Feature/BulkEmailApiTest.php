@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Contracts\EmailCampaignRepositoryInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
+use App\Models\Listing;
 use App\Models\Tenant;
+use App\Models\TenantEmailUsage;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
 use App\Support\DataTables\DataTableQuery;
@@ -54,6 +56,7 @@ class BulkEmailApiTest extends TestCase
             'email' => 'priya@example.com',
             'status' => true,
         ]);
+        $listing = Listing::factory()->create(['tenant_id' => $tenant->id]);
 
         $this->app->bind(EmailCampaignRepositoryInterface::class, fn () => new class implements EmailCampaignRepositoryInterface {
             public function all(string $tenantId): Collection
@@ -71,6 +74,7 @@ class BulkEmailApiTest extends TestCase
                 return new EmailCampaign([
                     'tenant_id' => $tenantId,
                     'user_id' => $data['user_id'] ?? null,
+                    'listing_id' => $data['listing_id'] ?? null,
                     'subject' => $data['subject'],
                     'body' => $data['body'],
                     'contact_ids' => $data['contact_ids'],
@@ -88,13 +92,15 @@ class BulkEmailApiTest extends TestCase
                 ],
                 'subject' => 'New listings',
                 'body' => 'Here are the latest matched properties.',
+                'listing_id' => $listing->id,
             ])
             ->assertAccepted()
             ->assertJsonPath('data.status', 'Queued')
-            ->assertJsonPath('data.recipient_count', 2);
+            ->assertJsonPath('data.recipient_count', 2)
+            ->assertJsonPath('data.listing_id', $listing->id);
     }
 
-    public function test_it_queues_all_active_contacts_without_loading_ids_from_the_client(): void
+    public function test_it_queues_only_included_active_contacts(): void
     {
         Queue::fake();
 
@@ -113,7 +119,7 @@ class BulkEmailApiTest extends TestCase
             'email' => 'ethan@example.com',
             'status' => true,
         ]);
-        $excludedContact = Contact::query()->create([
+        Contact::query()->create([
             'tenant_id' => $tenant->id,
             'owner_id' => $user->id,
             'first_name' => 'Priya',
@@ -141,7 +147,7 @@ class BulkEmailApiTest extends TestCase
         $this->withHeader('X-Tenant-Id', $tenant->id)
             ->postJson('/api/v1/bulk-emails', [
                 'all_active_contacts' => true,
-                'excluded_contact_ids' => [$excludedContact->id],
+                'included_contact_ids' => [$includedContact->id],
                 'subject' => 'New listings',
                 'body' => 'Here are the latest matched properties.',
             ])
@@ -156,5 +162,143 @@ class BulkEmailApiTest extends TestCase
 
         $campaign = EmailCampaign::query()->where('tenant_id', $tenant->id)->firstOrFail();
         $this->assertSame([$includedContact->id], $campaign->contact_ids);
+    }
+
+    public function test_repository_keeps_campaign_relationships_tenant_scoped(): void
+    {
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $otherTenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $otherUser = User::factory()->create(['tenant_id' => $otherTenant->id]);
+        $tenantContact = Contact::factory()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'status' => true,
+        ]);
+        $otherTenantContact = Contact::factory()->create([
+            'tenant_id' => $otherTenant->id,
+            'owner_id' => $otherUser->id,
+            'status' => true,
+        ]);
+        $otherTenantListing = Listing::factory()->create(['tenant_id' => $otherTenant->id]);
+
+        $campaign = app(EmailCampaignRepositoryInterface::class)->queue($tenant->id, [
+            'user_id' => $otherUser->id,
+            'listing_id' => $otherTenantListing->id,
+            'contact_ids' => [$tenantContact->id, $otherTenantContact->id],
+            'subject' => 'New listings',
+            'body' => 'Here are the latest matched properties.',
+        ]);
+
+        $this->assertNull($campaign->user_id);
+        $this->assertNull($campaign->listing_id);
+        $this->assertSame([$tenantContact->id], $campaign->contact_ids);
+        $this->assertSame(1, $campaign->recipient_count);
+    }
+
+    public function test_it_rejects_excluded_contact_ids_for_all_active_campaigns(): void
+    {
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $contact = Contact::factory()->create([
+            'tenant_id' => $tenant->id,
+            'owner_id' => $user->id,
+            'status' => true,
+        ]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'all_active_contacts' => true,
+                'excluded_contact_ids' => [$contact->id],
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('included_contact_ids');
+    }
+
+    public function test_demo_mode_rejects_bulk_email_when_recipient_count_exceeds_remaining_limit(): void
+    {
+        config([
+            'lifely.app_mode' => 'demo',
+            'lifely.demo_email_limit' => 3,
+        ]);
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        EmailCampaign::factory()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'recipient_count' => 1,
+            'status' => 'Sent',
+        ]);
+
+        $contacts = Contact::factory()
+            ->count(3)
+            ->create([
+                'tenant_id' => $tenant->id,
+                'owner_id' => $user->id,
+                'status' => true,
+            ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'contact_ids' => $contacts->pluck('id')->all(),
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Email sending in demo limited to 3 times, you have 2 limit left.');
+
+        $this->assertDatabaseCount('email_campaigns', 1);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_demo_mode_allows_bulk_email_that_fits_remaining_limit(): void
+    {
+        config([
+            'lifely.app_mode' => 'demo',
+            'lifely.demo_email_limit' => 3,
+        ]);
+        Queue::fake();
+
+        $tenant = Tenant::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $tenant->id]);
+        $user->givePermissionTo(Permissions::EMAIL_CAMPAIGNS_CREATE);
+        Sanctum::actingAs($user, ['access']);
+
+        EmailCampaign::factory()->create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'recipient_count' => 1,
+            'status' => 'Sent',
+        ]);
+
+        $contacts = Contact::factory()
+            ->count(2)
+            ->create([
+                'tenant_id' => $tenant->id,
+                'owner_id' => $user->id,
+                'status' => true,
+            ]);
+
+        $this->withHeader('X-Tenant-Id', $tenant->id)
+            ->postJson('/api/v1/bulk-emails', [
+                'contact_ids' => $contacts->pluck('id')->all(),
+                'subject' => 'New listings',
+                'body' => 'Here are the latest matched properties.',
+            ])
+            ->assertAccepted()
+            ->assertJsonPath('data.recipient_count', 2);
+
+        $this->assertSame(3, TenantEmailUsage::query()->whereKey($tenant->id)->firstOrFail()->sent_count);
     }
 }

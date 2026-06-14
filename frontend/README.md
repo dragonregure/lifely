@@ -65,6 +65,8 @@ Lifely frontend is a React CRM single-page app for real estate offices. It talks
    http://localhost:5173
    ```
 
+   The public marketing page is served at `/`. Login and registration live at `/login`, and protected app routes redirect unauthenticated users there.
+
 ## Login For Local Demo
 
 After the backend is migrated and seeded, use:

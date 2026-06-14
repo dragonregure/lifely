@@ -2,13 +2,13 @@
 
 Lifely is a decoupled, multi-tenant real estate CRM portfolio project. It combines a React single-page app with a Laravel API backend for tenant-scoped contacts, listings, leads, bulk email campaigns, activity logs, reports, settings, and RBAC.
 
-The Docker stack is the main local workflow. It runs the frontend, backend, queue worker, scheduler, MySQL, Redis, and phpMyAdmin without requiring local PHP, Composer, Node.js, MySQL, or Redis.
+The Docker stack is the main local workflow. It runs the frontend, backend, queue worker, scheduler, MySQL, Redis, phpMyAdmin, and Mailpit without requiring local PHP, Composer, Node.js, MySQL, Redis, or an SMTP service.
 
 ## Stack
 
 - Frontend: React 18, TypeScript, Vite 6, Tailwind CSS, Radix/shadcn-style primitives, Lucide icons, Recharts
 - Backend: PHP 8.4, Laravel 13, Laravel Sanctum bearer-token auth, Spatie Laravel Permission, L5-Swagger
-- Data and jobs: MySQL 8.4, Redis 7, Laravel queue worker and scheduler
+- Data, jobs, and mail: MySQL 8.4, Redis 7, Laravel queue worker and scheduler, Mailpit
 - Local runtime: Docker Compose, Nginx, PHP-FPM, Vite
 
 ## Repository Structure
@@ -70,6 +70,7 @@ For non-Docker setup, use the stack-specific guides:
    Swagger UI:     http://localhost:8000/api/documentation
    OpenAPI YAML:   http://localhost:8000/api/docs
    phpMyAdmin:     http://localhost:8080
+   Mailpit inbox:  http://localhost:8025
    ```
 
 The backend container runs migrations and seeders on startup when the Docker flags in `docker-compose.yml` are enabled, so a fresh Docker database is login-ready after the stack finishes booting.
@@ -90,6 +91,7 @@ Password: password
 - `mysql`: MySQL database
 - `redis`: Redis queue/cache service
 - `phpmyadmin`: browser database admin UI on port `8080`
+- `mailpit`: local SMTP capture service with a browser inbox on port `8025`
 
 ## Ports And Environment
 
@@ -103,9 +105,11 @@ MYSQL_DATABASE=lifely
 MYSQL_ROOT_PASSWORD=secret
 PHPMYADMIN_PORT=8080
 REDIS_PORT=6380
+MAILPIT_SMTP_PORT=1025
+MAILPIT_HTTP_PORT=8025
 ```
 
-The frontend receives `VITE_API_BASE_URL=http://localhost:8000/api/v1` from Docker Compose. The backend receives its Docker database, Redis, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`.
+The frontend receives `VITE_API_BASE_URL=http://localhost:8000/api/v1` from Docker Compose. The backend receives its Docker database, Redis, Mailpit SMTP, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`.
 
 ## Useful Commands
 
@@ -162,6 +166,20 @@ Project handoff docs live in [docs/](docs/README.md):
 - [API conventions](docs/api-conventions.md): auth, tenant headers, request/resource patterns, server-side query params, OpenAPI, and activity log payloads
 - [Permission system](docs/permission-system.md): RBAC source of truth, roles, permission constants, and frontend visibility
 - [Custom components](docs/custom-components.md): shared table, selector, dialog, RBAC, loading, page, and service patterns
+
+## Local Mail
+
+Docker Compose routes Laravel mail from the backend, queue worker, and scheduler through Mailpit. Open `http://localhost:8025` to inspect captured emails. The SMTP endpoint is available to containers as `mailpit:1025` and to the host at `localhost:1025` by default.
+
+To send through Resend, keep `LIFELY_EMAIL_SENDER=mail` and set these values in the root `.env` before recreating the backend, queue, and scheduler containers:
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=re_your_api_key
+MAIL_FROM_ADDRESS=hello@your-verified-domain.example
+```
+
+All Lifely email workflows continue to use Laravel Mail, so changing `MAIL_MAILER` switches the provider for queued bulk email, quick-test mail, and future mail workflows without code changes.
 
 ## phpMyAdmin
 
