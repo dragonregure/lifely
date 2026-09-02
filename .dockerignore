@@ -11,4 +11,10 @@ backend-laravel/.env
 backend-laravel/storage/logs/*.log
 backend-laravel/.phpunit.result.cache
 
+backend-nestjs/node_modules
+backend-nestjs/dist
+backend-nestjs/build
+backend-nestjs/coverage
+backend-nestjs/.env
+
 docker-compose.override.yml

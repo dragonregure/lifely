@@ -16,6 +16,24 @@ services:
       timeout: 5s
       retries: 20
 
+  postgresql:
+    image: postgres:16-alpine
+    container_name: lifely-postgresql
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    environment:
+      POSTGRES_DB: "${POSTGRES_DATABASE:-lifely_nestjs}"
+      POSTGRES_USER: "${POSTGRES_USER:-lifely}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+    volumes:
+      - lifely_postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   phpmyadmin:
     image: phpmyadmin:5-apache
     container_name: lifely-phpmyadmin
@@ -219,6 +237,32 @@ services:
         condition: service_started
     command: php artisan schedule:work
 
+  backend-nestjs:
+    build:
+      context: .
+      dockerfile: docker/nestjs/Dockerfile
+    container_name: lifely-backend-nestjs
+    restart: unless-stopped
+    ports:
+      - "${NESTJS_BACKEND_PORT:-3000}:3000"
+      - "${NESTJS_DEBUG_PORT:-9229}:9229"
+    volumes:
+      - ./backend-nestjs:/app
+      - lifely_nestjs_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-lifely}:${POSTGRES_PASSWORD:-secret}@postgresql:5432/${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      DB_DATABASE: "${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_USERNAME: "${POSTGRES_USER:-lifely}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
   frontend:
     build:
       context: .
@@ -238,7 +282,9 @@ services:
 
 volumes:
   lifely_mysql_data:
+  lifely_postgresql_data:
   lifely_redis_data:
   lifely_backend_vendor:
   lifely_backend_bootstrap_cache:
+  lifely_nestjs_node_modules:
   lifely_frontend_node_modules:

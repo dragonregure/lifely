@@ -25,6 +25,23 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Lifely Docker runtime
+
+The root Docker Compose stack runs this service as `backend-nestjs` on `http://localhost:3000` by default. It uses the `docker/nestjs/Dockerfile`, bind-mounts this directory for watch-mode development, starts the Node inspector on `localhost:9229`, and connects to the `postgresql` service with these container environment values:
+
+```text
+DATABASE_URL=postgresql://lifely:secret@postgresql:5432/lifely_nestjs
+DB_HOST=postgresql
+DB_PORT=5432
+DB_DATABASE=lifely_nestjs
+DB_USERNAME=lifely
+DB_PASSWORD=secret
+```
+
+Override the host port and PostgreSQL credentials from the root `.env` file when needed.
+
+Use the VS Code `Attach to NestJS (Docker)` debugger to stop at TypeScript breakpoints while the Compose service is running.
+
 ## Project setup
 
 ```bash
