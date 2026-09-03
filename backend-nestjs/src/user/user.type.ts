@@ -9,3 +9,5 @@ export type User = {
     createdAt: string;
     updatedAt: string;
 }
+
+export type PublicUser = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
