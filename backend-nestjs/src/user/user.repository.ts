@@ -1,24 +1,29 @@
 import { Injectable } from '@nestjs/common';
 import { User } from './user.type.js';
 import { User as UserModel } from '../prisma/prisma.service.js';
-import { CreateUserDto } from './user.dto.js';
+import { CreateUserDto, UserResponseDto } from './user.dto.js';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UserRepository {
-    async findAll(includedRelations: string[] = []): Promise<User[]> {
-        return await this.includeRelations(includedRelations).all();
+    async findAll(includedRelations: string[] = []): Promise<UserResponseDto[]> {
+        const users = await this.includeRelations(includedRelations).all();
+        return users.map(user => plainToInstance(UserResponseDto, user));
     }
 
-    findById(id: number, includedRelations: string[] = []): Promise<User | null> {
-        return this.includeRelations(includedRelations).where({ id }).first();
+    async findById(id: number, includedRelations: string[] = []): Promise<UserResponseDto | null> {
+        const user = await this.includeRelations(includedRelations).where({ id }).first();
+        return user ? plainToInstance(UserResponseDto, user) : null;
     }
 
-    findByEmail(email: string, includedRelations: string[] = []): Promise<User | null> {
-        return this.includeRelations(includedRelations).where({ email }).first();
+    async findByEmail(email: string, includedRelations: string[] = []): Promise<UserResponseDto | null> {
+        const user = await this.includeRelations(includedRelations).where({ email }).first();
+        return user ? plainToInstance(UserResponseDto, user) : null;
     }
 
-    findByUsername(username: string, includedRelations: string[] = []): Promise<User | null> {
-        return this.includeRelations(includedRelations).where({ username }).first();
+    async findByUsername(username: string, includedRelations: string[] = []): Promise<UserResponseDto | null> {
+        const user = await this.includeRelations(includedRelations).where({ username }).first();
+        return user ? plainToInstance(UserResponseDto, user) : null;
     }
 
     create(user: CreateUserDto): Promise<User> {
