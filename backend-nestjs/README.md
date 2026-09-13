@@ -61,6 +61,19 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## Seed local demo data
+
+```bash
+$ npm run seed
+```
+
+The seed command creates RBAC permissions and roles, then creates the same basic demo login used by the Laravel backend:
+
+```text
+Email: maya@skyline.example
+Password: password
+```
+
 ## Run tests
 
 ```bash
