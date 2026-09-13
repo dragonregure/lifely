@@ -17,10 +17,11 @@ describe('AppController (e2e)', () => {
   });
 
   it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const server = app.getHttpServer() as unknown as App;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    return request(server).get('/').expect(200).expect('Hello World!');
   });
 
   afterEach(async () => {

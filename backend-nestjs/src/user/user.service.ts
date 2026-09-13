@@ -1,18 +1,17 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { UserRepository } from "./user.repository.js";
-import { CreateUserDto, UserResponseDto } from "./user.dto.js";
-
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { UserResponseDto } from './user.dto.js';
+import { UserRepository } from './user.repository.js';
 
 @Injectable()
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
-  findAll(includedRelations: string[] = []): Promise<UserResponseDto[]> {
-    return this.userRepository.findAll(includedRelations);
+  findAll(): Promise<UserResponseDto[]> {
+    return this.userRepository.findAll();
   }
 
-  async findById(id: number, includedRelations: string[] = []): Promise<UserResponseDto> {
-    const user = await this.userRepository.findById(id, includedRelations);
+  async findById(id: string): Promise<UserResponseDto> {
+    const user = await this.userRepository.findById(id);
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -21,21 +20,13 @@ export class UserService {
     return user;
   }
 
-  async findByEmail(email: string, includedRelations: string[] = []): Promise<UserResponseDto> {
-    const user = await this.userRepository.findByEmail(email, includedRelations);
+  async findByEmail(email: string): Promise<UserResponseDto> {
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       throw new NotFoundException(`User with email ${email} not found`);
     }
 
     return user;
-  }
-
-  async create(user: CreateUserDto): Promise<UserResponseDto> {
-    if (await this.userRepository.findByEmail(user.email)) {
-      throw new ConflictException(`User with email ${user.email} already exists`);
-    }
-
-    return this.userRepository.create(user);
   }
 }

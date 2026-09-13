@@ -1,21 +1,111 @@
 // use prisma-next
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  posts     Post[]
+model Tenant {
+  id        Uuid     @id @default(uuid())
+  name      String
+  users     User[]
+  roles     Role[]
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
+
+  @@map("tenants")
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  Int
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+model User {
+  id                 Uuid                  @id @default(uuid())
+  tenantId           Uuid
+  tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role               String                @default("Simple Agent")
+  name               String
+  email              String                @unique
+  password           String
+  emailVerifiedAt    TimestamptzString?
+  tokens             PersonalAccessToken[]
+  roleAssignments    ModelHasRole[]
+  permissionGrants   ModelHasPermission[]
+  createdAt          TimestamptzString     @default(now())
+  updatedAt          temporal.updatedAtString()
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model PersonalAccessToken {
+  id            Int                @id @default(autoincrement())
+  tokenableId   Uuid
+  tokenable     User               @relation(fields: [tokenableId], references: [id], onDelete: Cascade)
+  name          String
+  token         String             @unique
+  ability       String
+  lastUsedAt    TimestamptzString?
+  expiresAt     TimestamptzString?
+  createdAt     TimestamptzString  @default(now())
+  updatedAt     temporal.updatedAtString()
+
+  @@index([tokenableId])
+  @@index([expiresAt])
+  @@map("personal_access_tokens")
+}
+
+model Permission {
+  id                Int                  @id @default(autoincrement())
+  name              String
+  guardName         String               @default("web")
+  roleGrants        RoleHasPermission[]
+  userGrants        ModelHasPermission[]
+  createdAt         TimestamptzString    @default(now())
+  updatedAt         temporal.updatedAtString()
+
+  @@unique([name, guardName])
+  @@map("permissions")
+}
+
+model Role {
+  id                Int                  @id @default(autoincrement())
+  tenantId          Uuid?
+  tenant            Tenant?              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name              String
+  guardName         String               @default("web")
+  permissionGrants  RoleHasPermission[]
+  userAssignments   ModelHasRole[]
+  createdAt         TimestamptzString    @default(now())
+  updatedAt         temporal.updatedAtString()
+
+  @@index([tenantId, name])
+  @@unique([tenantId, name, guardName])
+  @@map("roles")
+}
+
+model RoleHasPermission {
+  permissionId Int
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  roleId       Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([permissionId, roleId])
+  @@map("role_has_permissions")
+}
+
+model ModelHasRole {
+  roleId    Int
+  role      Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  modelType String
+  modelId   Uuid
+  user      User   @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, modelId, modelType])
+  @@index([modelId, modelType])
+  @@map("model_has_roles")
+}
+
+model ModelHasPermission {
+  permissionId Int
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  modelType    String
+  modelId      Uuid
+  user         User       @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@id([permissionId, modelId, modelType])
+  @@index([modelId, modelType])
+  @@map("model_has_permissions")
 }

@@ -1,13 +1,18 @@
-import type { Post } from '../post/post.type.js';
-
 export type User = {
-    id: number;
-    email: string;
-    username: string | null;
-    name: string | null;
-    posts?: Post[];
-    createdAt: string;
-    updatedAt: string;
-}
+  id: string;
+  tenantId: string;
+  role: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
-export type PublicUser = Omit<User, 'id' | 'createdAt' | 'updatedAt'>;
+export type PublicUser = {
+  id: string;
+  tenant_id: string;
+  role: string;
+  name: string;
+  email: string;
+  created_at: string;
+};

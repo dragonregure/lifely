@@ -1,12 +1,21 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, Param, ParseIntPipe, Post, UseInterceptors } from "@nestjs/common";
-import { UserService } from "./user.service.js";
-import { User } from "./user.type.js";
-import { CreateUserDto, UserResponseDto } from "./user.dto.js";
-import { ApiResponseInterceptor } from "../common/interceptors/api-response.interceptor.js";
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { AuthGuard } from '../auth/auth.guard.js';
+import { ApiResponseInterceptor } from '../common/interceptors/api-response.interceptor.js';
+import { RequirePermissions } from '../rbac/permissions.decorator.js';
+import { Permissions } from '../rbac/rbac.constants.js';
+import { RbacGuard } from '../rbac/rbac.guard.js';
+import { UserResponseDto } from './user.dto.js';
+import { UserService } from './user.service.js';
 
-
-@Controller('users')
-@UseInterceptors(ClassSerializerInterceptor)
+@Controller('api/v1/users')
+@UseGuards(AuthGuard, RbacGuard)
+@RequirePermissions(Permissions.USERS_VIEW)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -18,13 +27,7 @@ export class UserController {
 
   @Get(':id')
   @UseInterceptors(ApiResponseInterceptor)
-  findById(@Param('id', ParseIntPipe) id: number): Promise<UserResponseDto> {
+  findById(@Param('id') id: string): Promise<UserResponseDto> {
     return this.userService.findById(id);
-  }
-
-  @Post()
-  @UseInterceptors(ApiResponseInterceptor)
-  create(@Body() user: CreateUserDto): Promise<UserResponseDto> {
-    return this.userService.create(user);
   }
 }

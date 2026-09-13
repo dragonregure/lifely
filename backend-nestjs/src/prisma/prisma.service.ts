@@ -2,15 +2,45 @@ import { Injectable } from '@nestjs/common';
 import { db } from './db.js';
 
 export const User = db.orm.public.User;
-export const Post = db.orm.public.Post;
+export const Tenant = db.orm.public.Tenant;
+export const PersonalAccessToken = db.orm.public.PersonalAccessToken;
+export const Permission = db.orm.public.Permission;
+export const Role = db.orm.public.Role;
+export const RoleHasPermission = db.orm.public.RoleHasPermission;
+export const ModelHasRole = db.orm.public.ModelHasRole;
+export const ModelHasPermission = db.orm.public.ModelHasPermission;
 
 @Injectable()
 export class PrismaService {
-    User() {
-        return User;
-    }
+  User() {
+    return User;
+  }
 
-    Post() {
-        return Post;
-    }
+  Tenant() {
+    return Tenant;
+  }
+
+  PersonalAccessToken() {
+    return PersonalAccessToken;
+  }
+
+  Permission() {
+    return Permission;
+  }
+
+  Role() {
+    return Role;
+  }
+
+  RoleHasPermission() {
+    return RoleHasPermission;
+  }
+
+  ModelHasRole() {
+    return ModelHasRole;
+  }
+
+  ModelHasPermission() {
+    return ModelHasPermission;
+  }
 }
