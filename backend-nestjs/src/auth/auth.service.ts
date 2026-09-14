@@ -2,12 +2,18 @@ import {
   ConflictException,
   Injectable,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { db } from '../prisma/db.js';
 import { Roles } from '../rbac/rbac.constants.js';
 import { RbacService } from '../rbac/rbac.service.js';
 import { AuthenticatedUser, UserAccess } from '../rbac/rbac.types.js';
-import { LoginDto, RegisterDto } from './auth.dto.js';
+import {
+  LoginDto,
+  RefreshTokenDto,
+  RegisterDto,
+  UpdatePasswordDto,
+} from './auth.dto.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
 
@@ -90,6 +96,68 @@ export class AuthService {
     }
 
     return this.tokenPayload(user, dto.device_name ?? 'api');
+  }
+
+  async refresh(dto: RefreshTokenDto): Promise<AuthPayload> {
+    const token = await this.tokenService.findValidToken(
+      dto.refresh_token,
+      'refresh',
+    );
+
+    if (!token) {
+      throw new UnauthorizedException('Invalid refresh token.');
+    }
+
+    const user = token.tokenable as unknown as UserRecord;
+    await this.tokenService.revokeTokenById(token.id, user.id, 'refresh');
+
+    return this.tokenPayload(user, dto.device_name ?? 'api');
+  }
+
+  async logout(
+    user: AuthenticatedUser,
+    accessToken: string,
+    refreshToken?: string,
+  ): Promise<void> {
+    await this.tokenService.revokeToken(accessToken, {
+      userId: user.id,
+      ability: 'access',
+    });
+
+    if (refreshToken) {
+      await this.tokenService.revokeToken(refreshToken, {
+        userId: user.id,
+        ability: 'refresh',
+      });
+    }
+  }
+
+  async revokeAll(user: AuthenticatedUser): Promise<void> {
+    await this.tokenService.revokeAllForUser(user.id);
+  }
+
+  async updatePassword(
+    user: AuthenticatedUser,
+    dto: UpdatePasswordDto,
+  ): Promise<void> {
+    const userRecord = (await db.orm.public.User.where({ id: user.id })
+      .include('tenant')
+      .first()) as UserRecord | null;
+
+    if (
+      !userRecord ||
+      !(await this.passwordService.verify(
+        dto.current_password,
+        userRecord.password,
+      ))
+    ) {
+      throw new UnprocessableEntityException('Current password is incorrect.');
+    }
+
+    await db.orm.public.User.where({ id: user.id }).update({
+      password: await this.passwordService.hash(dto.password),
+    });
+    await this.tokenService.revokeAllForUser(user.id);
   }
 
   async userFromAccessToken(

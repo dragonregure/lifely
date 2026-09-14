@@ -1,10 +1,16 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service.js';
 import { AuthenticatedUser } from '../rbac/rbac.types.js';
 
 type RequestWithUser = Request & {
   user?: AuthenticatedUser;
+  accessToken?: string;
 };
 
 @Injectable()
@@ -16,16 +22,17 @@ export class AuthGuard implements CanActivate {
     const token = this.bearerToken(request);
 
     if (!token) {
-      return false;
+      throw new UnauthorizedException('Missing or invalid bearer token.');
     }
 
     const user = await this.authService.userFromAccessToken(token);
 
     if (!user) {
-      return false;
+      throw new UnauthorizedException('Missing or invalid bearer token.');
     }
 
     request.user = user;
+    request.accessToken = token;
     return true;
   }
 

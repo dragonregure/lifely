@@ -9,6 +9,11 @@ export type PlainToken = {
   expiresAt: string;
 };
 
+type RevokeTokenOptions = {
+  userId?: string;
+  ability?: TokenAbility;
+};
+
 @Injectable()
 export class TokenService {
   private readonly accessTokenMinutes = Number(
@@ -41,16 +46,15 @@ export class TokenService {
   }
 
   async findValidToken(plainTextToken: string, ability: TokenAbility) {
-    const [id, token] = plainTextToken.split('|');
-    const tokenId = Number(id);
+    const parsed = this.parsePlainToken(plainTextToken);
 
-    if (!Number.isInteger(tokenId) || !token) {
+    if (!parsed) {
       return null;
     }
 
     const accessToken = await db.orm.public.PersonalAccessToken.where({
-      id: tokenId,
-      token: this.hashToken(token),
+      id: parsed.id,
+      token: parsed.hashedToken,
       ability,
     })
       .include('tokenable', (user) => user.include('tenant'))
@@ -69,13 +73,78 @@ export class TokenService {
     return accessToken;
   }
 
-  async revokeToken(plainTextToken: string): Promise<void> {
-    const [id] = plainTextToken.split('|');
+  async revokeToken(
+    plainTextToken: string,
+    options: RevokeTokenOptions = {},
+  ): Promise<void> {
+    const parsed = this.parsePlainToken(plainTextToken);
+
+    if (!parsed) {
+      return;
+    }
+
+    const criteria: {
+      id: number;
+      token: string;
+      tokenableId?: string;
+      ability?: TokenAbility;
+    } = {
+      id: parsed.id,
+      token: parsed.hashedToken,
+    };
+
+    if (options.userId) {
+      criteria.tokenableId = options.userId;
+    }
+
+    if (options.ability) {
+      criteria.ability = options.ability;
+    }
+
+    await db.orm.public.PersonalAccessToken.where(criteria).delete();
+  }
+
+  async revokeTokenById(
+    tokenId: number,
+    userId: string,
+    ability?: TokenAbility,
+  ): Promise<void> {
+    const criteria: {
+      id: number;
+      tokenableId: string;
+      ability?: TokenAbility;
+    } = {
+      id: tokenId,
+      tokenableId: userId,
+    };
+
+    if (ability) {
+      criteria.ability = ability;
+    }
+
+    await db.orm.public.PersonalAccessToken.where(criteria).delete();
+  }
+
+  async revokeAllForUser(userId: string): Promise<void> {
+    await db.orm.public.PersonalAccessToken.where({
+      tokenableId: userId,
+    }).delete();
+  }
+
+  private parsePlainToken(
+    plainTextToken: string,
+  ): { id: number; hashedToken: string } | null {
+    const [id, token] = plainTextToken.split('|');
     const tokenId = Number(id);
 
-    if (Number.isInteger(tokenId)) {
-      await db.orm.public.PersonalAccessToken.where({ id: tokenId }).delete();
+    if (!Number.isInteger(tokenId) || !token) {
+      return null;
     }
+
+    return {
+      id: tokenId,
+      hashedToken: this.hashToken(token),
+    };
   }
 
   private hashToken(token: string): string {

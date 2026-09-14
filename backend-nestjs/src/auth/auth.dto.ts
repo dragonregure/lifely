@@ -12,10 +12,14 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+type PasswordConfirmationPayload = {
+  password?: string;
+};
+
 @ValidatorConstraint({ name: 'passwordConfirmationMatches', async: false })
 class PasswordConfirmationMatchesConstraint implements ValidatorConstraintInterface {
   validate(value: string, args: ValidationArguments): boolean {
-    const dto = args.object as RegisterDto;
+    const dto = args.object as PasswordConfirmationPayload;
     return value === dto.password;
   }
 
@@ -74,6 +78,44 @@ export class LoginDto {
   @MaxLength(120)
   @IsOptional()
   device_name?: string;
+}
+
+export class RefreshTokenDto {
+  @ApiProperty({ example: 'plain-text-refresh-token' })
+  @IsString()
+  refresh_token!: string;
+
+  @ApiPropertyOptional({ example: 'web' })
+  @IsString()
+  @MaxLength(120)
+  @IsOptional()
+  device_name?: string;
+}
+
+export class LogoutDto {
+  @ApiPropertyOptional({ example: 'plain-text-refresh-token' })
+  @IsString()
+  @IsOptional()
+  refresh_token?: string;
+}
+
+export class UpdatePasswordDto {
+  @ApiProperty({ example: 'OldPassword12345' })
+  @IsString()
+  current_password!: string;
+
+  @ApiProperty({ example: 'NewPassword12345' })
+  @IsString()
+  @MinLength(12)
+  @Matches(/[a-z]/, { message: 'password must contain a lowercase letter' })
+  @Matches(/[A-Z]/, { message: 'password must contain an uppercase letter' })
+  @Matches(/[0-9]/, { message: 'password must contain a number' })
+  password!: string;
+
+  @ApiProperty({ example: 'NewPassword12345' })
+  @IsString()
+  @Validate(PasswordConfirmationMatchesConstraint)
+  password_confirmation!: string;
 }
 
 export class TenantSummaryDto {
@@ -148,4 +190,9 @@ export class MeResponseDto {
 export class MeEnvelopeDto {
   @ApiProperty({ type: MeResponseDto })
   data!: MeResponseDto;
+}
+
+export class MessageResponseDto {
+  @ApiProperty({ example: 'Logged out.' })
+  message!: string;
 }

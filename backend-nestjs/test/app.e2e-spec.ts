@@ -5,6 +5,20 @@ import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module.js';
 import { setupOpenApi } from './../src/openapi.js';
 
+type OpenApiOperation = {
+  summary?: string;
+  requestBody?: {
+    required?: boolean;
+  };
+  responses?: Record<string, unknown>;
+};
+
+type OpenApiPath = {
+  get?: OpenApiOperation;
+  post?: OpenApiOperation;
+  put?: OpenApiOperation;
+};
+
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
@@ -49,12 +63,30 @@ describe('AppController (e2e)', () => {
         const body = response.body as {
           openapi: string;
           info: { title: string };
-          paths: Record<string, unknown>;
+          paths: Record<string, OpenApiPath>;
         };
 
         expect(body.openapi).toMatch(/^3\./);
         expect(body.info.title).toBe('Lifely NestJS API');
         expect(body.paths).toHaveProperty('/api/v1/auth/login');
+        expect(body.paths['/api/v1/auth/refresh'].post.summary).toBe(
+          'Rotate refresh token and issue a new access token',
+        );
+        expect(body.paths['/api/v1/auth/logout'].post.summary).toBe(
+          'Revoke the current access token',
+        );
+        expect(
+          body.paths['/api/v1/auth/logout'].post.requestBody.required,
+        ).toBe(false);
+        expect(body.paths['/api/v1/auth/revoke-all'].post.summary).toBe(
+          'Revoke all tokens for the current user',
+        );
+        expect(body.paths['/api/v1/auth/password'].put.summary).toBe(
+          'Update password and revoke all tokens',
+        );
+        expect(
+          body.paths['/api/v1/auth/password'].put.responses,
+        ).toHaveProperty('422');
       });
   });
 
