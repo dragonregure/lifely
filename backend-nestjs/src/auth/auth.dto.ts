@@ -39,12 +39,12 @@ export class RegisterDto {
   @MaxLength(120)
   name!: string;
 
-  @ApiProperty({ example: 'avery@example.com' })
+  @ApiProperty({ example: 'maya@skyline.example' })
   @IsEmail()
   @MaxLength(255)
   email!: string;
 
-  @ApiProperty({ example: 'Secret123' })
+  @ApiProperty({ example: 'password' })
   @IsString()
   @MinLength(8)
   @Matches(/[a-z]/, { message: 'password must contain a lowercase letter' })
@@ -52,7 +52,7 @@ export class RegisterDto {
   @Matches(/[0-9]/, { message: 'password must contain a number' })
   password!: string;
 
-  @ApiProperty({ example: 'Secret123' })
+  @ApiProperty({ example: 'password' })
   @IsString()
   @Validate(PasswordConfirmationMatchesConstraint)
   password_confirmation!: string;
@@ -65,11 +65,11 @@ export class RegisterDto {
 }
 
 export class LoginDto {
-  @ApiProperty({ example: 'avery@example.com' })
+  @ApiProperty({ example: 'maya@skyline.example' })
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ example: 'Secret123' })
+  @ApiProperty({ example: 'password' })
   @IsString()
   password!: string;
 
@@ -100,11 +100,11 @@ export class LogoutDto {
 }
 
 export class UpdatePasswordDto {
-  @ApiProperty({ example: 'OldPassword12345' })
+  @ApiProperty({ example: 'password' })
   @IsString()
   current_password!: string;
 
-  @ApiProperty({ example: 'NewPassword12345' })
+  @ApiProperty({ example: 'passwords' })
   @IsString()
   @MinLength(12)
   @Matches(/[a-z]/, { message: 'password must contain a lowercase letter' })
