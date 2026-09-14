@@ -48,7 +48,7 @@ type RequestWithUser = Request & {
 
 type QueryParams = Record<string, string | string[] | undefined>;
 
-@ApiTags('Roles and Permissions')
+@ApiTags('Access Control')
 @ApiBearerAuth()
 @Controller('api/v1')
 @UseGuards(AuthGuard, RbacGuard)

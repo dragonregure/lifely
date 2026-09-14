@@ -39,7 +39,7 @@ type RequestWithUser = Request & {
   accessToken: string;
 };
 
-@ApiTags('Authentication')
+@ApiTags('Auth')
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

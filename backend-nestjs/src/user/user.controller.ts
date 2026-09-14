@@ -11,8 +11,10 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiExcludeEndpoint,
   ApiExtraModels,
   ApiOkResponse,
+  ApiOperation,
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
@@ -42,7 +44,6 @@ type RequestWithUser = Request & {
 
 type QueryParams = Record<string, string | string[] | undefined>;
 
-@ApiTags('Users')
 @ApiBearerAuth()
 @ApiExtraModels(MemberListEnvelopeDto, PaginatedMemberListEnvelopeDto)
 @Controller('api/v1')
@@ -52,6 +53,11 @@ export class UserController {
 
   @Get('tenant')
   @RequirePermissions(Permissions.TENANT_VIEW)
+  @ApiTags('Tenant')
+  @ApiOperation({
+    summary: 'Current tenant',
+    description: 'Requires `tenant.view`.',
+  })
   @ApiOkResponse({ type: TenantEnvelopeDto })
   @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async tenant(@Req() request: RequestWithUser) {
@@ -62,6 +68,12 @@ export class UserController {
 
   @Get('members')
   @RequirePermissions(Permissions.USERS_VIEW)
+  @ApiTags('Tenant')
+  @ApiOperation({
+    summary: 'Office members',
+    description:
+      'Requires `users.view`. Without pagination parameters this returns all members for existing session/bootstrap flows. With `page`, `per_page`, `search`, or sort parameters it returns a paginated member list for server-side selectors.',
+  })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -115,6 +127,12 @@ export class UserController {
   }
 
   @Get('me/permissions')
+  @ApiTags('Access Control')
+  @ApiOperation({
+    summary: "Current authenticated user's roles and permissions",
+    description:
+      'Returns role names, direct permissions, and all effective permissions for SPA authorization hints. Backend authorization remains authoritative.',
+  })
   @ApiOkResponse({ type: UserAccessEnvelopeDto })
   @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async mePermissions(@Req() request: RequestWithUser) {
@@ -126,6 +144,7 @@ export class UserController {
   @Get('users')
   @RequirePermissions(Permissions.USERS_VIEW)
   @UseInterceptors(ApiResponseInterceptor)
+  @ApiExcludeEndpoint()
   @ApiOkResponse({ type: UserListEnvelopeDto })
   @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async findAll(@Req() request: RequestWithUser): Promise<UserResponseDto[]> {
@@ -135,6 +154,7 @@ export class UserController {
   @Get('users/:id')
   @RequirePermissions(Permissions.USERS_VIEW)
   @UseInterceptors(ApiResponseInterceptor)
+  @ApiExcludeEndpoint()
   @ApiOkResponse({ type: UserEnvelopeDto })
   @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async findById(
