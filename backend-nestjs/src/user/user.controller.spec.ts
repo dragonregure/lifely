@@ -17,6 +17,7 @@ import { UserRepository } from './user.repository.js';
 import { UserResponseDto } from './user.dto.js';
 import { UserController } from './user.controller.js';
 import { UserService } from './user.service.js';
+import { User } from './user.type.js';
 
 const adminUser: AuthenticatedUser = {
   id: 'admin-1',
@@ -38,59 +39,77 @@ const agentUser: AuthenticatedUser = {
   email: 'agent@example.test',
 };
 
-const users: UserResponseDto[] = [
+const users: User[] = [
   {
     id: adminUser.id,
-    tenant_id: 'tenant-1',
+    tenantId: 'tenant-1',
     role: Roles.OFFICE_ADMIN,
-    roles: [Roles.OFFICE_ADMIN],
-    direct_permissions: [Permissions.USERS_VIEW],
-    permissions: [Permissions.USERS_VIEW, Permissions.TENANT_VIEW],
     name: 'Maya Admin',
     email: 'maya.admin@example.test',
-    created_at: '2026-09-14T05:15:00.000Z',
+    createdAt: '2026-09-14T05:15:00.000Z',
+    updatedAt: '2026-09-14T05:15:00.000Z',
   },
   {
     id: 'user-2',
-    tenant_id: 'tenant-1',
+    tenantId: 'tenant-1',
     role: Roles.OFFICE_ADMIN,
-    roles: [Roles.OFFICE_ADMIN],
-    direct_permissions: [],
-    permissions: [],
     name: 'Maya Chen',
     email: 'maya@example.test',
-    created_at: '2026-09-14T05:16:00.000Z',
+    createdAt: '2026-09-14T05:16:00.000Z',
+    updatedAt: '2026-09-14T05:16:00.000Z',
   },
   {
     id: 'user-3',
-    tenant_id: 'tenant-1',
+    tenantId: 'tenant-1',
     role: Roles.SIMPLE_AGENT,
-    roles: [Roles.SIMPLE_AGENT],
-    direct_permissions: [],
-    permissions: [],
     name: 'Noah Stone',
     email: 'noah@example.test',
-    created_at: '2026-09-14T05:17:00.000Z',
+    createdAt: '2026-09-14T05:17:00.000Z',
+    updatedAt: '2026-09-14T05:17:00.000Z',
   },
   {
     id: 'outside-1',
-    tenant_id: 'tenant-2',
+    tenantId: 'tenant-2',
     role: Roles.OFFICE_ADMIN,
-    roles: [Roles.OFFICE_ADMIN],
-    direct_permissions: [],
-    permissions: [],
     name: 'Maya Outside',
     email: 'maya.outside@example.test',
-    created_at: '2026-09-14T05:18:00.000Z',
+    createdAt: '2026-09-14T05:18:00.000Z',
+    updatedAt: '2026-09-14T05:18:00.000Z',
   },
 ];
 
 class FakeUserRepository {
-  findByTenantId(tenantId: string): Promise<UserResponseDto[]> {
-    return Promise.resolve(users.filter((user) => user.tenant_id === tenantId));
+  findByTenantId(tenantId: string): Promise<User[]> {
+    return Promise.resolve(users.filter((user) => user.tenantId === tenantId));
   }
 
-  findById(id: string): Promise<UserResponseDto | null> {
+  findMembers(options: {
+    tenantId: string;
+    search?: string;
+    sort: 'name' | 'email' | 'role' | 'created_at';
+    direction: 'asc' | 'desc';
+    page?: number;
+    perPage?: number;
+  }): Promise<{ data: User[]; total: number }> {
+    const searched = this.filterMembers(
+      users.filter((user) => user.tenantId === options.tenantId),
+      options.search,
+    );
+    const sorted = this.sortMembers(searched, options.sort, options.direction);
+
+    if (options.page === undefined || options.perPage === undefined) {
+      return Promise.resolve({ data: sorted, total: sorted.length });
+    }
+
+    const start = (options.page - 1) * options.perPage;
+
+    return Promise.resolve({
+      data: sorted.slice(start, start + options.perPage),
+      total: sorted.length,
+    });
+  }
+
+  findById(id: string): Promise<User | null> {
     return Promise.resolve(users.find((user) => user.id === id) ?? null);
   }
 
@@ -104,6 +123,44 @@ class FakeUserRepository {
       name: 'Skyline Realty',
       createdAt: '2026-09-14T05:15:00.000Z',
     });
+  }
+
+  private filterMembers(users: User[], search?: string): User[] {
+    const needle = search?.trim().toLowerCase();
+
+    if (!needle) {
+      return users;
+    }
+
+    return users.filter((user) =>
+      [user.name, user.email, user.role]
+        .join(' ')
+        .toLowerCase()
+        .includes(needle),
+    );
+  }
+
+  private sortMembers(
+    users: User[],
+    sort: 'name' | 'email' | 'role' | 'created_at',
+    direction: 'asc' | 'desc',
+  ): User[] {
+    const multiplier = direction === 'desc' ? -1 : 1;
+
+    return [...users].sort(
+      (left, right) =>
+        this.sortValue(left, sort)
+          .toLowerCase()
+          .localeCompare(this.sortValue(right, sort).toLowerCase()) *
+        multiplier,
+    );
+  }
+
+  private sortValue(
+    user: User,
+    sort: 'name' | 'email' | 'role' | 'created_at',
+  ): string {
+    return sort === 'created_at' ? user.createdAt : user[sort];
   }
 }
 

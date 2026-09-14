@@ -8,8 +8,10 @@ import {
   UserResponseDto,
 } from './user.dto.js';
 import { UserRepository } from './user.repository.js';
+import { User } from './user.type.js';
 
 type MemberQuery = Record<string, string | string[] | undefined>;
+type MemberSortKey = 'name' | 'email' | 'role' | 'created_at';
 
 const PAGINATION_TRIGGER_KEYS = [
   'page',
@@ -26,12 +28,18 @@ export class UserService {
     private readonly rbacService: RbacService,
   ) {}
 
-  findAll(): Promise<UserResponseDto[]> {
-    return this.userRepository.findAll();
+  async findAll(): Promise<UserResponseDto[]> {
+    return this.toUserResponses(await this.userRepository.findAll());
   }
 
   async findUsersByTenant(tenantId: string): Promise<UserResponseDto[]> {
-    return this.sortUsers(await this.userRepository.findByTenantId(tenantId));
+    const result = await this.userRepository.findMembers({
+      tenantId,
+      sort: 'name',
+      direction: 'asc',
+    });
+
+    return this.toUserResponses(result.data);
   }
 
   async findById(id: string): Promise<UserResponseDto> {
@@ -41,7 +49,7 @@ export class UserService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    return user;
+    return this.toUserResponse(user);
   }
 
   async findByEmail(email: string): Promise<UserResponseDto> {
@@ -51,7 +59,7 @@ export class UserService {
       throw new NotFoundException(`User with email ${email} not found`);
     }
 
-    return user;
+    return this.toUserResponse(user);
   }
 
   async findTenant(tenantId: string): Promise<TenantResponseDto> {
@@ -73,29 +81,40 @@ export class UserService {
     query: MemberQuery,
     baseUrl = 'http://localhost/api/v1/members',
   ): Promise<MemberResponseDto[] | PaginatedMemberListEnvelopeDto> {
-    const members = (await this.userRepository.findByTenantId(tenantId)).map(
-      (member) => this.toMemberResponse(member),
-    );
-
     if (!this.shouldPaginate(query)) {
-      return this.sortMembers(members);
+      return this.toMemberResponses(
+        (
+          await this.userRepository.findMembers({
+            tenantId,
+            sort: 'name',
+            direction: 'asc',
+          })
+        ).data,
+      );
     }
 
-    const filtered = this.filterMembers(members, this.single(query.search));
-    const sorted = this.sortMembers(
-      filtered,
-      this.single(query.sort),
+    const sort = this.sortKey(this.single(query.sort));
+    const direction = this.sortDirection(
       this.single(query.direction),
+      sort.requested,
     );
     const page = this.positiveInt(this.single(query.page), 1);
     const perPage = Math.min(
       this.positiveInt(this.single(query.per_page), 15),
       100,
     );
-    const total = sorted.length;
+    const result = await this.userRepository.findMembers({
+      tenantId,
+      search: this.single(query.search),
+      sort: sort.key,
+      direction,
+      page,
+      perPage,
+    });
+    const data = await this.toMemberResponses(result.data);
+    const total = result.total;
     const pageCount = Math.max(1, Math.ceil(total / perPage));
     const start = (page - 1) * perPage;
-    const data = sorted.slice(start, start + perPage);
 
     return {
       data,
@@ -135,66 +154,6 @@ export class UserService {
     );
   }
 
-  private filterMembers(
-    members: MemberResponseDto[],
-    search?: string,
-  ): MemberResponseDto[] {
-    const needle = search?.trim().toLowerCase();
-
-    if (!needle) {
-      return members;
-    }
-
-    return members.filter((member) =>
-      [member.name, member.email, member.role]
-        .join(' ')
-        .toLowerCase()
-        .includes(needle),
-    );
-  }
-
-  private sortMembers(
-    members: MemberResponseDto[],
-    sort?: string,
-    direction?: string,
-  ): MemberResponseDto[] {
-    const sortableKeys = ['name', 'email', 'role', 'created_at'];
-    const hasRequestedSort = sort !== undefined && sortableKeys.includes(sort);
-    const key = hasRequestedSort ? sort : 'name';
-    const normalizedDirection =
-      direction?.toLowerCase() === 'asc' ? 'asc' : 'desc';
-    const multiplier =
-      hasRequestedSort && normalizedDirection === 'desc' ? -1 : 1;
-
-    return [...members].sort((left, right) => {
-      const leftValue = String(this.sortValue(left, key) ?? '').toLowerCase();
-      const rightValue = String(this.sortValue(right, key) ?? '').toLowerCase();
-
-      return leftValue.localeCompare(rightValue) * multiplier;
-    });
-  }
-
-  private sortUsers(users: UserResponseDto[]): UserResponseDto[] {
-    return [...users].sort((left, right) =>
-      left.name.toLowerCase().localeCompare(right.name.toLowerCase()),
-    );
-  }
-
-  private sortValue(member: MemberResponseDto | undefined, key: string) {
-    if (!member) {
-      return undefined;
-    }
-
-    const sortable: Record<string, string> = {
-      name: member.name,
-      email: member.email,
-      role: member.role,
-      created_at: member.created_at,
-    };
-
-    return sortable[key];
-  }
-
   private positiveInt(value: string | undefined, fallback: number): number {
     const parsed = Number.parseInt(value ?? '', 10);
 
@@ -203,6 +162,56 @@ export class UserService {
 
   private single(value: string | string[] | undefined): string | undefined {
     return Array.isArray(value) ? value[0] : value;
+  }
+
+  private sortKey(value: string | undefined): {
+    key: MemberSortKey;
+    requested: boolean;
+  } {
+    const sortableKeys: MemberSortKey[] = [
+      'name',
+      'email',
+      'role',
+      'created_at',
+    ];
+
+    return value !== undefined && sortableKeys.includes(value as MemberSortKey)
+      ? { key: value as MemberSortKey, requested: true }
+      : { key: 'name', requested: false };
+  }
+
+  private sortDirection(
+    value: string | undefined,
+    hasRequestedSort: boolean,
+  ): 'asc' | 'desc' {
+    const normalizedDirection = value?.toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+    return hasRequestedSort ? normalizedDirection : 'asc';
+  }
+
+  private async toUserResponses(users: User[]): Promise<UserResponseDto[]> {
+    return Promise.all(users.map((user) => this.toUserResponse(user)));
+  }
+
+  private async toMemberResponses(users: User[]): Promise<MemberResponseDto[]> {
+    const userResponses = await this.toUserResponses(users);
+    return userResponses.map((user) => this.toMemberResponse(user));
+  }
+
+  private async toUserResponse(user: User): Promise<UserResponseDto> {
+    const access = await this.rbacService.getUserAccess(user.id);
+
+    return {
+      id: user.id,
+      tenant_id: user.tenantId,
+      role: user.role,
+      roles: access.roles,
+      direct_permissions: access.directPermissions,
+      permissions: this.rbacService.permissionNames(access),
+      name: user.name,
+      email: user.email,
+      created_at: user.createdAt,
+    };
   }
 
   private toMemberResponse(user: UserResponseDto): MemberResponseDto {
