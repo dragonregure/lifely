@@ -76,4 +76,142 @@ class AuthApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('message', 'Logged out.');
     }
+
+    public function test_refresh_rotates_tokens_and_rejects_reuse(): void
+    {
+        Tenant::factory()->create();
+        User::factory()->create([
+            'email' => 'maya@example.com',
+            'password' => Hash::make('password'),
+        ]);
+
+        $login = $this->postJson('/api/v1/auth/login', [
+            'email' => 'maya@example.com',
+            'password' => 'password',
+            'device_name' => 'test-suite',
+        ])->assertOk();
+
+        $refreshToken = $login->json('data.refresh_token');
+
+        $refresh = $this->postJson('/api/v1/auth/refresh', [
+            'refresh_token' => $refreshToken,
+            'device_name' => 'test-suite',
+        ])->assertOk();
+
+        $this->assertNotSame($refreshToken, $refresh->json('data.refresh_token'));
+        $this->assertNull(PersonalAccessToken::findToken($refreshToken));
+
+        $this->postJson('/api/v1/auth/refresh', [
+            'refresh_token' => $refreshToken,
+            'device_name' => 'test-suite',
+        ])->assertUnauthorized();
+    }
+
+    public function test_refresh_rejects_access_tokens(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('test-suite:access', ['access'], now()->addMinutes(15));
+
+        $this->postJson('/api/v1/auth/refresh', [
+            'refresh_token' => $token->plainTextToken,
+            'device_name' => 'test-suite',
+        ])->assertUnauthorized();
+
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'id' => $token->accessToken->id,
+        ]);
+    }
+
+    public function test_logout_revokes_current_access_token_and_supplied_refresh_token(): void
+    {
+        $user = User::factory()->create();
+        $accessToken = $user->createToken('test-suite:access', ['access'], now()->addMinutes(15));
+        $refreshToken = $user->createToken('test-suite:refresh', ['refresh'], now()->addDays(30));
+
+        $this->withHeader('Authorization', 'Bearer '.$accessToken->plainTextToken)
+            ->postJson('/api/v1/auth/logout', [
+                'refresh_token' => $refreshToken->plainTextToken,
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Logged out.');
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'id' => $accessToken->accessToken->id,
+        ]);
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'id' => $refreshToken->accessToken->id,
+        ]);
+    }
+
+    public function test_revoke_all_revokes_only_the_authenticated_users_tokens(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $accessToken = $user->createToken('test-suite:access', ['access'], now()->addMinutes(15));
+        $user->createToken('test-suite:refresh', ['refresh'], now()->addDays(30));
+        $otherToken = $otherUser->createToken('test-suite:access', ['access'], now()->addMinutes(15));
+
+        $this->withHeader('Authorization', 'Bearer '.$accessToken->plainTextToken)
+            ->postJson('/api/v1/auth/revoke-all')
+            ->assertOk()
+            ->assertJsonPath('message', 'All tokens revoked.');
+
+        $this->assertSame(0, $user->tokens()->count());
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'id' => $otherToken->accessToken->id,
+        ]);
+    }
+
+    public function test_password_update_changes_password_and_revokes_tokens(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'maya@example.com',
+            'password' => Hash::make('OldPassword12345'),
+        ]);
+        $accessToken = $user->createToken('test-suite:access', ['access'], now()->addMinutes(15));
+        $user->createToken('test-suite:refresh', ['refresh'], now()->addDays(30));
+
+        $this->withHeader('Authorization', 'Bearer '.$accessToken->plainTextToken)
+            ->putJson('/api/v1/auth/password', [
+                'current_password' => 'OldPassword12345',
+                'password' => 'NewPassword12345',
+                'password_confirmation' => 'NewPassword12345',
+            ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Password updated. Sign in again with the new password.');
+
+        $this->assertTrue(Hash::check('NewPassword12345', $user->refresh()->password));
+        $this->assertSame(0, $user->tokens()->count());
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'maya@example.com',
+            'password' => 'OldPassword12345',
+        ])->assertUnauthorized();
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'maya@example.com',
+            'password' => 'NewPassword12345',
+        ])->assertOk();
+    }
+
+    public function test_password_update_rejects_incorrect_current_password_without_revoking_tokens(): void
+    {
+        $user = User::factory()->create([
+            'password' => Hash::make('OldPassword12345'),
+        ]);
+        $accessToken = $user->createToken('test-suite:access', ['access'], now()->addMinutes(15));
+        $user->createToken('test-suite:refresh', ['refresh'], now()->addDays(30));
+
+        $this->withHeader('Authorization', 'Bearer '.$accessToken->plainTextToken)
+            ->putJson('/api/v1/auth/password', [
+                'current_password' => 'WrongPassword12345',
+                'password' => 'NewPassword12345',
+                'password_confirmation' => 'NewPassword12345',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Current password is incorrect.');
+
+        $this->assertTrue(Hash::check('OldPassword12345', $user->refresh()->password));
+        $this->assertSame(2, $user->tokens()->count());
+    }
 }
