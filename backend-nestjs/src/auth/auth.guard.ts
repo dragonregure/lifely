@@ -22,13 +22,13 @@ export class AuthGuard implements CanActivate {
     const token = this.bearerToken(request);
 
     if (!token) {
-      throw new UnauthorizedException('Missing or invalid bearer token.');
+      throw new UnauthorizedException({ message: 'Unauthenticated.' });
     }
 
     const user = await this.authService.userFromAccessToken(token);
 
     if (!user) {
-      throw new UnauthorizedException('Missing or invalid bearer token.');
+      throw new UnauthorizedException({ message: 'Unauthenticated.' });
     }
 
     request.user = user;

@@ -13,6 +13,7 @@ import {
   ApiBearerAuth,
   ApiExtraModels,
   ApiOkResponse,
+  ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
   getSchemaPath,
@@ -52,7 +53,7 @@ export class UserController {
   @Get('tenant')
   @RequirePermissions(Permissions.TENANT_VIEW)
   @ApiOkResponse({ type: TenantEnvelopeDto })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async tenant(@Req() request: RequestWithUser) {
     return {
       data: await this.userService.findTenant(this.tenantId(request)),
@@ -61,6 +62,36 @@ export class UserController {
 
   @Get('members')
   @RequirePermissions(Permissions.USERS_VIEW)
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Enables paginated mode and selects the page to return.',
+  })
+  @ApiQuery({
+    name: 'per_page',
+    required: false,
+    type: Number,
+    description: 'Number of members per page in paginated mode.',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Searches member name, email, and role in paginated mode.',
+  })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    enum: ['name', 'email', 'role', 'created_at'],
+    description: 'Sort column in paginated mode.',
+  })
+  @ApiQuery({
+    name: 'direction',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort direction in paginated mode.',
+  })
   @ApiOkResponse({
     schema: {
       oneOf: [
@@ -69,7 +100,7 @@ export class UserController {
       ],
     },
   })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async members(
     @Req() request: RequestWithUser,
     @Query() query: QueryParams,
@@ -77,6 +108,7 @@ export class UserController {
     const result = await this.userService.findMembers(
       this.tenantId(request),
       query,
+      this.requestUrl(request),
     );
 
     return Array.isArray(result) ? { data: result } : result;
@@ -84,7 +116,7 @@ export class UserController {
 
   @Get('me/permissions')
   @ApiOkResponse({ type: UserAccessEnvelopeDto })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async mePermissions(@Req() request: RequestWithUser) {
     return {
       data: await this.userService.findUserAccess(request.user.id),
@@ -95,21 +127,16 @@ export class UserController {
   @RequirePermissions(Permissions.USERS_VIEW)
   @UseInterceptors(ApiResponseInterceptor)
   @ApiOkResponse({ type: UserListEnvelopeDto })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async findAll(@Req() request: RequestWithUser): Promise<UserResponseDto[]> {
-    const result = await this.userService.findMembers(
-      this.tenantId(request),
-      {},
-    );
-
-    return Array.isArray(result) ? result : result.data;
+    return this.userService.findUsersByTenant(this.tenantId(request));
   }
 
   @Get('users/:id')
   @RequirePermissions(Permissions.USERS_VIEW)
   @UseInterceptors(ApiResponseInterceptor)
   @ApiOkResponse({ type: UserEnvelopeDto })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
   async findById(
     @Req() request: RequestWithUser,
     @Param('id') id: string,
@@ -146,5 +173,9 @@ export class UserController {
     return typeof value === 'string' && value.trim() !== ''
       ? value.trim()
       : undefined;
+  }
+
+  private requestUrl(request: RequestWithUser): string {
+    return `${request.protocol}://${request.get('host')}${request.path}`;
   }
 }

@@ -13,12 +13,16 @@ type RoleRecord = {
   tenantId: string | null;
   name: string;
   guardName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type PermissionRecord = {
   id: number;
   name: string;
   guardName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 type RoleAssignmentWithRole = {
@@ -30,9 +34,19 @@ type RoleAssignmentWithRole = {
 
 type PermissionGrantWithPermission = {
   permission: {
+    id: number;
     name: string;
+    guardName: string;
+    createdAt: string;
+    updatedAt: string;
   };
 };
+
+type RoleGrantWithRole = {
+  role: RoleRecord;
+};
+
+export type { PermissionRecord, RoleRecord };
 
 @Injectable()
 export class RbacRepository {
@@ -143,5 +157,124 @@ export class RbacRepository {
       ),
       rolePermissions: rolePermissionNames.flat(),
     };
+  }
+
+  async allRoles(): Promise<RoleRecord[]> {
+    return await db.orm.public.Role.all();
+  }
+
+  async findRoleById(id: number): Promise<RoleRecord | null> {
+    return db.orm.public.Role.where({
+      id,
+    }).first();
+  }
+
+  async createRole(data: {
+    tenantId: string | null;
+    name: string;
+    guardName: string;
+  }): Promise<RoleRecord> {
+    return db.orm.public.Role.create(data);
+  }
+
+  async updateRole(
+    id: number,
+    data: {
+      tenantId?: string | null;
+      name?: string;
+      guardName?: string;
+      updatedAt: string;
+    },
+  ): Promise<void> {
+    await db.orm.public.Role.where({ id }).update(data);
+  }
+
+  async deleteRole(id: number): Promise<void> {
+    await db.orm.public.Role.where({ id }).delete();
+  }
+
+  async permissionsForRole(roleId: number): Promise<PermissionRecord[]> {
+    const grants = (await db.orm.public.RoleHasPermission.where({ roleId })
+      .include('permission')
+      .all()) as unknown as PermissionGrantWithPermission[];
+
+    return grants.map((grant) => grant.permission);
+  }
+
+  async syncRolePermissions(
+    roleId: number,
+    permissions: PermissionRecord[],
+  ): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.orm.public.RoleHasPermission.where({ roleId }).delete();
+
+      for (const permission of permissions) {
+        await tx.orm.public.RoleHasPermission.create({
+          roleId,
+          permissionId: permission.id,
+        });
+      }
+    });
+  }
+
+  async allPermissions(): Promise<PermissionRecord[]> {
+    return await db.orm.public.Permission.all();
+  }
+
+  async findPermissionById(id: number): Promise<PermissionRecord | null> {
+    return db.orm.public.Permission.where({
+      id,
+    }).first();
+  }
+
+  async findPermissionByName(
+    name: string,
+    guardName: string,
+  ): Promise<PermissionRecord | null> {
+    return db.orm.public.Permission.where({
+      name,
+      guardName,
+    }).first();
+  }
+
+  async createPermission(data: {
+    name: string;
+    guardName: string;
+  }): Promise<PermissionRecord> {
+    return db.orm.public.Permission.create(data);
+  }
+
+  async updatePermission(
+    id: number,
+    data: {
+      name?: string;
+      guardName?: string;
+      updatedAt: string;
+    },
+  ): Promise<void> {
+    await db.orm.public.Permission.where({ id }).update(data);
+  }
+
+  async deletePermission(id: number): Promise<void> {
+    await db.orm.public.Permission.where({ id }).delete();
+  }
+
+  async rolesForPermission(permissionId: number): Promise<RoleRecord[]> {
+    const grants = (await db.orm.public.RoleHasPermission.where({
+      permissionId,
+    })
+      .include('role')
+      .all()) as unknown as RoleGrantWithRole[];
+
+    return grants.map((grant) => grant.role);
+  }
+
+  async permissionAssignedToRoleName(
+    permissionId: number,
+    roleName: string,
+  ): Promise<boolean> {
+    const roles = await this.rolesForPermission(permissionId);
+
+    return roles.some((role) => role.name === roleName);
   }
 }

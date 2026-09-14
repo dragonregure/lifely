@@ -166,7 +166,7 @@ describe('UserController API', () => {
           const authorization = request.header('authorization');
 
           if (!authorization?.startsWith('Bearer ')) {
-            throw new UnauthorizedException('Missing or invalid bearer token.');
+            throw new UnauthorizedException({ message: 'Unauthenticated.' });
           }
 
           const token = authorization.slice('Bearer '.length);
@@ -196,7 +196,10 @@ describe('UserController API', () => {
   it('requires authentication for tenant-scoped endpoints', () => {
     const server = app.getHttpServer() as unknown as App;
 
-    return request(server).get('/api/v1/members').expect(401);
+    return request(server)
+      .get('/api/v1/members')
+      .expect(401)
+      .expect({ message: 'Unauthenticated.' });
   });
 
   it('blocks tenant header crossover for the authenticated user', () => {
@@ -239,6 +242,7 @@ describe('UserController API', () => {
         expect(response.body.meta).toBeUndefined();
         expect(response.body.data[0].name).toBe('Maya Admin');
         expect(response.body.data[1].name).toBe('Maya Chen');
+        expect(response.body.data[0].permissions).toBeUndefined();
       });
   });
 
@@ -254,10 +258,39 @@ describe('UserController API', () => {
         expect(
           response.body.data.map((user: UserResponseDto) => user.name),
         ).toEqual(['Maya Admin', 'Maya Chen']);
+        expect(response.body.links).toMatchObject({
+          first: expect.stringContaining('/api/v1/members?'),
+          last: expect.stringContaining('/api/v1/members?'),
+          prev: null,
+          next: null,
+        });
         expect(response.body.meta).toMatchObject({
           current_page: 1,
+          from: 1,
+          last_page: 1,
+          per_page: 10,
+          to: 2,
           total: 2,
         });
+        expect(response.body.meta.path).toContain('/api/v1/members');
+        expect(response.body.meta.links).toEqual([
+          {
+            url: null,
+            label: '&laquo; Previous',
+            active: false,
+          },
+          {
+            url: expect.stringContaining('/api/v1/members?'),
+            label: '1',
+            active: true,
+          },
+          {
+            url: null,
+            label: 'Next &raquo;',
+            active: false,
+          },
+        ]);
+        expect(response.body.data[0].permissions).toBeUndefined();
       });
   });
 

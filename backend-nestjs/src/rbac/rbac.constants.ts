@@ -58,6 +58,34 @@ export const tenantAdminPermissions = (): PermissionName[] => {
   return allPermissions().filter((permission) => !systemOnly.has(permission));
 };
 
+export const protectedPermissions = (): PermissionName[] => [
+  Permissions.ROLES_VIEW,
+  Permissions.ROLES_CREATE,
+  Permissions.ROLES_UPDATE,
+  Permissions.ROLES_DELETE,
+  Permissions.ROLES_MANAGE_SYSTEM,
+  Permissions.PERMISSIONS_VIEW,
+  Permissions.PERMISSIONS_CREATE,
+  Permissions.PERMISSIONS_UPDATE,
+  Permissions.PERMISSIONS_DELETE,
+  Permissions.USERS_VIEW,
+  Permissions.USERS_ASSIGN_ROLES,
+  Permissions.USERS_ASSIGN_PERMISSIONS,
+];
+
+export const tenantAdminProtectedPermissions = (): PermissionName[] => {
+  const excluded = new Set<PermissionName>([
+    Permissions.ROLES_MANAGE_SYSTEM,
+    Permissions.PERMISSIONS_CREATE,
+    Permissions.PERMISSIONS_UPDATE,
+    Permissions.PERMISSIONS_DELETE,
+  ]);
+
+  return protectedPermissions().filter(
+    (permission) => !excluded.has(permission),
+  );
+};
+
 export const Roles = {
   SYSTEM_ADMIN: 'System Admin',
   OFFICE_ADMIN: 'Office Admin',
