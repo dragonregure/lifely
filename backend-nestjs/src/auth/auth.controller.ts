@@ -96,11 +96,11 @@ export class AuthController {
   @ApiBody({ type: LogoutDto, required: false })
   @ApiOkResponse({ type: MessageResponseDto })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid bearer token.' })
-  async logout(@Req() request: RequestWithUser, @Body() dto: LogoutDto) {
+  async logout(@Req() request: RequestWithUser, @Body() dto?: LogoutDto) {
     await this.authService.logout(
       request.user,
       request.accessToken,
-      dto.refresh_token,
+      dto?.refresh_token,
     );
 
     return {
