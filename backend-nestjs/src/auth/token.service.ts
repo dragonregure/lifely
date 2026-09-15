@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
-import { db } from '../prisma/db.js';
+import { TokenRepository } from './token.repository.js';
 
 export type TokenAbility = 'access' | 'refresh';
 
@@ -23,6 +23,8 @@ export class TokenService {
     process.env['LIFELY_REFRESH_TOKEN_DAYS'] ?? 14,
   );
 
+  constructor(private readonly tokenRepository: TokenRepository) {}
+
   async createToken(
     userId: string,
     deviceName: string,
@@ -30,12 +32,11 @@ export class TokenService {
   ): Promise<PlainToken> {
     const plainToken = randomBytes(40).toString('hex');
     const expiresAt = this.expiryFor(ability).toISOString();
-    const token = await db.orm.public.PersonalAccessToken.create({
+    const token = await this.tokenRepository.create({
       tokenableId: userId,
       name: `${deviceName}:${ability}`,
       token: this.hashToken(plainToken),
       ability,
-      lastUsedAt: null,
       expiresAt,
     });
 
@@ -52,23 +53,20 @@ export class TokenService {
       return null;
     }
 
-    const accessToken = await db.orm.public.PersonalAccessToken.where({
+    const accessToken = await this.tokenRepository.findWithUser({
       id: parsed.id,
       token: parsed.hashedToken,
       ability,
-    })
-      .include('tokenable', (user) => user.include('tenant'))
-      .first();
+    });
 
     if (!accessToken || this.isExpired(accessToken.expiresAt)) {
       return null;
     }
 
-    await db.orm.public.PersonalAccessToken.where({
-      id: accessToken.id,
-    }).update({
-      lastUsedAt: new Date().toISOString(),
-    });
+    await this.tokenRepository.touchLastUsed(
+      accessToken.id,
+      new Date().toISOString(),
+    );
 
     return accessToken;
   }
@@ -101,7 +99,7 @@ export class TokenService {
       criteria.ability = options.ability;
     }
 
-    await db.orm.public.PersonalAccessToken.where(criteria).delete();
+    await this.tokenRepository.delete(criteria);
   }
 
   async revokeTokenById(
@@ -122,13 +120,13 @@ export class TokenService {
       criteria.ability = ability;
     }
 
-    await db.orm.public.PersonalAccessToken.where(criteria).delete();
+    await this.tokenRepository.delete(criteria);
   }
 
   async revokeAllForUser(userId: string): Promise<void> {
-    await db.orm.public.PersonalAccessToken.where({
+    await this.tokenRepository.delete({
       tokenableId: userId,
-    }).delete();
+    });
   }
 
   private parsePlainToken(

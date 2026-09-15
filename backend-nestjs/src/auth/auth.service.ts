@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { db } from '../prisma/db.js';
 import { Roles } from '../rbac/rbac.constants.js';
 import { RbacService } from '../rbac/rbac.service.js';
 import { AuthenticatedUser, UserAccess } from '../rbac/rbac.types.js';
@@ -14,22 +13,9 @@ import {
   RegisterDto,
   UpdatePasswordDto,
 } from './auth.dto.js';
+import { AuthRepository, AuthUserRecord } from './auth.repository.js';
 import { PasswordService } from './password.service.js';
 import { TokenService } from './token.service.js';
-
-type UserRecord = {
-  id: string;
-  tenantId: string;
-  role: string;
-  name: string;
-  email: string;
-  password: string;
-  tenant?: {
-    id: string;
-    name: string;
-    createdAt: string;
-  };
-};
 
 type AuthPayload = {
   token_type: 'Bearer';
@@ -43,15 +29,14 @@ type AuthPayload = {
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly authRepository: AuthRepository,
     private readonly passwordService: PasswordService,
     private readonly rbacService: RbacService,
     private readonly tokenService: TokenService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthPayload> {
-    const existingUser = await db.orm.public.User.where({
-      email: dto.email,
-    }).first();
+    const existingUser = await this.authRepository.findUserByEmail(dto.email);
 
     if (existingUser) {
       throw new ConflictException(
@@ -62,20 +47,12 @@ export class AuthService {
     await this.rbacService.ensureDefaultRoles();
 
     const password = await this.passwordService.hash(dto.password);
-    const user = await db.transaction(async (tx) => {
-      const tenant = await tx.orm.public.Tenant.create({
-        name: dto.tenant_name,
-      });
-      const createdUser = await tx.orm.public.User.create({
-        tenantId: tenant.id,
-        role: Roles.OFFICE_ADMIN,
-        name: dto.name,
-        email: dto.email,
-        password,
-        emailVerifiedAt: null,
-      });
-
-      return { ...createdUser, tenant };
+    const user = await this.authRepository.createTenantOwner({
+      tenantName: dto.tenant_name,
+      role: Roles.OFFICE_ADMIN,
+      name: dto.name,
+      email: dto.email,
+      password,
     });
 
     await this.rbacService.assignRoleToUser(user.id, Roles.OFFICE_ADMIN);
@@ -84,9 +61,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto): Promise<AuthPayload> {
-    const user = (await db.orm.public.User.where({ email: dto.email })
-      .include('tenant')
-      .first()) as UserRecord | null;
+    const user = await this.authRepository.findUserByEmail(dto.email);
 
     if (
       !user ||
@@ -108,7 +83,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token.');
     }
 
-    const user = token.tokenable as unknown as UserRecord;
+    const user = token.tokenable as AuthUserRecord;
     await this.tokenService.revokeTokenById(token.id, user.id, 'refresh');
 
     return this.tokenPayload(user, dto.device_name ?? 'api');
@@ -140,9 +115,7 @@ export class AuthService {
     user: AuthenticatedUser,
     dto: UpdatePasswordDto,
   ): Promise<void> {
-    const userRecord = (await db.orm.public.User.where({ id: user.id })
-      .include('tenant')
-      .first()) as UserRecord | null;
+    const userRecord = await this.authRepository.findUserById(user.id);
 
     if (
       !userRecord ||
@@ -154,9 +127,10 @@ export class AuthService {
       throw new UnprocessableEntityException('Current password is incorrect.');
     }
 
-    await db.orm.public.User.where({ id: user.id }).update({
-      password: await this.passwordService.hash(dto.password),
-    });
+    await this.authRepository.updateUserPassword(
+      user.id,
+      await this.passwordService.hash(dto.password),
+    );
     await this.tokenService.revokeAllForUser(user.id);
   }
 
@@ -172,13 +146,13 @@ export class AuthService {
       return null;
     }
 
-    const user = token.tokenable as unknown as UserRecord;
+    const user = token.tokenable as AuthUserRecord;
     const access = await this.rbacService.getUserAccess(user.id);
     return this.toAuthenticatedUser(user, access);
   }
 
   private async tokenPayload(
-    user: UserRecord,
+    user: AuthUserRecord,
     deviceName: string,
   ): Promise<AuthPayload> {
     const [accessToken, refreshToken, access] = await Promise.all([
@@ -198,7 +172,7 @@ export class AuthService {
   }
 
   private toAuthenticatedUser(
-    user: UserRecord,
+    user: AuthUserRecord,
     access: UserAccess,
   ): AuthenticatedUser {
     return {

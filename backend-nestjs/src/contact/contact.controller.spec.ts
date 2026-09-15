@@ -12,7 +12,7 @@ import { AuthGuard } from '../auth/auth.guard.js';
 import { Permissions, Roles } from '../rbac/rbac.constants.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
 import { AuthenticatedUser } from '../rbac/rbac.types.js';
-import { UserRepository } from '../user/user.repository.js';
+import { UserService } from '../user/user.service.js';
 import { User } from '../user/user.type.js';
 import { ContactController } from './contact.controller.js';
 import { ContactRepository, ContactSortKey } from './contact.repository.js';
@@ -232,9 +232,13 @@ class FakeContactRepository {
   }
 }
 
-class FakeUserRepository {
-  findById(id: string): Promise<User | null> {
-    return Promise.resolve(tenantUsers.find((user) => user.id === id) ?? null);
+class FakeUserService {
+  userBelongsToTenant(userId: string, tenantId: string): Promise<boolean> {
+    return Promise.resolve(
+      tenantUsers.some(
+        (user) => user.id === userId && user.tenantId === tenantId,
+      ),
+    );
   }
 }
 
@@ -282,8 +286,8 @@ describe('ContactController API', () => {
           useClass: FakeContactRepository,
         },
         {
-          provide: UserRepository,
-          useClass: FakeUserRepository,
+          provide: UserService,
+          useClass: FakeUserService,
         },
       ],
     })

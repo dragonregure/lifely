@@ -62,6 +62,15 @@ export class UserService {
     return this.toUserResponse(user);
   }
 
+  async userBelongsToTenant(
+    userId: string,
+    tenantId: string,
+  ): Promise<boolean> {
+    const user = await this.userRepository.findById(userId);
+
+    return user?.tenantId === tenantId;
+  }
+
   async findTenant(tenantId: string): Promise<TenantResponseDto> {
     const tenant = await this.userRepository.findTenantById(tenantId);
 

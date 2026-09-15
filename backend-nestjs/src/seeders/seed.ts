@@ -1,10 +1,20 @@
+import { NestFactory } from '@nestjs/core';
 import { db } from '../prisma/db.js';
 import { BasicUserSeeder } from './basic-user.seeder.js';
 import { RbacSeeder } from './rbac.seeder.js';
+import { SeederModule } from './seeder.module.js';
 
 async function seed(): Promise<void> {
-  await new RbacSeeder().run();
-  await new BasicUserSeeder().run();
+  const app = await NestFactory.createApplicationContext(SeederModule, {
+    logger: false,
+  });
+
+  try {
+    await app.get(RbacSeeder).run();
+    await app.get(BasicUserSeeder).run();
+  } finally {
+    await app.close();
+  }
 }
 
 seed()

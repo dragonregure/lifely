@@ -9,5 +9,6 @@ import { UserRepository } from './user.repository.js';
   imports: [AuthModule, RbacModule],
   controllers: [UserController],
   providers: [UserRepository, UserService],
+  exports: [UserService],
 })
 export class UserModule {}

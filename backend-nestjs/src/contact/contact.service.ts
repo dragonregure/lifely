@@ -3,7 +3,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { UserRepository } from '../user/user.repository.js';
+import { UserService } from '../user/user.service.js';
 import {
   ContactCreateInput,
   ContactQueryOptions,
@@ -29,7 +29,7 @@ type ContactQuery = Record<
 export class ContactService {
   constructor(
     private readonly contactRepository: ContactRepository,
-    private readonly userRepository: UserRepository,
+    private readonly userService: UserService,
   ) {}
 
   async findContacts(
@@ -143,9 +143,7 @@ export class ContactService {
       return;
     }
 
-    const owner = await this.userRepository.findById(ownerId);
-
-    if (!owner || owner.tenantId !== tenantId) {
+    if (!(await this.userService.userBelongsToTenant(ownerId, tenantId))) {
       throw new UnprocessableEntityException({
         message: 'The selected owner id is invalid.',
         errors: {
