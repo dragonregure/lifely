@@ -195,6 +195,21 @@ export class ActivityService {
     );
   }
 
+  async recordReportExported(
+    tenantId: string,
+    userId: string | null,
+    reportName: string,
+    properties: ActivityProperties,
+  ): Promise<void> {
+    await this.activityRepository.record({
+      tenantId,
+      userId,
+      actionType: 'report.exported',
+      description: `Exported report: ${reportName}`,
+      properties,
+    });
+  }
+
   private async recordCreated<T extends ActivitySubject>(
     subject: T,
     subjectType: string,
