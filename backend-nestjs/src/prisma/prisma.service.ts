@@ -3,6 +3,7 @@ import { db } from './db.js';
 
 export const User = db.orm.public.User;
 export const Tenant = db.orm.public.Tenant;
+export const Contact = db.orm.public.Contact;
 export const PersonalAccessToken = db.orm.public.PersonalAccessToken;
 export const Permission = db.orm.public.Permission;
 export const Role = db.orm.public.Role;
@@ -18,6 +19,10 @@ export class PrismaService {
 
   Tenant() {
     return Tenant;
+  }
+
+  Contact() {
+    return Contact;
   }
 
   PersonalAccessToken() {

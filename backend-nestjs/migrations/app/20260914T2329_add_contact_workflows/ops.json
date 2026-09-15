@@ -1,0 +1,320 @@
+[
+  {
+    "id": "table.contacts",
+    "label": "Create table \"contacts\"",
+    "summary": "Creates table \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"contacts\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"contacts\"",
+        "sql": "CREATE TABLE \"public\".\"contacts\" (\n  \"budget\" numeric,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"firstName\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"lastContactedAt\" timestamptz,\n  \"lastName\" text NOT NULL,\n  \"ownerId\" uuid,\n  \"phone\" text,\n  \"source\" int2,\n  \"status\" bool DEFAULT true NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"contacts\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_ownerId_idx_e2d0c1ef",
+    "label": "Create index \"contacts_ownerId_idx_e2d0c1ef\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_ownerId_idx_e2d0c1ef",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_ownerId_idx_e2d0c1ef\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_ownerId_idx_e2d0c1ef\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_ownerId_idx_e2d0c1ef\"",
+        "sql": "CREATE INDEX \"contacts_ownerId_idx_e2d0c1ef\" ON \"public\".\"contacts\" (\"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_ownerId_idx_e2d0c1ef\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_ownerId_idx_e2d0c1ef\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_idx_c93ed4f1",
+    "label": "Create index \"contacts_tenantId_idx_c93ed4f1\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_idx_c93ed4f1",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_idx_c93ed4f1\" ON \"public\".\"contacts\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_ownerId_idx_6f53c808",
+    "label": "Create index \"contacts_tenantId_ownerId_idx_6f53c808\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_ownerId_idx_6f53c808",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_ownerId_idx_6f53c808\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_ownerId_idx_6f53c808\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_ownerId_idx_6f53c808\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_ownerId_idx_6f53c808\" ON \"public\".\"contacts\" (\"tenantId\", \"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_ownerId_idx_6f53c808\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_ownerId_idx_6f53c808\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_source_idx_892e802b",
+    "label": "Create index \"contacts_tenantId_source_idx_892e802b\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_source_idx_892e802b",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_source_idx_892e802b\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_source_idx_892e802b\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_source_idx_892e802b\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_source_idx_892e802b\" ON \"public\".\"contacts\" (\"tenantId\", \"source\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_source_idx_892e802b\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_source_idx_892e802b\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_status_idx_d3d04256",
+    "label": "Create index \"contacts_tenantId_status_idx_d3d04256\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_status_idx_d3d04256",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_status_idx_d3d04256\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_status_idx_d3d04256\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_status_idx_d3d04256\" ON \"public\".\"contacts\" (\"tenantId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_status_idx_d3d04256\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contacts.contacts_tenantId_fkey",
+    "label": "Add foreign key \"contacts_tenantId_fkey\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contacts_tenantId_fkey",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contacts_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_tenantId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contacts_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contacts\"\nADD CONSTRAINT \"contacts_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contacts_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_tenantId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contacts.contacts_ownerId_fkey",
+    "label": "Add foreign key \"contacts_ownerId_fkey\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contacts_ownerId_fkey",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contacts_ownerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_ownerId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contacts_ownerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contacts\"\nADD CONSTRAINT \"contacts_ownerId_fkey\"\nFOREIGN KEY (\"ownerId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contacts_ownerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_ownerId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ]
+  }
+]

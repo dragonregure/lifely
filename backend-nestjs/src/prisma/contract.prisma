@@ -4,6 +4,7 @@ model Tenant {
   id        Uuid     @id @default(uuid())
   name      String
   users     User[]
+  contacts  Contact[]
   roles     Role[]
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
@@ -15,6 +16,7 @@ model User {
   id                 Uuid                  @id @default(uuid())
   tenantId           Uuid
   tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  contacts           Contact[]
   role               String                @default("Simple Agent")
   name               String
   email              String                @unique
@@ -28,6 +30,29 @@ model User {
 
   @@index([tenantId])
   @@map("users")
+}
+
+model Contact {
+  id              Uuid              @id @default(uuid())
+  tenantId        Uuid
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ownerId         Uuid?
+  owner           User?             @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  status          Boolean           @default(true)
+  budget          Decimal?
+  source          SmallInt?
+  lastContactedAt TimestamptzString?
+  createdAt       TimestamptzString @default(now())
+  updatedAt       temporal.updatedAtString()
+
+  @@index([tenantId, status])
+  @@index([tenantId, source])
+  @@index([tenantId, ownerId])
+  @@map("contacts")
 }
 
 model PersonalAccessToken {
