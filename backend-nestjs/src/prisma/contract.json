@@ -12,6 +12,10 @@
       "model": "Document",
       "namespace": "public"
     },
+    "leads": {
+      "model": "Lead",
+      "namespace": "public"
+    },
     "listing_contacts": {
       "model": "ListingContact",
       "namespace": "public"
@@ -156,6 +160,21 @@
               }
             },
             "relations": {
+              "leads": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "contactId"
+                  ]
+                },
+                "to": {
+                  "model": "Lead",
+                  "namespace": "public"
+                }
+              },
               "listingAssignments": {
                 "cardinality": "1:N",
                 "on": {
@@ -385,6 +404,198 @@
               "table": "documents"
             }
           },
+          "Lead": {
+            "fields": {
+              "contactId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "dueAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "listingId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "nextTask": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "source": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int2@1",
+                  "kind": "scalar"
+                }
+              },
+              "stage": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int2@1",
+                  "kind": "scalar"
+                }
+              },
+              "tenantId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "contact": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "contactId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Contact",
+                  "namespace": "public"
+                }
+              },
+              "listing": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "listingId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Listing",
+                  "namespace": "public"
+                }
+              },
+              "tenant": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "tenantId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Tenant",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "contactId": {
+                  "column": "contactId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "dueAt": {
+                  "column": "dueAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "listingId": {
+                  "column": "listingId"
+                },
+                "nextTask": {
+                  "column": "nextTask"
+                },
+                "source": {
+                  "column": "source"
+                },
+                "stage": {
+                  "column": "stage"
+                },
+                "tenantId": {
+                  "column": "tenantId"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "leads"
+            }
+          },
           "Listing": {
             "fields": {
               "address": {
@@ -478,6 +689,21 @@
                 },
                 "to": {
                   "model": "ListingContact",
+                  "namespace": "public"
+                }
+              },
+              "leads": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "listingId"
+                  ]
+                },
+                "to": {
+                  "model": "Lead",
                   "namespace": "public"
                 }
               },
@@ -1427,6 +1653,21 @@
                   "namespace": "public"
                 }
               },
+              "leads": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Lead",
+                  "namespace": "public"
+                }
+              },
               "listingAssignments": {
                 "cardinality": "1:N",
                 "on": {
@@ -1824,6 +2065,250 @@
                   ],
                   "name": "documents_tenantId_model_modelId_type_order_idx_177301c7",
                   "prefix": "documents_tenantId_model_modelId_type_order_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "leads": {
+              "columns": {
+                "contactId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "dueAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": true
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "listingId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "nextTask": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "source": {
+                  "codecId": "pg/int2@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int2",
+                  "nullable": false
+                },
+                "stage": {
+                  "codecId": "pg/int2@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nativeType": "int2",
+                  "nullable": false
+                },
+                "tenantId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/uuid@1",
+                  "nativeType": "uuid",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "tenantId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "leads"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "tenants"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "contactId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "leads"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "contacts"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "listingId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "leads"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "listings"
+                  }
+                },
+                {
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "leads"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "users"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "contactId"
+                  ],
+                  "name": "leads_contactId_idx_ec98db2a",
+                  "prefix": "leads_contactId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "listingId"
+                  ],
+                  "name": "leads_listingId_idx_953decda",
+                  "prefix": "leads_listingId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId",
+                    "contactId"
+                  ],
+                  "name": "leads_tenantId_contactId_idx_1215b2c3",
+                  "prefix": "leads_tenantId_contactId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId"
+                  ],
+                  "name": "leads_tenantId_idx_c93ed4f1",
+                  "prefix": "leads_tenantId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId",
+                    "isActive"
+                  ],
+                  "name": "leads_tenantId_isActive_idx_b4d0b12b",
+                  "prefix": "leads_tenantId_isActive_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId",
+                    "listingId"
+                  ],
+                  "name": "leads_tenantId_listingId_idx_00ebf4b7",
+                  "prefix": "leads_tenantId_listingId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId",
+                    "source"
+                  ],
+                  "name": "leads_tenantId_source_idx_892e802b",
+                  "prefix": "leads_tenantId_source_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId",
+                    "stage"
+                  ],
+                  "name": "leads_tenantId_stage_idx_f1ef85ba",
+                  "prefix": "leads_tenantId_stage_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "tenantId",
+                    "userId"
+                  ],
+                  "name": "leads_tenantId_userId_idx_6c855033",
+                  "prefix": "leads_tenantId_userId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "leads_userId_idx_a489d58a",
+                  "prefix": "leads_userId_idx",
                   "unique": false
                 }
               ],
@@ -2783,10 +3268,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "591dad2bad49e32e1775dc0f1f240ad7cfc2e88c75d6ffb4db7b0529d5de7f46"
+    "storageHash": "4b1f632242089fb216cb16301260f4a847ae9fff23213f66160077794aa85292"
   },
   "execution": {
-    "executionHash": "aa4d7eda0947adb5dea9d298125452e11e263661bd21aca0740a7e377cc8ce49",
+    "executionHash": "8e937639dea9d298090309fb75b6a4bfb5325152a76429e18f5553a550f587ab",
     "mutations": {
       "defaults": [
         {
@@ -2839,6 +3324,32 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "documents"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv4",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "id",
+            "namespace": "public",
+            "table": "leads"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "leads"
           }
         },
         {

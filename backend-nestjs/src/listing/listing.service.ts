@@ -113,6 +113,49 @@ export class ListingService {
     return this.toListingResponse(tenantId, listing);
   }
 
+  async findListingsByIds(
+    tenantId: string,
+    listingIds: string[],
+  ): Promise<ListingResponseDto[]> {
+    const listings = await this.listingRepository.findByIds(
+      tenantId,
+      listingIds,
+    );
+    const byId = new Map(listings.map((listing) => [listing.id, listing]));
+    const orderedListings = listingIds
+      .map((listingId) => byId.get(listingId))
+      .filter((listing): listing is Listing => listing !== undefined);
+
+    return Promise.all(
+      orderedListings.map((listing) =>
+        this.toListingResponse(tenantId, listing),
+      ),
+    );
+  }
+
+  async listingsBelongToTenant(
+    tenantId: string,
+    listingIds: string[],
+  ): Promise<boolean> {
+    const uniqueIds = [...new Set(listingIds)];
+
+    return (
+      uniqueIds.length === 0 ||
+      (await this.listingRepository.findByIds(tenantId, uniqueIds)).length ===
+        uniqueIds.length
+    );
+  }
+
+  async markListingSold(tenantId: string, listingId: string): Promise<void> {
+    const listing = await this.listingRepository.findById(tenantId, listingId);
+
+    if (!listing || Number(listing.status) === 4) {
+      return;
+    }
+
+    await this.listingRepository.update(tenantId, listingId, { status: 4 });
+  }
+
   async createListing(
     tenantId: string,
     dto: StoreListingDto,

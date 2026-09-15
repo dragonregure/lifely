@@ -11,5 +11,6 @@ import { ListingService } from './listing.service.js';
   imports: [AuthModule, RbacModule, ContactModule, UserModule],
   controllers: [ListingController],
   providers: [ListingRepository, ListingService],
+  exports: [ListingService],
 })
 export class ListingModule {}

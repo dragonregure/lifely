@@ -5,6 +5,7 @@ export const User = db.orm.public.User;
 export const Tenant = db.orm.public.Tenant;
 export const Contact = db.orm.public.Contact;
 export const Listing = db.orm.public.Listing;
+export const Lead = db.orm.public.Lead;
 export const ListingContact = db.orm.public.ListingContact;
 export const ListingUser = db.orm.public.ListingUser;
 export const Document = db.orm.public.Document;
@@ -31,6 +32,10 @@ export class PrismaService {
 
   Listing() {
     return Listing;
+  }
+
+  Lead() {
+    return Lead;
   }
 
   ListingContact() {

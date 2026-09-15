@@ -95,6 +95,17 @@ export class ListingRepository {
     return hydrated;
   }
 
+  async findByIds(tenantId: string, ids: string[]): Promise<Listing[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const listings = await ListingModel.where({ tenantId }).all();
+    const idSet = new Set(ids);
+
+    return listings.filter((listing) => idSet.has(listing.id));
+  }
+
   async create(data: ListingCreateInput): Promise<Listing> {
     const listing = await db.transaction(async (tx) => {
       const created = await tx.orm.public.Listing.create({
