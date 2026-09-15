@@ -4,7 +4,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { ActivityService } from '../activity/activity.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ActivityEvents } from '../activity/activity.events.js';
 import { ContactService } from '../contact/contact.service.js';
 import { ListingService } from '../listing/listing.service.js';
 import { Permissions } from '../rbac/rbac.constants.js';
@@ -44,7 +45,7 @@ const ALLOWED_INCLUDES: LeadInclude[] = ['contact', 'listing', 'user'];
 export class LeadService {
   constructor(
     private readonly leadRepository: LeadRepository,
-    private readonly activityService: ActivityService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly contactService: ContactService,
     private readonly listingService: ListingService,
     private readonly userService: UserService,
@@ -122,7 +123,9 @@ export class LeadService {
     const lead = await this.leadRepository.create(
       this.toCreateInput(tenantId, dto),
     );
-    await this.activityService.recordLeadCreated(lead);
+    await this.eventEmitter.emitAsync(ActivityEvents.LEAD_CREATED, {
+      lead,
+    });
     await this.markListingSoldWhenClosedWon(tenantId, lead);
 
     return this.toLeadResponse(lead);
@@ -155,7 +158,10 @@ export class LeadService {
     }
 
     await this.markListingSoldWhenClosedWon(tenantId, updated);
-    await this.activityService.recordLeadUpdated(lead, updated);
+    await this.eventEmitter.emitAsync(ActivityEvents.LEAD_UPDATED, {
+      before: lead,
+      after: updated,
+    });
 
     return this.toLeadResponse(updated);
   }
@@ -187,7 +193,10 @@ export class LeadService {
     }
 
     await this.markListingSoldWhenClosedWon(tenantId, updated);
-    await this.activityService.recordLeadUpdated(lead, updated);
+    await this.eventEmitter.emitAsync(ActivityEvents.LEAD_UPDATED, {
+      before: lead,
+      after: updated,
+    });
 
     return this.toLeadResponse(updated);
   }

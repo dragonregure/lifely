@@ -3,7 +3,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { ActivityService } from '../activity/activity.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ActivityEvents } from '../activity/activity.events.js';
 import { ContactResponseDto } from '../contact/contact.dto.js';
 import { ContactService } from '../contact/contact.service.js';
 import { MemberResponseDto } from '../user/user.dto.js';
@@ -36,7 +37,7 @@ const ALLOWED_INCLUDES: ListingInclude[] = ['documents', 'contacts', 'users'];
 export class ListingService {
   constructor(
     private readonly listingRepository: ListingRepository,
-    private readonly activityService: ActivityService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly contactService: ContactService,
     private readonly userService: UserService,
   ) {}
@@ -160,7 +161,10 @@ export class ListingService {
     });
 
     if (updated) {
-      await this.activityService.recordListingUpdated(listing, updated);
+      await this.eventEmitter.emitAsync(ActivityEvents.LISTING_UPDATED, {
+        before: listing,
+        after: updated,
+      });
     }
   }
 
@@ -173,7 +177,9 @@ export class ListingService {
     const listing = await this.listingRepository.create(
       this.toCreateInput(tenantId, dto),
     );
-    await this.activityService.recordListingCreated(listing);
+    await this.eventEmitter.emitAsync(ActivityEvents.LISTING_CREATED, {
+      listing,
+    });
 
     return this.toListingResponse(tenantId, listing);
   }
@@ -201,7 +207,10 @@ export class ListingService {
       throw new NotFoundException('Listing not found.');
     }
 
-    await this.activityService.recordListingUpdated(existing, listing);
+    await this.eventEmitter.emitAsync(ActivityEvents.LISTING_UPDATED, {
+      before: existing,
+      after: listing,
+    });
 
     return this.toListingResponse(tenantId, listing);
   }

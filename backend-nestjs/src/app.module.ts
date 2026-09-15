@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ActivityModule } from './activity/activity.module.js';
 import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -13,6 +14,7 @@ import { UserModule } from './user/user.module.js';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     AuthModule,
     UserModule,
     RbacApiModule,

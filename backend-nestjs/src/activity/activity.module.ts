@@ -9,6 +9,5 @@ import { ActivityService } from './activity.service.js';
   imports: [AuthModule, RbacModule],
   controllers: [ActivityController],
   providers: [ActivityRepository, ActivityService],
-  exports: [ActivityService],
 })
 export class ActivityModule {}

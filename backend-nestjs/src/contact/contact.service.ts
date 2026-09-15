@@ -3,7 +3,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { ActivityService } from '../activity/activity.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ActivityEvents } from '../activity/activity.events.js';
 import { UserService } from '../user/user.service.js';
 import {
   ContactCreateInput,
@@ -30,7 +31,7 @@ type ContactQuery = Record<
 export class ContactService {
   constructor(
     private readonly contactRepository: ContactRepository,
-    private readonly activityService: ActivityService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly userService: UserService,
   ) {}
 
@@ -138,7 +139,9 @@ export class ContactService {
     const contact = await this.contactRepository.create(
       this.toCreateInput(tenantId, dto),
     );
-    await this.activityService.recordContactCreated(contact);
+    await this.eventEmitter.emitAsync(ActivityEvents.CONTACT_CREATED, {
+      contact,
+    });
 
     return this.toContactResponse(contact);
   }
@@ -166,7 +169,10 @@ export class ContactService {
       throw new NotFoundException('Contact not found.');
     }
 
-    await this.activityService.recordContactUpdated(existing, contact);
+    await this.eventEmitter.emitAsync(ActivityEvents.CONTACT_UPDATED, {
+      before: existing,
+      after: contact,
+    });
 
     return this.toContactResponse(contact);
   }
@@ -182,7 +188,9 @@ export class ContactService {
       throw new NotFoundException('Contact not found.');
     }
 
-    await this.activityService.recordContactDeleted(contact);
+    await this.eventEmitter.emitAsync(ActivityEvents.CONTACT_DELETED, {
+      contact,
+    });
   }
 
   private async ensureTenantOwner(

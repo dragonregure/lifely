@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ActivityModule } from '../activity/activity.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { ContactModule } from '../contact/contact.module.js';
 import { RbacModule } from '../rbac/rbac.module.js';
@@ -9,7 +8,7 @@ import { ListingRepository } from './listing.repository.js';
 import { ListingService } from './listing.service.js';
 
 @Module({
-  imports: [ActivityModule, AuthModule, RbacModule, ContactModule, UserModule],
+  imports: [AuthModule, RbacModule, ContactModule, UserModule],
   controllers: [ListingController],
   providers: [ListingRepository, ListingService],
   exports: [ListingService],

@@ -5,10 +5,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { ContactResponseDto } from '../contact/contact.dto.js';
 import { ContactService } from '../contact/contact.service.js';
@@ -298,13 +298,9 @@ class FakeUserService {
   }
 }
 
-class FakeActivityService {
-  recordListingCreated(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  recordListingUpdated(): Promise<void> {
-    return Promise.resolve();
+class FakeEventEmitter {
+  emitAsync(): Promise<unknown[]> {
+    return Promise.resolve([]);
   }
 }
 
@@ -363,8 +359,8 @@ describe('ListingController API', () => {
           useClass: FakeListingRepository,
         },
         {
-          provide: ActivityService,
-          useClass: FakeActivityService,
+          provide: EventEmitter2,
+          useClass: FakeEventEmitter,
         },
         {
           provide: ContactService,

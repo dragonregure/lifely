@@ -5,10 +5,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { Permissions, Roles } from '../rbac/rbac.constants.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
@@ -243,17 +243,9 @@ class FakeUserService {
   }
 }
 
-class FakeActivityService {
-  recordContactCreated(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  recordContactUpdated(): Promise<void> {
-    return Promise.resolve();
-  }
-
-  recordContactDeleted(): Promise<void> {
-    return Promise.resolve();
+class FakeEventEmitter {
+  emitAsync(): Promise<unknown[]> {
+    return Promise.resolve([]);
   }
 }
 
@@ -301,8 +293,8 @@ describe('ContactController API', () => {
           useClass: FakeContactRepository,
         },
         {
-          provide: ActivityService,
-          useClass: FakeActivityService,
+          provide: EventEmitter2,
+          useClass: FakeEventEmitter,
         },
         {
           provide: UserService,

@@ -5,11 +5,12 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { ActivityEvents } from '../activity/activity.events.js';
 import { ActivityLog } from '../activity/activity.type.js';
-import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { Contact } from '../contact/contact.type.js';
 import { LeadStages, LeadSources } from '../lead/lead.constants.js';
@@ -50,10 +51,8 @@ const noReportUser: AuthenticatedUser = {
 
 let snapshot: ReportingSnapshot;
 let exportAudit: {
-  tenantId: string;
-  userId: string | null;
-  reportName: string;
-  properties: Record<string, unknown>;
+  event: string | string[];
+  payload: Record<string, unknown>;
 }[];
 
 class FakeReportingRepository {
@@ -78,21 +77,17 @@ class FakeReportingRepository {
   }
 }
 
-class FakeActivityService {
-  recordReportExported(
-    requestedTenantId: string,
-    userId: string | null,
-    reportName: string,
-    properties: Record<string, unknown>,
-  ): Promise<void> {
+class FakeEventEmitter {
+  emitAsync(
+    event: string | string[],
+    payload: Record<string, unknown>,
+  ): Promise<unknown[]> {
     exportAudit.push({
-      tenantId: requestedTenantId,
-      userId,
-      reportName,
-      properties,
+      event,
+      payload,
     });
 
-    return Promise.resolve();
+    return Promise.resolve([]);
   }
 }
 
@@ -198,8 +193,8 @@ describe('ReportingController API', () => {
           useClass: FakeReportingRepository,
         },
         {
-          provide: ActivityService,
-          useClass: FakeActivityService,
+          provide: EventEmitter2,
+          useClass: FakeEventEmitter,
         },
       ],
     })
@@ -352,13 +347,16 @@ describe('ReportingController API', () => {
 
     expect(exportAudit).toEqual([
       expect.objectContaining({
-        tenantId,
-        userId: agentId,
-        reportName: 'Revenue Report',
-        properties: expect.objectContaining({
-          report_key: 'financial-revenue',
-          format: 'csv',
-          rows: 3,
+        event: ActivityEvents.REPORT_EXPORTED,
+        payload: expect.objectContaining({
+          tenantId,
+          userId: agentId,
+          reportName: 'Revenue Report',
+          properties: expect.objectContaining({
+            report_key: 'financial-revenue',
+            format: 'csv',
+            rows: 3,
+          }),
         }),
       }),
     ]);

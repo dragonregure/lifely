@@ -3,7 +3,8 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { ActivityService } from '../activity/activity.service.js';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ActivityEvents } from '../activity/activity.events.js';
 import { Contact } from '../contact/contact.type.js';
 import {
   isClosedLeadStage,
@@ -158,7 +159,7 @@ const ALLOWED_FILTERS = [
 export class ReportingService {
   constructor(
     private readonly reportingRepository: ReportingRepository,
-    private readonly activityService: ActivityService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async overview(
@@ -302,17 +303,17 @@ export class ReportingService {
       label,
     }));
 
-    await this.activityService.recordReportExported(
+    await this.eventEmitter.emitAsync(ActivityEvents.REPORT_EXPORTED, {
       tenantId,
       userId,
-      definition.name,
-      {
+      reportName: definition.name,
+      properties: {
         report_key: reportKey,
         format,
         filters: query.filters,
         rows: result.data.length,
       },
-    );
+    });
 
     return {
       filename: `${reportKey}-${this.timestamp()}.csv`,

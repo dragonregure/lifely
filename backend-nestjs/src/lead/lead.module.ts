@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ActivityModule } from '../activity/activity.module.js';
 import { AuthModule } from '../auth/auth.module.js';
 import { ContactModule } from '../contact/contact.module.js';
 import { ListingModule } from '../listing/listing.module.js';
@@ -10,14 +9,7 @@ import { LeadRepository } from './lead.repository.js';
 import { LeadService } from './lead.service.js';
 
 @Module({
-  imports: [
-    ActivityModule,
-    AuthModule,
-    RbacModule,
-    ContactModule,
-    ListingModule,
-    UserModule,
-  ],
+  imports: [AuthModule, RbacModule, ContactModule, ListingModule, UserModule],
   controllers: [LeadController],
   providers: [LeadRepository, LeadService],
 })

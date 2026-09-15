@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Contact } from '../contact/contact.type.js';
+import { OnEvent } from '@nestjs/event-emitter';
+import type { Contact } from '../contact/contact.type.js';
 import { leadStageLabel } from '../lead/lead.constants.js';
-import { Lead } from '../lead/lead.type.js';
-import { Listing } from '../listing/listing.type.js';
+import type { Lead } from '../lead/lead.type.js';
+import type { Listing } from '../listing/listing.type.js';
 import {
   ActivityLogResponseDto,
   PaginatedActivityLogListEnvelopeDto,
@@ -12,12 +13,23 @@ import {
   ActivityRepository,
   ActivitySortKey,
 } from './activity.repository.js';
-import {
+import type {
   ActivityChange,
   ActivityLog,
   ActivityProperties,
   ActivitySubject,
 } from './activity.type.js';
+import { ActivityEvents } from './activity.events.js';
+import type {
+  ContactCreatedActivityEvent,
+  ContactDeletedActivityEvent,
+  ContactUpdatedActivityEvent,
+  LeadCreatedActivityEvent,
+  LeadUpdatedActivityEvent,
+  ListingCreatedActivityEvent,
+  ListingUpdatedActivityEvent,
+  ReportExportedActivityEvent,
+} from './activity.events.js';
 
 type ActivityQuery = Record<
   string,
@@ -86,7 +98,10 @@ export class ActivityService {
     };
   }
 
-  async recordContactCreated(contact: Contact): Promise<void> {
+  @OnEvent(ActivityEvents.CONTACT_CREATED)
+  async recordContactCreated({
+    contact,
+  }: ContactCreatedActivityEvent): Promise<void> {
     await this.recordCreated(
       contact,
       'contact',
@@ -97,7 +112,11 @@ export class ActivityService {
     );
   }
 
-  async recordContactUpdated(before: Contact, after: Contact): Promise<void> {
+  @OnEvent(ActivityEvents.CONTACT_UPDATED)
+  async recordContactUpdated({
+    before,
+    after,
+  }: ContactUpdatedActivityEvent): Promise<void> {
     const changes = this.changes(
       this.contactAttributes(before),
       this.contactAttributes(after),
@@ -117,7 +136,10 @@ export class ActivityService {
     );
   }
 
-  async recordContactDeleted(contact: Contact): Promise<void> {
+  @OnEvent(ActivityEvents.CONTACT_DELETED)
+  async recordContactDeleted({
+    contact,
+  }: ContactDeletedActivityEvent): Promise<void> {
     await this.recordDeleted(
       contact,
       'contact',
@@ -128,7 +150,10 @@ export class ActivityService {
     );
   }
 
-  async recordListingCreated(listing: Listing): Promise<void> {
+  @OnEvent(ActivityEvents.LISTING_CREATED)
+  async recordListingCreated({
+    listing,
+  }: ListingCreatedActivityEvent): Promise<void> {
     await this.recordCreated(
       listing,
       'listing',
@@ -139,7 +164,11 @@ export class ActivityService {
     );
   }
 
-  async recordListingUpdated(before: Listing, after: Listing): Promise<void> {
+  @OnEvent(ActivityEvents.LISTING_UPDATED)
+  async recordListingUpdated({
+    before,
+    after,
+  }: ListingUpdatedActivityEvent): Promise<void> {
     const changes = this.changes(
       this.listingAttributes(before),
       this.listingAttributes(after),
@@ -159,7 +188,8 @@ export class ActivityService {
     );
   }
 
-  async recordLeadCreated(lead: Lead): Promise<void> {
+  @OnEvent(ActivityEvents.LEAD_CREATED)
+  async recordLeadCreated({ lead }: LeadCreatedActivityEvent): Promise<void> {
     await this.recordCreated(
       lead,
       'lead',
@@ -170,7 +200,11 @@ export class ActivityService {
     );
   }
 
-  async recordLeadUpdated(before: Lead, after: Lead): Promise<void> {
+  @OnEvent(ActivityEvents.LEAD_UPDATED)
+  async recordLeadUpdated({
+    before,
+    after,
+  }: LeadUpdatedActivityEvent): Promise<void> {
     const changes = this.changes(
       this.leadAttributes(before),
       this.leadAttributes(after),
@@ -195,12 +229,13 @@ export class ActivityService {
     );
   }
 
-  async recordReportExported(
-    tenantId: string,
-    userId: string | null,
-    reportName: string,
-    properties: ActivityProperties,
-  ): Promise<void> {
+  @OnEvent(ActivityEvents.REPORT_EXPORTED)
+  async recordReportExported({
+    tenantId,
+    userId,
+    reportName,
+    properties,
+  }: ReportExportedActivityEvent): Promise<void> {
     await this.activityRepository.record({
       tenantId,
       userId,

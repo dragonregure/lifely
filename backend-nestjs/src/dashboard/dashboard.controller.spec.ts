@@ -5,10 +5,10 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { Contact } from '../contact/contact.type.js';
 import { LeadStages, LeadSources } from '../lead/lead.constants.js';
@@ -70,9 +70,9 @@ class FakeReportingRepository {
   }
 }
 
-class FakeActivityService {
-  recordReportExported(): Promise<void> {
-    return Promise.resolve();
+class FakeEventEmitter {
+  emitAsync(): Promise<unknown[]> {
+    return Promise.resolve([]);
   }
 }
 
@@ -149,8 +149,8 @@ describe('DashboardController API', () => {
           useClass: FakeReportingRepository,
         },
         {
-          provide: ActivityService,
-          useClass: FakeActivityService,
+          provide: EventEmitter2,
+          useClass: FakeEventEmitter,
         },
       ],
     })
