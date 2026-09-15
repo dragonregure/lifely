@@ -8,7 +8,6 @@ import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { ActivityLog } from '../activity/activity.type.js';
 import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { Contact } from '../contact/contact.type.js';
@@ -18,18 +17,17 @@ import { Listing } from '../listing/listing.type.js';
 import { Permissions, Roles } from '../rbac/rbac.constants.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
 import { AuthenticatedUser } from '../rbac/rbac.types.js';
+import { ReportingRepository } from '../reporting/reporting.repository.js';
+import { ReportingService } from '../reporting/reporting.service.js';
+import { ReportingSnapshot } from '../reporting/reporting.type.js';
 import { User } from '../user/user.type.js';
-import { ReportingController } from './reporting.controller.js';
-import { ReportingRepository } from './reporting.repository.js';
-import { ReportingService } from './reporting.service.js';
-import { ReportingSnapshot } from './reporting.type.js';
+import { DashboardController } from './dashboard.controller.js';
+import { DashboardService } from './dashboard.service.js';
 
 const tenantId = 'tenant-1';
 const otherTenantId = 'tenant-2';
 const agentId = '018f8de0-6aba-7c71-b65d-95302af6be84';
-const otherAgentId = '018f8de0-6aba-7c71-b65d-95302af6be85';
 const contactId = '018f8de0-7424-7c71-a0f9-14d364f50d84';
-const inactiveContactId = '018f8de0-7424-7c71-a0f9-14d364f50d85';
 const listingId = '018f8de0-7f2d-7c71-bb64-347037ba9a57';
 const openListingId = '018f8de0-7f2d-7c71-bb64-347037ba9a58';
 
@@ -49,12 +47,6 @@ const noReportUser: AuthenticatedUser = {
 };
 
 let snapshot: ReportingSnapshot;
-let exportAudit: {
-  tenantId: string;
-  userId: string | null;
-  reportName: string;
-  properties: Record<string, unknown>;
-}[];
 
 class FakeReportingRepository {
   snapshot(requestedTenantId: string): Promise<ReportingSnapshot> {
@@ -79,28 +71,15 @@ class FakeReportingRepository {
 }
 
 class FakeActivityService {
-  recordReportExported(
-    requestedTenantId: string,
-    userId: string | null,
-    reportName: string,
-    properties: Record<string, unknown>,
-  ): Promise<void> {
-    exportAudit.push({
-      tenantId: requestedTenantId,
-      userId,
-      reportName,
-      properties,
-    });
-
+  recordReportExported(): Promise<void> {
     return Promise.resolve();
   }
 }
 
-describe('ReportingController API', () => {
+describe('DashboardController API', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    exportAudit = [];
     snapshot = {
       contacts: [
         contact({
@@ -109,39 +88,27 @@ describe('ReportingController API', () => {
           firstName: 'Ethan',
           lastName: 'Miller',
           status: true,
-          source: 4,
-          lastContactedAt: '2026-09-01T00:00:00.000Z',
         }),
         contact({
-          id: inactiveContactId,
-          ownerId: otherAgentId,
-          firstName: 'Rina',
-          lastName: 'Cole',
-          email: 'rina@example.test',
-          status: false,
-          source: 1,
-          lastContactedAt: null,
+          id: 'outside-contact',
+          tenantId: otherTenantId,
         }),
-        contact({ id: 'outside-contact', tenantId: otherTenantId }),
       ],
       listings: [
         listing({
           id: listingId,
           title: 'Canal Villa',
           price: 1200000,
-          status: 4,
         }),
         listing({
           id: openListingId,
           title: 'Garden Apartment',
           price: 500000,
-          status: 1,
         }),
         listing({ id: 'outside-listing', tenantId: otherTenantId }),
       ],
       users: [
         user({ id: agentId, name: 'Maya Agent' }),
-        user({ id: otherAgentId, name: 'Noah Agent' }),
         user({ id: 'outside-user', tenantId: otherTenantId }),
       ],
       leads: [
@@ -154,7 +121,7 @@ describe('ReportingController API', () => {
           source: LeadSources.REFERRAL,
         }),
         lead({
-          id: 'open-lead-one',
+          id: 'open-lead',
           contactId,
           listingId: openListingId,
           userId: agentId,
@@ -163,35 +130,19 @@ describe('ReportingController API', () => {
           nextTask: 'Confirm goals',
         }),
         lead({
-          id: 'open-lead-two',
-          contactId,
-          listingId: openListingId,
-          userId: agentId,
-          stage: LeadStages.NEW_LEAD,
-          source: LeadSources.WEBSITE,
-        }),
-        lead({ id: 'outside-lead', tenantId: otherTenantId }),
-      ],
-      activityLogs: [
-        activityLog({
-          id: 'contact-activity',
-          userId: agentId,
-          actionType: 'contact.updated',
-          description: 'Updated contact Ethan Miller.',
-        }),
-        activityLog({
-          id: 'listing-activity',
-          actionType: 'listing.updated',
-          description: 'Updated listing.',
+          id: 'outside-lead',
+          tenantId: otherTenantId,
         }),
       ],
+      activityLogs: [],
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      controllers: [ReportingController],
+      controllers: [DashboardController],
       providers: [
         Reflector,
         RbacGuard,
+        DashboardService,
         ReportingService,
         {
           provide: ReportingRepository,
@@ -246,11 +197,11 @@ describe('ReportingController API', () => {
     await app.close();
   });
 
-  it('requires authentication for reporting resources', () => {
+  it('requires authentication for dashboard summary', () => {
     const server = app.getHttpServer() as unknown as App;
 
     return request(server)
-      .get('/api/v1/reports')
+      .get('/api/v1/dashboard')
       .expect(401)
       .expect({ message: 'Unauthenticated.' });
   });
@@ -259,119 +210,77 @@ describe('ReportingController API', () => {
     const server = app.getHttpServer() as unknown as App;
 
     return request(server)
-      .get('/api/v1/reports')
+      .get('/api/v1/dashboard')
       .set('Authorization', 'Bearer no-report-token')
       .set('X-Tenant-Id', tenantId)
       .expect(403);
   });
 
-  it('blocks tenant header crossover for reporting resources', () => {
+  it('blocks tenant crossover for dashboard summary', () => {
     const server = app.getHttpServer() as unknown as App;
 
     return request(server)
-      .get('/api/v1/reports')
+      .get('/api/v1/dashboard')
       .set('Authorization', 'Bearer report-token')
       .set('X-Tenant-Id', otherTenantId)
       .expect(403);
   });
 
-  it('returns the Laravel-compatible reporting overview', () => {
+  it('serves the Laravel-compatible dashboard summary from reporting data', () => {
     const server = app.getHttpServer() as unknown as App;
 
     return request(server)
-      .get('/api/v1/reports')
+      .get('/api/v1/dashboard')
       .set('Authorization', 'Bearer report-token')
       .set('X-Tenant-Id', tenantId)
       .expect(200)
       .expect((response) => {
-        expect(response.body.data.reports).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({ key: 'client-summary' }),
-            expect.objectContaining({ key: 'financial-revenue' }),
-          ]),
-        );
-        expect(response.body.data.dashboard).toMatchObject({
+        expect(response.body.data).toMatchObject({
           new_leads: 1,
           pending_tasks: 1,
           lead_value: 1700000,
           win_rate: 100,
           executive: {
             total_active_clients: 1,
+            new_clients: 1,
             revenue: 1200000,
             pipeline_value: 500000,
           },
+          available_filters: [
+            'date_range',
+            'client',
+            'caregiver',
+            'service_type',
+          ],
+          future_filters: ['branch', 'region'],
         });
       });
   });
 
-  it('returns paginated report rows with tenant-scoped report data', () => {
-    const server = app.getHttpServer() as unknown as App;
-
-    return request(server)
-      .get('/api/v1/reports/client-summary/rows?sort=client&direction=asc')
-      .set('Authorization', 'Bearer report-token')
-      .set('X-Tenant-Id', tenantId)
-      .expect(200)
-      .expect((response) => {
-        expect(response.body.data).toHaveLength(2);
-        expect(response.body.data[0]).toMatchObject({
-          client: 'Ethan Miller',
-          owner: 'Maya Agent',
-          source: 'Referral',
-          open_leads: 2,
-          won_leads: 1,
-          pipeline_value: 500000,
-        });
-        expect(response.body.meta.total).toBe(2);
-      });
-  });
-
-  it('returns 404 for unknown reports', () => {
-    const server = app.getHttpServer() as unknown as App;
-
-    return request(server)
-      .get('/api/v1/reports/unknown/rows')
-      .set('Authorization', 'Bearer report-token')
-      .set('X-Tenant-Id', tenantId)
-      .expect(404);
-  });
-
-  it('exports CSV and audits the export', async () => {
-    const server = app.getHttpServer() as unknown as App;
-
-    await request(server)
-      .get('/api/v1/reports/financial-revenue/export?format=csv')
-      .set('Authorization', 'Bearer report-token')
-      .set('X-Tenant-Id', tenantId)
-      .expect(200)
-      .expect('Content-Type', /text\/csv/)
-      .expect((response) => {
-        expect(response.text).toContain('"Client","Listing","Owner"');
-        expect(response.text).toContain('"Ethan Miller","Canal Villa"');
-      });
-
-    expect(exportAudit).toEqual([
-      expect.objectContaining({
-        tenantId,
+  it('accepts the same dashboard filters as the Laravel API', () => {
+    snapshot.leads.push(
+      lead({
+        id: 'old-closed-won-lead',
+        contactId,
+        listingId: openListingId,
         userId: agentId,
-        reportName: 'Revenue Report',
-        properties: expect.objectContaining({
-          report_key: 'financial-revenue',
-          format: 'csv',
-          rows: 3,
-        }),
+        stage: LeadStages.CLOSED_WON,
+        source: LeadSources.WEBSITE,
+        createdAt: '2026-01-01T05:15:00.000Z',
       }),
-    ]);
-  });
+    );
 
-  it('rejects future export formats until their pipelines exist', () => {
     const server = app.getHttpServer() as unknown as App;
 
     return request(server)
-      .get('/api/v1/reports/client-summary/export?format=pdf')
+      .get('/api/v1/dashboard?filter[date_from]=2026-09-01')
       .set('Authorization', 'Bearer report-token')
       .set('X-Tenant-Id', tenantId)
-      .expect(422);
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.data.executive.revenue).toBe(1200000);
+        expect(response.body.data.win_rate).toBe(100);
+      });
   });
 });
 
@@ -436,21 +345,6 @@ function lead(overrides: Partial<Lead> = {}): Lead {
     isActive: true,
     nextTask: null,
     dueAt: null,
-    createdAt: '2026-09-14T05:15:00.000Z',
-    updatedAt: '2026-09-14T05:15:00.000Z',
-    ...overrides,
-  };
-}
-
-function activityLog(overrides: Partial<ActivityLog> = {}): ActivityLog {
-  return {
-    id: 'activity-id',
-    tenantId,
-    userId: null,
-    userName: null,
-    actionType: 'contact.created',
-    description: 'Created a contact.',
-    properties: null,
     createdAt: '2026-09-14T05:15:00.000Z',
     updatedAt: '2026-09-14T05:15:00.000Z',
     ...overrides,

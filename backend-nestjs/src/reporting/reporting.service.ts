@@ -178,6 +178,13 @@ export class ReportingService {
     };
   }
 
+  dashboardFromQuery(
+    tenantId: string,
+    query: RawQuery,
+  ): Promise<DashboardResponseDto> {
+    return this.dashboard(tenantId, this.queryFromRaw(query).filters);
+  }
+
   async dashboard(
     tenantId: string,
     filters: ReportFilters = {},

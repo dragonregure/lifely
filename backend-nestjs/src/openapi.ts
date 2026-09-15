@@ -24,6 +24,11 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     .addTag('Activity Logs', 'Tenant-scoped audit activity.')
     .addTag('References', 'Tenant and system reference values.')
     .addTag('Access Control', 'Roles, permissions, and user access assignment.')
+    .addTag('Dashboard', 'CRM-backed dashboard summary and KPIs.')
+    .addTag(
+      'Reporting',
+      'Dashboard-backed report definitions, rows, and exports.',
+    )
     .addBearerAuth(
       {
         type: 'http',

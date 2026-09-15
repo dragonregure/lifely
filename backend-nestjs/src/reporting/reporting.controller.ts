@@ -26,7 +26,6 @@ import { Permissions } from '../rbac/rbac.constants.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
 import { AuthenticatedUser } from '../rbac/rbac.types.js';
 import {
-  DashboardEnvelopeDto,
   ReportRowsEnvelopeDto,
   ReportingOverviewEnvelopeDto,
 } from './reporting.dto.js';
@@ -47,31 +46,6 @@ type QueryParams = Record<
 @UseGuards(AuthGuard, RbacGuard)
 export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
-
-  @Get('api/v1/dashboard')
-  @RequirePermissions(Permissions.REPORTS_VIEW)
-  @ApiOperation({
-    summary: 'Dashboard summary',
-    description: 'Requires `reports.view`. Returns CRM-backed dashboard KPIs.',
-  })
-  @ApiQuery({ name: 'filter[date_from]', required: false, type: String })
-  @ApiQuery({ name: 'filter[date_to]', required: false, type: String })
-  @ApiQuery({ name: 'filter[owner_id]', required: false, type: String })
-  @ApiQuery({ name: 'filter[source]', required: false, type: String })
-  @ApiQuery({ name: 'filter[stage]', required: false, type: String })
-  @ApiOkResponse({ type: DashboardEnvelopeDto })
-  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
-  async dashboard(
-    @Req() request: RequestWithUser,
-    @Query() query: QueryParams,
-  ): Promise<DashboardEnvelopeDto> {
-    const overview = await this.reportingService.overview(
-      this.tenantId(request),
-      query,
-    );
-
-    return { data: overview.dashboard };
-  }
 
   @Get('api/v1/reports')
   @RequirePermissions(Permissions.REPORTS_VIEW)

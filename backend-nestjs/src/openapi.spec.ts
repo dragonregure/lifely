@@ -49,6 +49,8 @@ describe('OpenAPI documentation', () => {
       'Activity Logs',
       'References',
       'Access Control',
+      'Dashboard',
+      'Reporting',
     ]);
     expect(document.paths['/tenant']?.get?.tags).toEqual(['Tenant']);
     expect(document.paths['/members']?.get?.tags).toEqual(['Tenant']);
@@ -74,6 +76,8 @@ describe('OpenAPI documentation', () => {
     ]);
     expect(document.paths['/roles']?.get?.tags).toEqual(['Access Control']);
     expect(document.paths['/auth/me']?.get?.tags).toEqual(['Auth']);
+    expect(document.paths['/dashboard']?.get?.tags).toEqual(['Dashboard']);
+    expect(document.paths['/reports']?.get?.tags).toEqual(['Reporting']);
   });
 
   it('does not publish Nest-only user lookup routes in Swagger', () => {

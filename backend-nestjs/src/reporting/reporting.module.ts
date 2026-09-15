@@ -10,5 +10,6 @@ import { ReportingService } from './reporting.service.js';
   imports: [AuthModule, RbacModule, ActivityModule],
   controllers: [ReportingController],
   providers: [ReportingRepository, ReportingService],
+  exports: [ReportingService],
 })
 export class ReportingModule {}
