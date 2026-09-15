@@ -7,6 +7,7 @@ model Tenant {
   contacts  Contact[]
   listings  Listing[]
   documents Document[]
+  references Reference[]
   roles     Role[]
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
@@ -151,6 +152,27 @@ model Document {
   @@index([tenantId, model, modelId])
   @@index([tenantId, model, modelId, type, order])
   @@map("documents")
+}
+
+model Reference {
+  id           Uuid              @id @default(uuid())
+  tenantId     Uuid?
+  tenant       Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  group        String
+  referenceKey String
+  value        String?
+  type         String            @default("string")
+  meta         Json?
+  status       String            @default("ACTIVE")
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+  deletedAt    TimestamptzString?
+
+  @@unique([tenantId, group, referenceKey])
+  @@index([tenantId, group])
+  @@index([tenantId, type])
+  @@index([tenantId, status])
+  @@map("references")
 }
 
 model PersonalAccessToken {

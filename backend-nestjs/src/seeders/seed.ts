@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { db } from '../prisma/db.js';
 import { BasicUserSeeder } from './basic-user.seeder.js';
+import { ReferenceSeeder } from './reference.seeder.js';
 import { RbacSeeder } from './rbac.seeder.js';
 import { SeederModule } from './seeder.module.js';
 
@@ -11,6 +12,7 @@ async function seed(): Promise<void> {
 
   try {
     await app.get(RbacSeeder).run();
+    await app.get(ReferenceSeeder).run();
     await app.get(BasicUserSeeder).run();
   } finally {
     await app.close();
@@ -19,7 +21,7 @@ async function seed(): Promise<void> {
 
 seed()
   .then(() => {
-    console.log('Seeded RBAC defaults and basic demo user.');
+    console.log('Seeded RBAC defaults, reference types, and basic demo user.');
   })
   .catch((error: unknown) => {
     console.error(error);

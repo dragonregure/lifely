@@ -9,6 +9,7 @@ export const Lead = db.orm.public.Lead;
 export const ListingContact = db.orm.public.ListingContact;
 export const ListingUser = db.orm.public.ListingUser;
 export const Document = db.orm.public.Document;
+export const Reference = db.orm.public.Reference;
 export const PersonalAccessToken = db.orm.public.PersonalAccessToken;
 export const Permission = db.orm.public.Permission;
 export const Role = db.orm.public.Role;
@@ -48,6 +49,10 @@ export class PrismaService {
 
   Document() {
     return Document;
+  }
+
+  Reference() {
+    return Reference;
   }
 
   PersonalAccessToken() {

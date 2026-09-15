@@ -5,6 +5,7 @@ import { ContactModule } from './contact/contact.module.js';
 import { LeadModule } from './lead/lead.module.js';
 import { ListingModule } from './listing/listing.module.js';
 import { RbacApiModule } from './rbac/rbac-api.module.js';
+import { ReferenceModule } from './reference/reference.module.js';
 import { UserModule } from './user/user.module.js';
 
 @Module({
@@ -15,6 +16,7 @@ import { UserModule } from './user/user.module.js';
     ContactModule,
     ListingModule,
     LeadModule,
+    ReferenceModule,
   ],
   controllers: [AppController],
 })
