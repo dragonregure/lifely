@@ -6,6 +6,7 @@ model Tenant {
   users     User[]
   contacts  Contact[]
   listings  Listing[]
+  activityLogs ActivityLog[]
   documents Document[]
   references Reference[]
   roles     Role[]
@@ -21,6 +22,7 @@ model User {
   tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contacts           Contact[]
   leads              Lead[]
+  activityLogs       ActivityLog[]
   listingAssignments ListingUser[]
   role               String                @default("Simple Agent")
   name               String
@@ -152,6 +154,23 @@ model Document {
   @@index([tenantId, model, modelId])
   @@index([tenantId, model, modelId, type, order])
   @@map("documents")
+}
+
+model ActivityLog {
+  id          Uuid              @id @default(uuid())
+  tenantId    Uuid
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId      Uuid?
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actionType  String
+  description String
+  properties  Json?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+
+  @@index([tenantId, actionType])
+  @@index([tenantId, userId])
+  @@map("activity_logs")
 }
 
 model Reference {

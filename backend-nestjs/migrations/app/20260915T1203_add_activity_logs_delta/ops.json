@@ -1,0 +1,281 @@
+[
+  {
+    "id": "table.activity_logs",
+    "label": "Create table \"activity_logs\"",
+    "summary": "Creates table \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"activity_logs\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"activity_logs\"",
+        "sql": "CREATE TABLE \"public\".\"activity_logs\" (\n  \"actionType\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"properties\" json,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" uuid,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"activity_logs\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.activity_logs.activity_logs_tenantId_actionType_idx_79607673",
+    "label": "Create index \"activity_logs_tenantId_actionType_idx_79607673\" on \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "activity_logs_tenantId_actionType_idx_79607673",
+        "table": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"activity_logs_tenantId_actionType_idx_79607673\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_tenantId_actionType_idx_79607673\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"activity_logs_tenantId_actionType_idx_79607673\"",
+        "sql": "CREATE INDEX \"activity_logs_tenantId_actionType_idx_79607673\" ON \"public\".\"activity_logs\" (\"tenantId\", \"actionType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"activity_logs_tenantId_actionType_idx_79607673\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_tenantId_actionType_idx_79607673\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.activity_logs.activity_logs_tenantId_idx_c93ed4f1",
+    "label": "Create index \"activity_logs_tenantId_idx_c93ed4f1\" on \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "activity_logs_tenantId_idx_c93ed4f1",
+        "table": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"activity_logs_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"activity_logs_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"activity_logs_tenantId_idx_c93ed4f1\" ON \"public\".\"activity_logs\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"activity_logs_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.activity_logs.activity_logs_tenantId_userId_idx_6c855033",
+    "label": "Create index \"activity_logs_tenantId_userId_idx_6c855033\" on \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "activity_logs_tenantId_userId_idx_6c855033",
+        "table": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"activity_logs_tenantId_userId_idx_6c855033\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_tenantId_userId_idx_6c855033\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"activity_logs_tenantId_userId_idx_6c855033\"",
+        "sql": "CREATE INDEX \"activity_logs_tenantId_userId_idx_6c855033\" ON \"public\".\"activity_logs\" (\"tenantId\", \"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"activity_logs_tenantId_userId_idx_6c855033\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_tenantId_userId_idx_6c855033\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.activity_logs.activity_logs_userId_idx_a489d58a",
+    "label": "Create index \"activity_logs_userId_idx_a489d58a\" on \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "activity_logs_userId_idx_a489d58a",
+        "table": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"activity_logs_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"activity_logs_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"activity_logs_userId_idx_a489d58a\" ON \"public\".\"activity_logs\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"activity_logs_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"activity_logs_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.activity_logs.activity_logs_tenantId_fkey",
+    "label": "Add foreign key \"activity_logs_tenantId_fkey\" on \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "activity_logs_tenantId_fkey",
+        "table": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"activity_logs_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "activity_logs_tenantId_fkey",
+          "public",
+          "\"public\".\"activity_logs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"activity_logs_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"activity_logs\"\nADD CONSTRAINT \"activity_logs_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"activity_logs_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "activity_logs_tenantId_fkey",
+          "public",
+          "\"public\".\"activity_logs\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.activity_logs.activity_logs_userId_fkey",
+    "label": "Add foreign key \"activity_logs_userId_fkey\" on \"activity_logs\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "activity_logs_userId_fkey",
+        "table": "activity_logs"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"activity_logs_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "activity_logs_userId_fkey",
+          "public",
+          "\"public\".\"activity_logs\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"activity_logs_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"activity_logs\"\nADD CONSTRAINT \"activity_logs_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"activity_logs_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "activity_logs_userId_fkey",
+          "public",
+          "\"public\".\"activity_logs\""
+        ]
+      }
+    ]
+  }
+]

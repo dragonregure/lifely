@@ -3,6 +3,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ActivityService } from '../activity/activity.service.js';
 import { UserService } from '../user/user.service.js';
 import {
   ContactCreateInput,
@@ -29,6 +30,7 @@ type ContactQuery = Record<
 export class ContactService {
   constructor(
     private readonly contactRepository: ContactRepository,
+    private readonly activityService: ActivityService,
     private readonly userService: UserService,
   ) {}
 
@@ -133,9 +135,12 @@ export class ContactService {
   ): Promise<ContactResponseDto> {
     await this.ensureTenantOwner(tenantId, dto.owner_id);
 
-    return this.toContactResponse(
-      await this.contactRepository.create(this.toCreateInput(tenantId, dto)),
+    const contact = await this.contactRepository.create(
+      this.toCreateInput(tenantId, dto),
     );
+    await this.activityService.recordContactCreated(contact);
+
+    return this.toContactResponse(contact);
   }
 
   async updateContact(
@@ -144,6 +149,12 @@ export class ContactService {
     dto: UpdateContactDto,
   ): Promise<ContactResponseDto> {
     await this.ensureTenantOwner(tenantId, dto.owner_id);
+
+    const existing = await this.contactRepository.findById(tenantId, contactId);
+
+    if (!existing) {
+      throw new NotFoundException('Contact not found.');
+    }
 
     const contact = await this.contactRepository.update(
       tenantId,
@@ -155,13 +166,23 @@ export class ContactService {
       throw new NotFoundException('Contact not found.');
     }
 
+    await this.activityService.recordContactUpdated(existing, contact);
+
     return this.toContactResponse(contact);
   }
 
   async deleteContact(tenantId: string, contactId: string): Promise<void> {
+    const contact = await this.contactRepository.findById(tenantId, contactId);
+
+    if (!contact) {
+      throw new NotFoundException('Contact not found.');
+    }
+
     if (!(await this.contactRepository.delete(tenantId, contactId))) {
       throw new NotFoundException('Contact not found.');
     }
+
+    await this.activityService.recordContactDeleted(contact);
   }
 
   private async ensureTenantOwner(

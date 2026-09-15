@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { Permissions, Roles } from '../rbac/rbac.constants.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
@@ -242,6 +243,20 @@ class FakeUserService {
   }
 }
 
+class FakeActivityService {
+  recordContactCreated(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  recordContactUpdated(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  recordContactDeleted(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
 describe('ContactController API', () => {
   let app: INestApplication<App>;
 
@@ -284,6 +299,10 @@ describe('ContactController API', () => {
         {
           provide: ContactRepository,
           useClass: FakeContactRepository,
+        },
+        {
+          provide: ActivityService,
+          useClass: FakeActivityService,
         },
         {
           provide: UserService,

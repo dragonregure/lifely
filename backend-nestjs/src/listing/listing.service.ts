@@ -3,6 +3,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ActivityService } from '../activity/activity.service.js';
 import { ContactResponseDto } from '../contact/contact.dto.js';
 import { ContactService } from '../contact/contact.service.js';
 import { MemberResponseDto } from '../user/user.dto.js';
@@ -35,6 +36,7 @@ const ALLOWED_INCLUDES: ListingInclude[] = ['documents', 'contacts', 'users'];
 export class ListingService {
   constructor(
     private readonly listingRepository: ListingRepository,
+    private readonly activityService: ActivityService,
     private readonly contactService: ContactService,
     private readonly userService: UserService,
   ) {}
@@ -153,7 +155,13 @@ export class ListingService {
       return;
     }
 
-    await this.listingRepository.update(tenantId, listingId, { status: 4 });
+    const updated = await this.listingRepository.update(tenantId, listingId, {
+      status: 4,
+    });
+
+    if (updated) {
+      await this.activityService.recordListingUpdated(listing, updated);
+    }
   }
 
   async createListing(
@@ -162,10 +170,12 @@ export class ListingService {
   ): Promise<ListingResponseDto> {
     await this.ensureTenantAssignments(tenantId, dto, false);
 
-    return this.toListingResponse(
-      tenantId,
-      await this.listingRepository.create(this.toCreateInput(tenantId, dto)),
+    const listing = await this.listingRepository.create(
+      this.toCreateInput(tenantId, dto),
     );
+    await this.activityService.recordListingCreated(listing);
+
+    return this.toListingResponse(tenantId, listing);
   }
 
   async updateListing(
@@ -174,6 +184,12 @@ export class ListingService {
     dto: UpdateListingDto,
   ): Promise<ListingResponseDto> {
     await this.ensureTenantAssignments(tenantId, dto, true);
+
+    const existing = await this.listingRepository.findById(tenantId, listingId);
+
+    if (!existing) {
+      throw new NotFoundException('Listing not found.');
+    }
 
     const listing = await this.listingRepository.update(
       tenantId,
@@ -184,6 +200,8 @@ export class ListingService {
     if (!listing) {
       throw new NotFoundException('Listing not found.');
     }
+
+    await this.activityService.recordListingUpdated(existing, listing);
 
     return this.toListingResponse(tenantId, listing);
   }

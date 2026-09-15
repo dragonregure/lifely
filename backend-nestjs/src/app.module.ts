@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ActivityModule } from './activity/activity.module.js';
 import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ContactModule } from './contact/contact.module.js';
@@ -17,6 +18,7 @@ import { UserModule } from './user/user.module.js';
     ListingModule,
     LeadModule,
     ReferenceModule,
+    ActivityModule,
   ],
   controllers: [AppController],
 })

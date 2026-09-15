@@ -8,6 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { ActivityService } from '../activity/activity.service.js';
 import { AuthGuard } from '../auth/auth.guard.js';
 import { ContactResponseDto } from '../contact/contact.dto.js';
 import { ContactService } from '../contact/contact.service.js';
@@ -290,6 +291,16 @@ class FakeUserService {
   }
 }
 
+class FakeActivityService {
+  recordLeadCreated(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  recordLeadUpdated(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
 describe('LeadController API', () => {
   let app: INestApplication<App>;
 
@@ -437,6 +448,10 @@ describe('LeadController API', () => {
         {
           provide: LeadRepository,
           useClass: FakeLeadRepository,
+        },
+        {
+          provide: ActivityService,
+          useClass: FakeActivityService,
         },
         {
           provide: ContactService,
