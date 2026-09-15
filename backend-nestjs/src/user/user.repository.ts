@@ -42,6 +42,17 @@ export class UserRepository {
     return user ? user : null;
   }
 
+  async findByIds(tenantId: string, ids: string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const users = await this.findByTenantId(tenantId);
+    const idSet = new Set(ids);
+
+    return users.filter((user) => idSet.has(user.id));
+  }
+
   async findTenantById(tenantId: string): Promise<TenantRecord | null> {
     return await TenantModel.where({
       id: tenantId,

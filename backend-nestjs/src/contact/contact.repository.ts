@@ -66,6 +66,17 @@ export class ContactRepository {
     return ContactModel.where({ tenantId, id }).first();
   }
 
+  async findByIds(tenantId: string, ids: string[]): Promise<Contact[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const contacts = await ContactModel.where({ tenantId }).all();
+    const idSet = new Set(ids);
+
+    return contacts.filter((contact) => idSet.has(contact.id));
+  }
+
   async create(data: ContactCreateInput): Promise<Contact> {
     return ContactModel.create({
       tenantId: data.tenantId,

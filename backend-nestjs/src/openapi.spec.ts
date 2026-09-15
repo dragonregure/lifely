@@ -44,12 +44,18 @@ describe('OpenAPI documentation', () => {
       'Auth',
       'Tenant',
       'Contacts',
+      'Listings',
       'Access Control',
     ]);
     expect(document.paths['/tenant']?.get?.tags).toEqual(['Tenant']);
     expect(document.paths['/members']?.get?.tags).toEqual(['Tenant']);
     expect(document.paths['/contacts']?.get?.tags).toEqual(['Contacts']);
     expect(document.paths['/contacts']?.post?.tags).toEqual(['Contacts']);
+    expect(document.paths['/listings']?.get?.tags).toEqual(['Listings']);
+    expect(document.paths['/listings']?.post?.tags).toEqual(['Listings']);
+    expect(document.paths['/listings/{listing}']?.get?.tags).toEqual([
+      'Listings',
+    ]);
     expect(document.paths['/me/permissions']?.get?.tags).toEqual([
       'Access Control',
     ]);

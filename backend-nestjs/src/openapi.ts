@@ -19,6 +19,7 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     )
     .addTag('Tenant', 'Current office tenant and member context.')
     .addTag('Contacts', 'Tenant-scoped CRM contacts and leads.')
+    .addTag('Listings', 'Tenant-scoped real estate listings.')
     .addTag('Access Control', 'Roles, permissions, and user access assignment.')
     .addBearerAuth(
       {

@@ -10,5 +10,6 @@ import { ContactService } from './contact.service.js';
   imports: [AuthModule, RbacModule, UserModule],
   controllers: [ContactController],
   providers: [ContactRepository, ContactService],
+  exports: [ContactService],
 })
 export class ContactModule {}

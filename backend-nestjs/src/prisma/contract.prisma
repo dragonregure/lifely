@@ -5,6 +5,8 @@ model Tenant {
   name      String
   users     User[]
   contacts  Contact[]
+  listings  Listing[]
+  documents Document[]
   roles     Role[]
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
@@ -17,6 +19,7 @@ model User {
   tenantId           Uuid
   tenant             Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   contacts           Contact[]
+  listingAssignments ListingUser[]
   role               String                @default("Simple Agent")
   name               String
   email              String                @unique
@@ -38,6 +41,7 @@ model Contact {
   tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   ownerId         Uuid?
   owner           User?             @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  listingAssignments ListingContact[]
   firstName       String
   lastName        String
   email           String
@@ -53,6 +57,70 @@ model Contact {
   @@index([tenantId, source])
   @@index([tenantId, ownerId])
   @@map("contacts")
+}
+
+model Listing {
+  id           Uuid              @id @default(uuid())
+  tenantId     Uuid
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title        String
+  address      String
+  price        Decimal
+  status       SmallInt          @default(1)
+  bedrooms     SmallInt          @default(0)
+  bathrooms    SmallInt          @default(0)
+  propertyType SmallInt          @default(1)
+  contacts     ListingContact[]
+  users        ListingUser[]
+  createdAt    TimestamptzString @default(now())
+  updatedAt    temporal.updatedAtString()
+
+  @@index([tenantId, status])
+  @@index([tenantId, propertyType])
+  @@map("listings")
+}
+
+model ListingContact {
+  listingId Uuid
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  contactId Uuid
+  contact   Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, contactId])
+  @@index([contactId])
+  @@map("listing_contacts")
+}
+
+model ListingUser {
+  listingId      Uuid
+  listing        Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  userId         Uuid
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPrimaryOwner Boolean?
+
+  @@id([listingId, userId])
+  @@unique([listingId, isPrimaryOwner])
+  @@index([userId])
+  @@map("listing_users")
+}
+
+model Document {
+  id        Uuid              @id @default(uuid())
+  tenantId  Uuid
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  model     String
+  modelId   Uuid
+  type      String
+  subtype   String?
+  fileName  String?
+  order     Int               @default(0)
+  url       String
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@index([tenantId, model, modelId])
+  @@index([tenantId, model, modelId, type, order])
+  @@map("documents")
 }
 
 model PersonalAccessToken {

@@ -98,6 +98,35 @@ export class ContactService {
     return this.toContactResponse(contact);
   }
 
+  async findContactsByIds(
+    tenantId: string,
+    contactIds: string[],
+  ): Promise<ContactResponseDto[]> {
+    const contacts = await this.contactRepository.findByIds(
+      tenantId,
+      contactIds,
+    );
+    const byId = new Map(contacts.map((contact) => [contact.id, contact]));
+
+    return contactIds
+      .map((contactId) => byId.get(contactId))
+      .filter((contact): contact is Contact => contact !== undefined)
+      .map((contact) => this.toContactResponse(contact));
+  }
+
+  async contactsBelongToTenant(
+    tenantId: string,
+    contactIds: string[],
+  ): Promise<boolean> {
+    const uniqueIds = [...new Set(contactIds)];
+
+    return (
+      uniqueIds.length === 0 ||
+      (await this.contactRepository.findByIds(tenantId, uniqueIds)).length ===
+        uniqueIds.length
+    );
+  }
+
   async createContact(
     tenantId: string,
     dto: StoreContactDto,

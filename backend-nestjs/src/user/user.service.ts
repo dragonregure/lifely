@@ -71,6 +71,33 @@ export class UserService {
     return user?.tenantId === tenantId;
   }
 
+  async usersBelongToTenant(
+    tenantId: string,
+    userIds: string[],
+  ): Promise<boolean> {
+    const uniqueIds = [...new Set(userIds)];
+
+    return (
+      uniqueIds.length === 0 ||
+      (await this.userRepository.findByIds(tenantId, uniqueIds)).length ===
+        uniqueIds.length
+    );
+  }
+
+  async findMembersByIds(
+    tenantId: string,
+    userIds: string[],
+  ): Promise<MemberResponseDto[]> {
+    const users = await this.userRepository.findByIds(tenantId, userIds);
+    const byId = new Map(users.map((user) => [user.id, user]));
+
+    return this.toMemberResponses(
+      userIds
+        .map((userId) => byId.get(userId))
+        .filter((user): user is User => user !== undefined),
+    );
+  }
+
   async findTenant(tenantId: string): Promise<TenantResponseDto> {
     const tenant = await this.userRepository.findTenantById(tenantId);
 
