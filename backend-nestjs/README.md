@@ -36,11 +36,15 @@ DB_PORT=5432
 DB_DATABASE=lifely_nestjs
 DB_USERNAME=lifely
 DB_PASSWORD=secret
+REDIS_HOST=redis
+REDIS_PORT=6379
 ```
 
 Override the host port and PostgreSQL credentials from the root `.env` file when needed.
 
 Use the VS Code `Attach to NestJS (Docker)` debugger to stop at TypeScript breakpoints while the Compose service is running.
+
+NestJS queue and scheduler support mirrors the Laravel lead lifecycle automation. The app registers a BullMQ `leads` queue backed by Redis and schedules the lead lifecycle job daily at midnight. Set `LIFELY_QUEUE_ENABLED=false` to disable the queue/scheduler runtime for local one-off runs.
 
 ## Project setup
 

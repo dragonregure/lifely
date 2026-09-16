@@ -58,6 +58,21 @@ export type LeadCreateInput = {
 
 export type LeadUpdateInput = Partial<Omit<LeadCreateInput, 'tenantId'>>;
 
+export type LeadLifecycleCandidate = Lead & {
+  contactStatus: boolean | null;
+  listingStatus: number | null;
+};
+
+export type LeadLifecycleUpdateInput = Pick<
+  LeadUpdateInput,
+  'stage' | 'isActive'
+>;
+
+export type LeadLifecycleUpdateResult = {
+  before: Lead;
+  after: Lead;
+};
+
 @Injectable()
 export class LeadRepository {
   async find(options: LeadQueryOptions): Promise<LeadQueryResult> {
@@ -162,6 +177,66 @@ export class LeadRepository {
     stage: number,
   ): Promise<Lead | null> {
     return this.update(tenantId, id, { stage });
+  }
+
+  async findStaleActiveLifecycleCandidates(
+    cutoffDate: string,
+  ): Promise<LeadLifecycleCandidate[]> {
+    const [leads, contacts, listings] = await Promise.all([
+      LeadModel.where({ isActive: true }).all(),
+      ContactModel.all(),
+      ListingModel.all(),
+    ]);
+    const contactByTenantAndId = new Map(
+      contacts.map((contact) => [
+        this.tenantKey(contact.tenantId, contact.id),
+        contact,
+      ]),
+    );
+    const listingByTenantAndId = new Map(
+      listings.map((listing) => [
+        this.tenantKey(listing.tenantId, listing.id),
+        listing,
+      ]),
+    );
+
+    return leads
+      .filter((lead) => this.datePart(lead.updatedAt) <= cutoffDate)
+      .map((lead) => {
+        const contact = contactByTenantAndId.get(
+          this.tenantKey(lead.tenantId, lead.contactId),
+        );
+        const listing = listingByTenantAndId.get(
+          this.tenantKey(lead.tenantId, lead.listingId),
+        );
+
+        return {
+          ...lead,
+          listingValue: listing?.price ?? 0,
+          contactStatus: contact?.status ?? null,
+          listingStatus: listing?.status ?? null,
+        };
+      });
+  }
+
+  async updateLifecycleState(
+    tenantId: string,
+    id: string,
+    data: LeadLifecycleUpdateInput,
+  ): Promise<LeadLifecycleUpdateResult | null> {
+    const before = await this.findById(tenantId, id);
+
+    if (!before) {
+      return null;
+    }
+
+    const after = await this.update(tenantId, id, data);
+
+    if (!after) {
+      return null;
+    }
+
+    return { before, after };
   }
 
   private async withCurrentListingValue(lead: Lead): Promise<Lead> {
@@ -321,5 +396,13 @@ export class LeadRepository {
           .filter(Boolean),
       ),
     ];
+  }
+
+  private datePart(value: string): string {
+    return new Date(value).toISOString().slice(0, 10);
+  }
+
+  private tenantKey(tenantId: string, id: string): string {
+    return `${tenantId}:${id}`;
   }
 }

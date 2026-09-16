@@ -258,9 +258,15 @@ services:
       DB_DATABASE: "${POSTGRES_DATABASE:-lifely_nestjs}"
       DB_USERNAME: "${POSTGRES_USER:-lifely}"
       DB_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      LIFELY_QUEUE_ENABLED: "true"
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       postgresql:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   frontend:

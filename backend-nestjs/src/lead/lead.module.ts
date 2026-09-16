@@ -12,5 +12,6 @@ import { LeadService } from './lead.service.js';
   imports: [AuthModule, RbacModule, ContactModule, ListingModule, UserModule],
   controllers: [LeadController],
   providers: [LeadRepository, LeadService],
+  exports: [LeadRepository],
 })
 export class LeadModule {}
