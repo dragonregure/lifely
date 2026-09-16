@@ -122,6 +122,43 @@ export class RbacRepository {
     }
   }
 
+  async syncUserRoles(userId: string, roles: RoleRecord[]): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.orm.public.ModelHasRole.where({
+        modelId: userId,
+        modelType: MODEL_TYPE_USER,
+      }).delete();
+
+      for (const role of roles) {
+        await tx.orm.public.ModelHasRole.create({
+          roleId: role.id,
+          modelId: userId,
+          modelType: MODEL_TYPE_USER,
+        });
+      }
+    });
+  }
+
+  async syncUserPermissions(
+    userId: string,
+    permissions: PermissionRecord[],
+  ): Promise<void> {
+    await db.transaction(async (tx) => {
+      await tx.orm.public.ModelHasPermission.where({
+        modelId: userId,
+        modelType: MODEL_TYPE_USER,
+      }).delete();
+
+      for (const permission of permissions) {
+        await tx.orm.public.ModelHasPermission.create({
+          permissionId: permission.id,
+          modelId: userId,
+          modelType: MODEL_TYPE_USER,
+        });
+      }
+    });
+  }
+
   async getUserAccess(userId: string): Promise<UserAccess> {
     const roleAssignments = (await db.orm.public.ModelHasRole.where({
       modelId: userId,
@@ -276,5 +313,17 @@ export class RbacRepository {
     const roles = await this.rolesForPermission(permissionId);
 
     return roles.some((role) => role.name === roleName);
+  }
+
+  async userCountWithRoleName(roleName: string): Promise<number> {
+    const roleAssignments = (await db.orm.public.ModelHasRole.where({
+      modelType: MODEL_TYPE_USER,
+    })
+      .include('role')
+      .all()) as unknown as RoleAssignmentWithRole[];
+
+    return roleAssignments.filter(
+      (assignment) => assignment.role.name === roleName,
+    ).length;
   }
 }

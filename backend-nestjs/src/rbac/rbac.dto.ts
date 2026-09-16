@@ -121,6 +121,28 @@ export class UpdatePermissionDto {
   guard_name?: string;
 }
 
+export class SyncUserRolesDto {
+  @IsArray()
+  @IsString({ each: true })
+  roles!: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(125)
+  guard_name?: string;
+}
+
+export class SyncUserPermissionsDto {
+  @IsArray()
+  @IsString({ each: true })
+  permissions!: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(125)
+  guard_name?: string;
+}
+
 export class RoleEnvelopeDto {
   @ApiProperty({ type: RoleResponseDto })
   data!: RoleResponseDto;

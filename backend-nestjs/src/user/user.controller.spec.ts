@@ -24,7 +24,12 @@ const adminUser: AuthenticatedUser = {
   tenant_id: 'tenant-1',
   role: Roles.OFFICE_ADMIN,
   roles: [Roles.OFFICE_ADMIN],
-  permissions: [Permissions.USERS_VIEW, Permissions.TENANT_VIEW],
+  permissions: [
+    Permissions.USERS_VIEW,
+    Permissions.USERS_ASSIGN_ROLES,
+    Permissions.USERS_ASSIGN_PERMISSIONS,
+    Permissions.TENANT_VIEW,
+  ],
   name: 'Maya Admin',
   email: 'maya.admin@example.test',
 };
@@ -113,6 +118,16 @@ class FakeUserRepository {
     return Promise.resolve(users.find((user) => user.id === id) ?? null);
   }
 
+  updateRole(id: string, role: string): Promise<void> {
+    const user = users.find((user) => user.id === id);
+
+    if (user) {
+      user.role = role;
+    }
+
+    return Promise.resolve();
+  }
+
   findTenantById(tenantId: string) {
     if (tenantId !== 'tenant-1') {
       return Promise.resolve(null);
@@ -165,7 +180,18 @@ class FakeUserRepository {
 }
 
 class FakeRbacService {
+  private readonly syncedRoles = new Map<string, string[]>();
+  private readonly syncedPermissions = new Map<string, string[]>();
+
   getUserAccess(userId: string): Promise<UserAccess> {
+    if (this.syncedRoles.has(userId) || this.syncedPermissions.has(userId)) {
+      return Promise.resolve({
+        roles: this.syncedRoles.get(userId) ?? [Roles.SIMPLE_AGENT],
+        directPermissions: this.syncedPermissions.get(userId) ?? [],
+        rolePermissions: [],
+      });
+    }
+
     if (userId === adminUser.id) {
       return Promise.resolve({
         roles: [Roles.OFFICE_ADMIN],
@@ -185,6 +211,34 @@ class FakeRbacService {
     return [
       ...new Set([...access.directPermissions, ...access.rolePermissions]),
     ];
+  }
+
+  canManageSystemRoles(user: AuthenticatedUser): boolean {
+    return (
+      user.permissions.includes(Permissions.SYSTEM_BYPASS) ||
+      user.permissions.includes(Permissions.ROLES_MANAGE_SYSTEM)
+    );
+  }
+
+  syncUserRoles(
+    _tenantId: string,
+    userId: string,
+    _canManageSystem: boolean,
+    dto: { roles: string[] },
+  ): Promise<string> {
+    this.syncedRoles.set(userId, dto.roles);
+
+    return Promise.resolve(dto.roles[0] ?? Roles.SIMPLE_AGENT);
+  }
+
+  syncUserPermissions(
+    userId: string,
+    _canManageSystem: boolean,
+    dto: { permissions: string[] },
+  ): Promise<void> {
+    this.syncedPermissions.set(userId, dto.permissions);
+
+    return Promise.resolve();
   }
 }
 
@@ -379,6 +433,70 @@ describe('UserController API', () => {
           Permissions.SYSTEM_BYPASS,
         );
       });
+  });
+
+  it('syncs user roles and direct permissions', async () => {
+    const server = app.getHttpServer() as unknown as App;
+
+    await request(server)
+      .put('/api/v1/users/user-3/roles')
+      .set('Authorization', 'Bearer admin-token')
+      .set('X-Tenant-Id', 'tenant-1')
+      .send({
+        roles: [Roles.SALES],
+      })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.data).toMatchObject({
+          id: 'user-3',
+          tenant_id: 'tenant-1',
+          role: Roles.SALES,
+          roles: [Roles.SALES],
+          direct_permissions: [],
+        });
+      });
+
+    await request(server)
+      .put('/api/v1/users/user-3/permissions')
+      .set('Authorization', 'Bearer admin-token')
+      .set('X-Tenant-Id', 'tenant-1')
+      .send({
+        permissions: [Permissions.CONTACTS_VIEW],
+      })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.data).toMatchObject({
+          id: 'user-3',
+          roles: [Roles.SALES],
+          direct_permissions: [Permissions.CONTACTS_VIEW],
+        });
+      });
+  });
+
+  it('returns not found when syncing access for a user outside the tenant', () => {
+    const server = app.getHttpServer() as unknown as App;
+
+    return request(server)
+      .put('/api/v1/users/outside-1/roles')
+      .set('Authorization', 'Bearer admin-token')
+      .set('X-Tenant-Id', 'tenant-1')
+      .send({
+        roles: [Roles.SALES],
+      })
+      .expect(404);
+  });
+
+  it('forbids users missing access assignment permissions', () => {
+    const server = app.getHttpServer() as unknown as App;
+
+    return request(server)
+      .put('/api/v1/users/user-3/roles')
+      .set('Authorization', 'Bearer agent-token')
+      .set('X-Tenant-Id', 'tenant-1')
+      .send({
+        roles: [Roles.SALES],
+      })
+      .expect(403);
   });
 
   it('wraps the users list in the standard API response envelope', () => {

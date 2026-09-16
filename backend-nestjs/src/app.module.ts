@@ -7,6 +7,7 @@ import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ContactModule } from './contact/contact.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { HealthController } from './health.controller.js';
 import { LeadLifecycleSchedulerModule } from './lead/lead-lifecycle-scheduler.module.js';
 import { LeadLifecycleWorkerModule } from './lead/lead-lifecycle-worker.module.js';
 import { LeadModule } from './lead/lead.module.js';
@@ -49,6 +50,6 @@ const workerImports = workerEnabled ? [LeadLifecycleWorkerModule] : [];
     ...schedulerImports,
     ...workerImports,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
 })
 export class AppModule {}

@@ -26,6 +26,8 @@ import {
   RoleResponseDto,
   StorePermissionDto,
   StoreRoleDto,
+  SyncUserPermissionsDto,
+  SyncUserRolesDto,
   UpdatePermissionDto,
   UpdateRoleDto,
 } from './rbac.dto.js';
@@ -358,6 +360,45 @@ export class RbacService {
     await this.rbacRepository.deletePermission(permission.id);
   }
 
+  async syncUserRoles(
+    tenantId: string,
+    userId: string,
+    canManageSystem: boolean,
+    dto: SyncUserRolesDto,
+  ): Promise<string> {
+    const guardName = dto.guard_name ?? DEFAULT_GUARD_NAME;
+    const roleNames = [...new Set(dto.roles)];
+    const access = await this.rbacRepository.getUserAccess(userId);
+
+    await this.ensureOfficeAdminCanBeRemoved(access.roles, roleNames);
+
+    const roles = await this.rolesFromNames(
+      tenantId,
+      roleNames,
+      guardName,
+      canManageSystem,
+    );
+
+    await this.rbacRepository.syncUserRoles(userId, roles);
+
+    return dto.roles[0] ?? Roles.SIMPLE_AGENT;
+  }
+
+  async syncUserPermissions(
+    userId: string,
+    canManageSystem: boolean,
+    dto: SyncUserPermissionsDto,
+  ): Promise<void> {
+    const guardName = dto.guard_name ?? DEFAULT_GUARD_NAME;
+    const permissions = await this.permissionsFromNames(
+      dto.permissions,
+      guardName,
+      canManageSystem,
+    );
+
+    await this.rbacRepository.syncUserPermissions(userId, permissions);
+  }
+
   private async visibleRoles(
     tenantId: string,
     canManageSystem: boolean,
@@ -562,6 +603,76 @@ export class RbacService {
     }
 
     return uniqueNames.map((name) => byName.get(name)!);
+  }
+
+  private async rolesFromNames(
+    tenantId: string,
+    names: string[],
+    guardName: string,
+    canManageSystem: boolean,
+  ): Promise<RoleRecord[]> {
+    const uniqueNames = [...new Set(names)];
+    const roles = (await this.rbacRepository.allRoles()).filter(
+      (role) =>
+        role.guardName === guardName &&
+        uniqueNames.includes(role.name) &&
+        (role.tenantId === null || role.tenantId === tenantId),
+    );
+    const foundNames = new Set(roles.map((role) => role.name));
+    const missing = uniqueNames.filter((name) => !foundNames.has(name));
+
+    if (missing.length > 0) {
+      throw new UnprocessableEntityException({
+        message: 'Validation failed.',
+        errors: {
+          roles: [
+            'One or more selected roles are not available to this tenant.',
+          ],
+        },
+      });
+    }
+
+    const visibleRoles: RoleRecord[] = [];
+
+    for (const role of roles) {
+      if (!canManageSystem && (await this.roleHasSystemOnlyPermissions(role))) {
+        throw new UnprocessableEntityException({
+          message: 'Validation failed.',
+          errors: {
+            roles: ['System roles require roles.manage_system.'],
+          },
+        });
+      }
+
+      visibleRoles.push(role);
+    }
+
+    const byName = new Map(visibleRoles.map((role) => [role.name, role]));
+
+    return uniqueNames.map((name) => byName.get(name)!);
+  }
+
+  private async ensureOfficeAdminCanBeRemoved(
+    currentRoleNames: string[],
+    nextRoleNames: string[],
+  ): Promise<void> {
+    if (
+      !currentRoleNames.includes(Roles.OFFICE_ADMIN) ||
+      nextRoleNames.includes(Roles.OFFICE_ADMIN)
+    ) {
+      return;
+    }
+
+    if (
+      (await this.rbacRepository.userCountWithRoleName(Roles.OFFICE_ADMIN)) <= 1
+    ) {
+      throw new UnprocessableEntityException({
+        message: 'Validation failed.',
+        errors: {
+          roles: ['At least one Office Admin must remain active.'],
+        },
+      });
+    }
   }
 
   private async syncRolePermissions(

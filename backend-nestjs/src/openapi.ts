@@ -3,6 +3,9 @@ import { DocumentBuilder, OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 
 export const OPEN_API_DOCUMENTATION_PATH = 'api/documentation';
 export const OPEN_API_JSON_PATH = 'api/docs';
+export const OPEN_API_SWAGGER_UI_OPTIONS = {
+  docExpansion: 'none',
+};
 const API_PREFIX = '/api/v1';
 
 export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
@@ -13,22 +16,23 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     )
     .setVersion('1.0.0')
     .addServer(API_PREFIX)
+    .addTag('System', 'Health and operational endpoints.')
     .addTag(
       'Auth',
       'Registration, login, token rotation, and account session actions.',
     )
     .addTag('Tenant', 'Current office tenant and member context.')
-    .addTag('Contacts', 'Tenant-scoped CRM contacts and leads.')
-    .addTag('Listings', 'Tenant-scoped real estate listings.')
-    .addTag('Leads', 'Tenant-scoped lead workflow.')
-    .addTag('Activity Logs', 'Tenant-scoped audit activity.')
-    .addTag('References', 'Tenant and system reference values.')
     .addTag('Access Control', 'Roles, permissions, and user access assignment.')
-    .addTag('Dashboard', 'CRM-backed dashboard summary and KPIs.')
+    .addTag('Dashboard', 'CRM summary and reporting data.')
     .addTag(
       'Reporting',
-      'Dashboard-backed report definitions, rows, and exports.',
+      'CRM-backed operational reports and audited CSV exports.',
     )
+    .addTag('Contacts', 'Tenant-scoped CRM contacts and leads.')
+    .addTag('Listings', 'Tenant-scoped property inventory.')
+    .addTag('Leads', 'Tenant-scoped lead workflow.')
+    .addTag('References', 'System and tenant reference values.')
+    .addTag('Activity Logs', 'Tenant-scoped audit activity.')
     .addBearerAuth(
       {
         type: 'http',
@@ -60,5 +64,6 @@ export function setupOpenApi(app: INestApplication): void {
   SwaggerModule.setup(OPEN_API_DOCUMENTATION_PATH, app, document, {
     jsonDocumentUrl: OPEN_API_JSON_PATH,
     customSiteTitle: 'Lifely API Documentation',
+    swaggerOptions: OPEN_API_SWAGGER_UI_OPTIONS,
   });
 }

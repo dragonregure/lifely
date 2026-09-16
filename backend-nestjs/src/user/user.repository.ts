@@ -64,6 +64,10 @@ export class UserRepository {
     return user ? user : null;
   }
 
+  async updateRole(id: string, role: string): Promise<void> {
+    await UserModel.where({ id }).update({ role });
+  }
+
   async findMembers(options: MemberQueryOptions): Promise<MemberQueryResult> {
     const users = await this.findByTenantId(options.tenantId);
     const filtered = this.filterMembers(users, options.search);

@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { SyncUserPermissionsDto, SyncUserRolesDto } from '../rbac/rbac.dto.js';
 import { RbacService } from '../rbac/rbac.service.js';
+import { AuthenticatedUser } from '../rbac/rbac.types.js';
 import {
   MemberResponseDto,
   PaginatedMemberListEnvelopeDto,
@@ -182,6 +184,64 @@ export class UserService {
       direct_permissions: access.directPermissions,
       permissions: this.rbacService.permissionNames(access),
     };
+  }
+
+  async syncUserRoles(
+    tenantId: string,
+    actor: AuthenticatedUser,
+    userId: string,
+    dto: SyncUserRolesDto,
+  ): Promise<MemberResponseDto> {
+    const user = await this.findTenantMember(tenantId, userId);
+    const primaryRole = await this.rbacService.syncUserRoles(
+      tenantId,
+      user.id,
+      this.rbacService.canManageSystemRoles(actor),
+      dto,
+    );
+
+    await this.userRepository.updateRole(user.id, primaryRole);
+
+    return this.toMemberResponse(
+      await this.toUserResponse({
+        ...user,
+        role: primaryRole,
+      }),
+    );
+  }
+
+  async syncUserPermissions(
+    tenantId: string,
+    actor: AuthenticatedUser,
+    userId: string,
+    dto: SyncUserPermissionsDto,
+  ): Promise<MemberResponseDto> {
+    const user = await this.findTenantMember(tenantId, userId);
+
+    await this.rbacService.syncUserPermissions(
+      user.id,
+      this.rbacService.canManageSystemRoles(actor),
+      dto,
+    );
+
+    return this.toMemberResponse(await this.toUserResponse(user));
+  }
+
+  private async findTenantMember(
+    tenantId: string,
+    userId: string,
+  ): Promise<User> {
+    const user = await this.userRepository.findById(userId);
+
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (user.tenantId !== tenantId) {
+      throw new NotFoundException('User not found.');
+    }
+
+    return user;
   }
 
   private shouldPaginate(query: MemberQuery): boolean {

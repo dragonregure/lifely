@@ -1,7 +1,10 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from './app.module.js';
-import { createOpenApiDocument } from './openapi.js';
+import {
+  createOpenApiDocument,
+  OPEN_API_SWAGGER_UI_OPTIONS,
+} from './openapi.js';
 
 describe('OpenAPI documentation', () => {
   let app: INestApplication;
@@ -33,6 +36,10 @@ describe('OpenAPI documentation', () => {
       scheme: 'bearer',
       bearerFormat: 'Sanctum token',
     });
+    expect(OPEN_API_SWAGGER_UI_OPTIONS).toMatchObject({
+      docExpansion: 'none',
+    });
+    expect(document.paths['/health']?.get?.security).toEqual([]);
     expect(Object.keys(document.paths)).not.toContain('/api/v1/auth/login');
     expect(document.paths['/auth/login']).toBeDefined();
   });
@@ -41,19 +48,27 @@ describe('OpenAPI documentation', () => {
     const document = createOpenApiDocument(app);
 
     expect(document.tags?.map((tag) => tag.name)).toEqual([
+      'System',
       'Auth',
       'Tenant',
-      'Contacts',
-      'Listings',
-      'Leads',
-      'Activity Logs',
-      'References',
       'Access Control',
       'Dashboard',
       'Reporting',
+      'Contacts',
+      'Listings',
+      'Leads',
+      'References',
+      'Activity Logs',
     ]);
+    expect(document.paths['/health']?.get?.tags).toEqual(['System']);
     expect(document.paths['/tenant']?.get?.tags).toEqual(['Tenant']);
     expect(document.paths['/members']?.get?.tags).toEqual(['Tenant']);
+    expect(document.paths['/users/{user}/roles']?.put?.tags).toEqual([
+      'Access Control',
+    ]);
+    expect(document.paths['/users/{user}/permissions']?.put?.tags).toEqual([
+      'Access Control',
+    ]);
     expect(document.paths['/contacts']?.get?.tags).toEqual(['Contacts']);
     expect(document.paths['/contacts']?.post?.tags).toEqual(['Contacts']);
     expect(document.paths['/listings']?.get?.tags).toEqual(['Listings']);
@@ -71,6 +86,9 @@ describe('OpenAPI documentation', () => {
       'Activity Logs',
     ]);
     expect(document.paths['/references']?.get?.tags).toEqual(['References']);
+    expect(document.paths['/references/{reference}']?.put?.tags).toEqual([
+      'References',
+    ]);
     expect(document.paths['/me/permissions']?.get?.tags).toEqual([
       'Access Control',
     ]);

@@ -107,6 +107,11 @@ export class MemberListEnvelopeDto {
   data!: MemberResponseDto[];
 }
 
+export class MemberEnvelopeDto {
+  @ApiProperty({ type: MemberResponseDto })
+  data!: MemberResponseDto;
+}
+
 export class TenantEnvelopeDto {
   @ApiProperty({ type: TenantResponseDto })
   data!: TenantResponseDto;

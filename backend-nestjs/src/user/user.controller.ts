@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   ForbiddenException,
   Get,
   NotFoundException,
   Param,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -15,9 +17,11 @@ import {
   ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiUnprocessableEntityResponse,
   getSchemaPath,
 } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -25,9 +29,11 @@ import { AuthGuard } from '../auth/auth.guard.js';
 import { ApiResponseInterceptor } from '../common/interceptors/api-response.interceptor.js';
 import { RequirePermissions } from '../rbac/permissions.decorator.js';
 import { Permissions } from '../rbac/rbac.constants.js';
+import { SyncUserPermissionsDto, SyncUserRolesDto } from '../rbac/rbac.dto.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
 import { AuthenticatedUser } from '../rbac/rbac.types.js';
 import {
+  MemberEnvelopeDto,
   MemberListEnvelopeDto,
   PaginatedMemberListEnvelopeDto,
   TenantEnvelopeDto,
@@ -138,6 +144,62 @@ export class UserController {
   async mePermissions(@Req() request: RequestWithUser) {
     return {
       data: await this.userService.findUserAccess(request.user.id),
+    };
+  }
+
+  @Put('users/:user/roles')
+  @RequirePermissions(Permissions.USERS_ASSIGN_ROLES)
+  @ApiTags('Access Control')
+  @ApiOperation({
+    summary: 'Sync roles to user',
+    description:
+      'Requires `users.assign_roles`. Requested roles must be system roles or current-tenant roles. Roles containing system-only permissions require `roles.manage_system`. Prevents removing the last Office Admin.',
+  })
+  @ApiParam({ name: 'user', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: MemberEnvelopeDto })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
+  @ApiUnprocessableEntityResponse({
+    description: 'Validation failed or last Office Admin protection triggered.',
+  })
+  async syncRoles(
+    @Req() request: RequestWithUser,
+    @Param('user') user: string,
+    @Body() dto: SyncUserRolesDto,
+  ): Promise<MemberEnvelopeDto> {
+    return {
+      data: await this.userService.syncUserRoles(
+        this.tenantId(request),
+        request.user,
+        user,
+        dto,
+      ),
+    };
+  }
+
+  @Put('users/:user/permissions')
+  @RequirePermissions(Permissions.USERS_ASSIGN_PERMISSIONS)
+  @ApiTags('Access Control')
+  @ApiOperation({
+    summary: 'Sync direct permissions to user',
+    description:
+      'Requires `users.assign_permissions`. Tenant admins cannot assign system-only permissions such as `system.bypass`, `roles.manage_system`, `references.manage_system`, or permission create/update/delete capabilities.',
+  })
+  @ApiParam({ name: 'user', type: String, format: 'uuid' })
+  @ApiOkResponse({ type: MemberEnvelopeDto })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
+  @ApiUnprocessableEntityResponse({ description: 'Validation failed.' })
+  async syncPermissions(
+    @Req() request: RequestWithUser,
+    @Param('user') user: string,
+    @Body() dto: SyncUserPermissionsDto,
+  ): Promise<MemberEnvelopeDto> {
+    return {
+      data: await this.userService.syncUserPermissions(
+        this.tenantId(request),
+        request.user,
+        user,
+        dto,
+      ),
     };
   }
 

@@ -9,6 +9,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -208,6 +209,26 @@ export class ReferenceController {
         dto,
       ),
     };
+  }
+
+  @Put(':reference')
+  @ApiOperation({
+    summary: 'Replace reference',
+    description:
+      'Requires `references.update`. System references additionally require `references.manage_system` or `system.bypass`.',
+  })
+  @ApiOkResponse({ type: ReferenceEnvelopeDto })
+  @ApiUnauthorizedResponse({ description: 'Unauthenticated.' })
+  @ApiNotFoundResponse({
+    description: 'Reference is outside current tenant scope or not found.',
+  })
+  @ApiUnprocessableEntityResponse({ description: 'Validation failed.' })
+  async replace(
+    @Req() request: RequestWithUser,
+    @Param('reference') reference: string,
+    @Body() dto: UpdateReferenceDto,
+  ): Promise<ReferenceEnvelopeDto> {
+    return this.update(request, reference, dto);
   }
 
   @Delete(':reference')

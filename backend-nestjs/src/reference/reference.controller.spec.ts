@@ -537,6 +537,16 @@ describe('ReferenceController API', () => {
       });
 
     await request(server)
+      .put(`/api/v1/references/${referenceId}`)
+      .set('Authorization', 'Bearer admin-token')
+      .set('X-Tenant-Id', 'tenant-1')
+      .send({ value: 'Crescent Avenue' })
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.data.value).toBe('Crescent Avenue');
+      });
+
+    await request(server)
       .delete(`/api/v1/references/${referenceId}`)
       .set('Authorization', 'Bearer admin-token')
       .set('X-Tenant-Id', 'tenant-1')
