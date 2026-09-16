@@ -27,7 +27,7 @@
 
 ## Lifely Docker runtime
 
-The root Docker Compose stack runs this service as `backend-nestjs` on `http://localhost:3000` by default. It uses the `docker/nestjs/Dockerfile`, bind-mounts this directory for watch-mode development, starts the Node inspector on `localhost:9229`, and connects to the `postgresql` service with these container environment values:
+The root Docker Compose stack runs the API service as `backend-nestjs` on `http://localhost:3000` by default. It uses the `docker/nestjs/Dockerfile`, bind-mounts this directory for watch-mode development, starts the Node inspector on `localhost:9229`, and connects to the `postgresql` service with these container environment values:
 
 ```text
 DATABASE_URL=postgresql://lifely:secret@postgresql:5432/lifely_nestjs
@@ -44,7 +44,24 @@ Override the host port and PostgreSQL credentials from the root `.env` file when
 
 Use the VS Code `Attach to NestJS (Docker)` debugger to stop at TypeScript breakpoints while the Compose service is running.
 
-NestJS queue and scheduler support mirrors the Laravel lead lifecycle automation. The app registers a BullMQ `leads` queue backed by Redis and schedules the lead lifecycle job daily at midnight. Set `LIFELY_QUEUE_ENABLED=false` to disable the queue/scheduler runtime for local one-off runs.
+NestJS queue and scheduler support mirrors the Laravel service split:
+
+```bash
+docker compose up backend-nestjs backend-nestjs-queue backend-nestjs-scheduler redis postgresql
+```
+
+- `backend-nestjs` serves the API only.
+- `backend-nestjs-queue` runs BullMQ processors, including the `leads` queue worker.
+- `backend-nestjs-scheduler` runs `@nestjs/schedule` and enqueues the lead lifecycle job daily at midnight.
+
+For local testing without waiting for midnight, run one of these from `backend-nestjs`:
+
+```bash
+npm run lead:lifecycle -- enqueue
+npm run lead:lifecycle -- run
+```
+
+`enqueue` pushes the BullMQ job onto Redis for the queue worker to process. `run` executes the lifecycle workflow immediately in the current process. These commands are development-only and refuse to run when `NODE_ENV=production`.
 
 ## Project setup
 

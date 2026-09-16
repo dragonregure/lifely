@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Queue } from 'bullmq';
 import {
@@ -9,6 +9,8 @@ import {
 
 @Injectable()
 export class LeadLifecycleScheduler {
+  private readonly logger = new Logger(LeadLifecycleScheduler.name);
+
   constructor(@InjectQueue(LEADS_QUEUE) private readonly leadsQueue: Queue) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
@@ -29,5 +31,6 @@ export class LeadLifecycleScheduler {
         removeOnFail: true,
       },
     );
+    this.logger.log(`Queued ${PROCESS_LEAD_LIFECYCLE_JOB}.`);
   }
 }

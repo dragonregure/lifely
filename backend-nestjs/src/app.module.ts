@@ -7,25 +7,30 @@ import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ContactModule } from './contact/contact.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
-import { LeadAutomationModule } from './lead/lead-automation.module.js';
+import { LeadLifecycleSchedulerModule } from './lead/lead-lifecycle-scheduler.module.js';
+import { LeadLifecycleWorkerModule } from './lead/lead-lifecycle-worker.module.js';
 import { LeadModule } from './lead/lead.module.js';
+import { ListingModule } from './listing/listing.module.js';
 import {
   bullModuleOptions,
-  queueRuntimeEnabled,
+  queueWorkerRuntimeEnabled,
+  schedulerRuntimeEnabled,
 } from './queue/queue.config.js';
-import { ListingModule } from './listing/listing.module.js';
 import { RbacApiModule } from './rbac/rbac-api.module.js';
 import { ReferenceModule } from './reference/reference.module.js';
 import { ReportingModule } from './reporting/reporting.module.js';
 import { UserModule } from './user/user.module.js';
 
-const queueImports = queueRuntimeEnabled()
-  ? [
-      ScheduleModule.forRoot(),
-      BullModule.forRoot(bullModuleOptions()),
-      LeadAutomationModule,
-    ]
+const workerEnabled = queueWorkerRuntimeEnabled();
+const schedulerEnabled = schedulerRuntimeEnabled();
+const queueImports =
+  workerEnabled || schedulerEnabled
+    ? [BullModule.forRoot(bullModuleOptions())]
+    : [];
+const schedulerImports = schedulerEnabled
+  ? [ScheduleModule.forRoot(), LeadLifecycleSchedulerModule]
   : [];
+const workerImports = workerEnabled ? [LeadLifecycleWorkerModule] : [];
 
 @Module({
   imports: [
@@ -41,6 +46,8 @@ const queueImports = queueRuntimeEnabled()
     ReportingModule,
     DashboardModule,
     ...queueImports,
+    ...schedulerImports,
+    ...workerImports,
   ],
   controllers: [AppController],
 })
