@@ -19,6 +19,6 @@ import { TokenService } from './token.service.js';
     TokenRepository,
     TokenService,
   ],
-  exports: [AuthGuard, AuthService],
+  exports: [AuthGuard, AuthService, PasswordService],
 })
 export class AuthModule {}

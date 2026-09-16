@@ -6,7 +6,6 @@ import { bullModuleOptions } from '../queue/queue.config.js';
 import { LeadModule } from './lead.module.js';
 import { LEADS_QUEUE } from './lead-lifecycle.constants.js';
 import { LeadLifecycleScheduler } from './lead-lifecycle.scheduler.js';
-import { LeadLifecycleService } from './lead-lifecycle.service.js';
 
 @Module({
   imports: [
@@ -20,6 +19,5 @@ export class LeadLifecycleEnqueueCommandModule {}
 
 @Module({
   imports: [EventEmitterModule.forRoot(), LeadModule, ActivityModule],
-  providers: [LeadLifecycleService],
 })
 export class LeadLifecycleRunCommandModule {}

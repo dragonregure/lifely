@@ -13,9 +13,9 @@ import { Permissions, Roles } from '../rbac/rbac.constants.js';
 import { RbacGuard } from '../rbac/rbac.guard.js';
 import type { AuthenticatedUser } from '../rbac/rbac.types.js';
 import { ReferenceController } from './reference.controller.js';
+import { REFERENCE_TYPE_GROUP } from './reference.constants.js';
 import {
   DuplicateReferenceError,
-  REFERENCE_TYPE_GROUP,
   ReferenceRepository,
 } from './reference.repository.js';
 import type {

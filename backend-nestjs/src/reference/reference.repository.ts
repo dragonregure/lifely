@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common';
 import type { JsonValue } from '@prisma/orm-postgres/target/codec-types';
 import { db } from '../prisma/db.js';
 import { Reference as ReferenceModel } from '../prisma/prisma.service.js';
+import { REFERENCE_TYPE_GROUP } from './reference.constants.js';
 import type { Reference, ReferenceMeta } from './reference.type.js';
-
-export const REFERENCE_TYPE_GROUP = 'reference_type';
 
 export type ReferenceSortKey =
   | 'reference'

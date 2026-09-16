@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { db } from '../prisma/db.js';
-import { REFERENCE_TYPE_GROUP } from '../reference/reference.repository.js';
+import { REFERENCE_TYPE_GROUP } from '../reference/reference.constants.js';
+import { SeederRepository } from './seeder.repository.js';
 
 const SYSTEM_REFERENCE_TYPES = [
   { key: 'string', value: 'String' },
@@ -14,30 +14,24 @@ const SYSTEM_REFERENCE_TYPES = [
 
 @Injectable()
 export class ReferenceSeeder {
-  async run(): Promise<void> {
-    const references = await db.orm.public.Reference.where({}).all();
+  constructor(private readonly seederRepository: SeederRepository) {}
 
+  async run(): Promise<void> {
     for (const referenceType of SYSTEM_REFERENCE_TYPES) {
-      const existing = references.find(
-        (reference) =>
-          reference.tenantId === null &&
-          reference.group === REFERENCE_TYPE_GROUP &&
-          reference.referenceKey === referenceType.key &&
-          reference.deletedAt === null,
+      const existing = await this.seederRepository.systemReferenceExists(
+        REFERENCE_TYPE_GROUP,
+        referenceType.key,
       );
 
       if (existing) {
         continue;
       }
 
-      await db.orm.public.Reference.create({
-        tenantId: null,
+      await this.seederRepository.createSystemReference({
         group: REFERENCE_TYPE_GROUP,
-        referenceKey: referenceType.key,
+        key: referenceType.key,
         value: referenceType.value,
         type: 'string',
-        meta: null,
-        status: 'ACTIVE',
       });
     }
   }

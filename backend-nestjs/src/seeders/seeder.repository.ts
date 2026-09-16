@@ -16,6 +16,13 @@ type CreateDemoUserInput = {
   password: string;
 };
 
+type CreateSystemReferenceInput = {
+  group: string;
+  key: string;
+  value: string;
+  type: string;
+};
+
 @Injectable()
 export class SeederRepository {
   async findTenantById(id: string): Promise<TenantRecord | null> {
@@ -38,6 +45,31 @@ export class SeederRepository {
       email: input.email,
       password: input.password,
       emailVerifiedAt: null,
+    });
+  }
+
+  async systemReferenceExists(group: string, key: string): Promise<boolean> {
+    const reference = await db.orm.public.Reference.where({
+      tenantId: null,
+      group,
+      referenceKey: key,
+      deletedAt: null,
+    }).first();
+
+    return reference !== null;
+  }
+
+  async createSystemReference(
+    input: CreateSystemReferenceInput,
+  ): Promise<void> {
+    await db.orm.public.Reference.create({
+      tenantId: null,
+      group: input.group,
+      referenceKey: input.key,
+      value: input.value,
+      type: input.type,
+      meta: null,
+      status: 'ACTIVE',
     });
   }
 }
