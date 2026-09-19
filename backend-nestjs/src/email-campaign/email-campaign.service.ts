@@ -26,7 +26,11 @@ import {
   EmailCampaignRepository,
   EmailCampaignSortKey,
 } from './email-campaign.repository.js';
-import { CampaignRecipient, EmailCampaign } from './email-campaign.type.js';
+import {
+  CampaignListing,
+  CampaignRecipient,
+  EmailCampaign,
+} from './email-campaign.type.js';
 
 type EmailCampaignQuery = Record<
   string,
@@ -118,7 +122,6 @@ export class EmailCampaignService {
         userId: dto.user_id,
         listingId: dto.listing_id,
         contactIds: this.requestedContactIds(dto),
-        activeOnly: dto.all_active_contacts === true,
         subject: dto.subject,
         body: dto.body,
       });
@@ -154,8 +157,7 @@ export class EmailCampaignService {
       after: sending,
     });
 
-    const recipients =
-      await this.campaignRepository.campaignRecipients(sending);
+    const recipients = await this.campaignRecipients(sending);
 
     for (const recipient of recipients) {
       await this.campaignQueue.enqueueContact(sending.id, recipient.id);
@@ -181,10 +183,7 @@ export class EmailCampaignService {
       return;
     }
 
-    const recipient = await this.campaignRepository.recipient(
-      campaign,
-      contactId,
-    );
+    const recipient = await this.campaignRecipient(campaign, contactId);
 
     if (!recipient) {
       return;
@@ -197,15 +196,10 @@ export class EmailCampaignService {
     campaign: EmailCampaign,
     recipient: CampaignRecipient,
   ): Promise<void> {
-    const listing = await this.campaignRepository.listing(campaign);
+    const listing = await this.campaignListing(campaign);
 
     await this.emailSender.send({
-      to: [
-        {
-          address: recipient.email,
-          name: `${recipient.firstName} ${recipient.lastName}`.trim(),
-        },
-      ],
+      to: [{ address: recipient.email, name: recipient.name }],
       subject: campaign.subject,
       html: this.renderer.html(campaign, listing),
       text: this.renderer.text(campaign, listing),
@@ -215,6 +209,78 @@ export class EmailCampaignService {
         [EMAIL_LIMIT_RESERVED_HEADER]: 'true',
       },
     });
+  }
+
+  private async campaignRecipients(
+    campaign: EmailCampaign,
+  ): Promise<CampaignRecipient[]> {
+    const contactIds = this.campaignRepository.contactIds(campaign);
+
+    if (contactIds.length === 0) {
+      return [];
+    }
+
+    const contacts = await this.contactService.findContactsByIds(
+      campaign.tenantId,
+      contactIds,
+    );
+
+    return contacts
+      .filter((contact) => contact.email.trim() !== '')
+      .map((contact) => ({
+        id: contact.id,
+        email: contact.email,
+        name: `${contact.first_name} ${contact.last_name}`.trim(),
+      }));
+  }
+
+  private async campaignRecipient(
+    campaign: EmailCampaign,
+    contactId: string,
+  ): Promise<CampaignRecipient | null> {
+    if (!this.campaignRepository.contactIds(campaign).includes(contactId)) {
+      return null;
+    }
+
+    const [recipient] = await this.contactService.findContactsByIds(
+      campaign.tenantId,
+      [contactId],
+    );
+
+    if (!recipient || recipient.email.trim() === '') {
+      return null;
+    }
+
+    return {
+      id: recipient.id,
+      email: recipient.email,
+      name: `${recipient.first_name} ${recipient.last_name}`.trim(),
+    };
+  }
+
+  private async campaignListing(
+    campaign: EmailCampaign,
+  ): Promise<CampaignListing | null> {
+    if (!campaign.listingId) {
+      return null;
+    }
+
+    const [listing] = await this.listingService.findListingsByIds(
+      campaign.tenantId,
+      [campaign.listingId],
+    );
+
+    return listing
+      ? {
+          title: listing.title,
+          address: listing.address,
+          price: listing.price,
+          status: listing.status,
+          bedrooms: listing.bedrooms,
+          bathrooms: listing.bathrooms,
+          propertyType: listing.property_type,
+        }
+      : null;
   }
 
   private async ensureTenantRelationships(

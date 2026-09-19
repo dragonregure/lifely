@@ -1,17 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { db } from '../prisma/db.js';
 import {
-  Contact as ContactModel,
   EmailCampaign as EmailCampaignModel,
-  Listing as ListingModel,
   TenantEmailUsage as TenantEmailUsageModel,
-  User as UserModel,
 } from '../prisma/prisma.service.js';
-import {
-  CampaignListing,
-  CampaignRecipient,
-  EmailCampaign,
-} from './email-campaign.type.js';
+import { EmailCampaign } from './email-campaign.type.js';
 
 export type EmailCampaignSortKey =
   'subject' | 'recipient_count' | 'status' | 'created_at';
@@ -37,7 +30,6 @@ export type QueueEmailCampaignInput = {
   userId?: string | null;
   listingId?: string | null;
   contactIds: string[];
-  activeOnly: boolean;
   subject: string;
   body: string;
 };
@@ -76,12 +68,7 @@ export class EmailCampaignRepository {
 
   async createQueued(data: QueueEmailCampaignInput): Promise<EmailCampaign> {
     return db.transaction(async (tx) => {
-      const contactIds = await this.tenantContactIds(
-        tx.orm.public.Contact,
-        data.tenantId,
-        data.contactIds,
-        data.activeOnly,
-      );
+      const contactIds = [...new Set(data.contactIds)];
 
       await this.reserveDemoLimit(
         tx.orm.public.TenantEmailUsage,
@@ -91,16 +78,8 @@ export class EmailCampaignRepository {
 
       return tx.orm.public.EmailCampaign.create({
         tenantId: data.tenantId,
-        userId: await this.tenantUserId(
-          tx.orm.public.User,
-          data.tenantId,
-          data.userId,
-        ),
-        listingId: await this.tenantListingId(
-          tx.orm.public.Listing,
-          data.tenantId,
-          data.listingId,
-        ),
+        userId: data.userId ?? null,
+        listingId: data.listingId ?? null,
         subject: data.subject,
         body: data.body,
         contactIds,
@@ -120,55 +99,6 @@ export class EmailCampaignRepository {
     });
 
     return (await this.findById(campaign.id)) ?? { ...campaign, status };
-  }
-
-  async campaignRecipients(
-    campaign: EmailCampaign,
-  ): Promise<CampaignRecipient[]> {
-    const contactIds = this.contactIds(campaign);
-
-    if (contactIds.length === 0) {
-      return [];
-    }
-
-    const contacts = await ContactModel.where({
-      tenantId: campaign.tenantId,
-    }).all();
-    const byId = new Map(contacts.map((contact) => [contact.id, contact]));
-
-    return contactIds
-      .map((contactId) => byId.get(contactId))
-      .filter(
-        (contact): contact is NonNullable<typeof contact> =>
-          contact !== undefined && contact.email.trim() !== '',
-      );
-  }
-
-  async recipient(
-    campaign: EmailCampaign,
-    contactId: string,
-  ): Promise<CampaignRecipient | null> {
-    if (!this.contactIds(campaign).includes(contactId)) {
-      return null;
-    }
-
-    const contact = await ContactModel.where({
-      tenantId: campaign.tenantId,
-      id: contactId,
-    }).first();
-
-    return contact && contact.email.trim() !== '' ? contact : null;
-  }
-
-  async listing(campaign: EmailCampaign): Promise<CampaignListing | null> {
-    if (!campaign.listingId) {
-      return null;
-    }
-
-    return ListingModel.where({
-      tenantId: campaign.tenantId,
-      id: campaign.listingId,
-    }).first();
   }
 
   contactIds(campaign: EmailCampaign): string[] {
@@ -239,58 +169,6 @@ export class EmailCampaignRepository {
     };
 
     return sortable[key] ?? '';
-  }
-
-  private async tenantContactIds(
-    model: typeof ContactModel,
-    tenantId: string,
-    contactIds: string[],
-    activeOnly: boolean,
-  ): Promise<string[]> {
-    if (contactIds.length === 0) {
-      return [];
-    }
-
-    const uniqueContactIds = [...new Set(contactIds)];
-    const contacts = await model.where({ tenantId }).all();
-    const allowedContactIds = new Set(
-      contacts
-        .filter((contact) => uniqueContactIds.includes(contact.id))
-        .filter((contact) => !activeOnly || contact.status)
-        .map((contact) => contact.id),
-    );
-
-    return uniqueContactIds.filter((contactId) =>
-      allowedContactIds.has(contactId),
-    );
-  }
-
-  private async tenantUserId(
-    model: typeof UserModel,
-    tenantId: string,
-    userId: string | null | undefined,
-  ): Promise<string | null> {
-    if (!userId) {
-      return null;
-    }
-
-    const user = await model.where({ tenantId, id: userId }).first();
-
-    return user?.id ?? null;
-  }
-
-  private async tenantListingId(
-    model: typeof ListingModel,
-    tenantId: string,
-    listingId: string | null | undefined,
-  ): Promise<string | null> {
-    if (!listingId) {
-      return null;
-    }
-
-    const listing = await model.where({ tenantId, id: listingId }).first();
-
-    return listing?.id ?? null;
   }
 
   private async reserveDemoLimit(

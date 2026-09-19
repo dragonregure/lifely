@@ -1,6 +1,3 @@
-import type { Contact } from '../contact/contact.type.js';
-import type { Listing } from '../listing/listing.type.js';
-
 export type EmailCampaignStatus = 'Queued' | 'Sending' | 'Sent';
 
 export type EmailCampaign = {
@@ -17,20 +14,18 @@ export type EmailCampaign = {
   updatedAt: string;
 };
 
-export type CampaignRecipient = Pick<
-  Contact,
-  'id' | 'tenantId' | 'firstName' | 'lastName' | 'email'
->;
+export type CampaignRecipient = {
+  id: string;
+  email: string;
+  name: string;
+};
 
-export type CampaignListing = Pick<
-  Listing,
-  | 'id'
-  | 'tenantId'
-  | 'title'
-  | 'address'
-  | 'price'
-  | 'status'
-  | 'bedrooms'
-  | 'bathrooms'
-  | 'propertyType'
->;
+export type CampaignListing = {
+  title: string;
+  address: string;
+  price: number;
+  status: number;
+  bedrooms: number;
+  bathrooms: number;
+  propertyType: number;
+};
