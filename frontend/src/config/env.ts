@@ -1,1 +1,18 @@
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1").replace(/\/$/, "");
+const explicitApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const backendMode = (import.meta.env.VITE_BACKEND_MODE ?? "Laravel").trim();
+const laravelPort = import.meta.env.VITE_BACKEND_LARAVEL_PORT ?? "8000";
+const nestjsPort = import.meta.env.VITE_BACKEND_NESTJS_PORT ?? "3000";
+
+function resolveApiBaseUrl() {
+  if (explicitApiBaseUrl) {
+    return explicitApiBaseUrl;
+  }
+
+  if (backendMode === "Nest") {
+    return `http://localhost:${nestjsPort}/api/v1`;
+  }
+
+  return `http://localhost:${laravelPort}/api/v1`;
+}
+
+export const API_BASE_URL = resolveApiBaseUrl().replace(/\/$/, "");

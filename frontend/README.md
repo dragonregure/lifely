@@ -47,10 +47,12 @@ Lifely frontend is a React CRM single-page app for real estate offices. It talks
    Copy-Item .env.example .env
    ```
 
-4. Confirm the API URL in `.env`.
+4. Confirm the backend mode in `.env`.
 
    ```env
-   VITE_API_BASE_URL=http://localhost:8000/api/v1
+   VITE_BACKEND_MODE=Laravel
+   VITE_BACKEND_LARAVEL_PORT=8000
+   VITE_BACKEND_NESTJS_PORT=3000
    ```
 
 5. Start the development server.
@@ -88,7 +90,7 @@ npm run lint
 ## Notes
 
 - The frontend stores Sanctum bearer tokens in local storage for the local SPA flow.
-- The API base URL is environment-driven through `VITE_API_BASE_URL`; Docker Compose computes it from the root `BACKEND_MODE`.
+- The API base URL is derived from `VITE_BACKEND_MODE` and backend ports. Set `VITE_API_BASE_URL` only to override the derived URL.
 - Keep backend CORS `FRONTEND_URL` aligned with the frontend dev server URL.
 
 ## Docker Setup

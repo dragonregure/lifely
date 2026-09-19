@@ -128,7 +128,7 @@ MAILPIT_SMTP_PORT=1025
 MAILPIT_HTTP_PORT=8025
 ```
 
-Docker Compose computes the frontend `VITE_API_BASE_URL` from `BACKEND_MODE`: `Laravel` uses `http://localhost:8000/api/v1`, `Nest` uses `http://localhost:3000/api/v1`, and `Both` defaults the frontend to Laravel. The Laravel backend receives its Docker database, Redis, Mailpit SMTP, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`. The NestJS backend receives `DATABASE_URL` plus individual PostgreSQL connection values for future database client configuration.
+Docker Compose passes `VITE_BACKEND_MODE` and backend ports into the frontend from root `BACKEND_MODE`: `Laravel` uses `http://localhost:8000/api/v1`, `Nest` uses `http://localhost:3000/api/v1`, and `Both` defaults the frontend to Laravel. Set frontend `VITE_API_BASE_URL` only when a fully custom API URL should override that mode-based behavior. The Laravel backend receives its Docker database, Redis, Mailpit SMTP, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`. The NestJS backend receives `DATABASE_URL` plus individual PostgreSQL connection values for future database client configuration.
 
 ## Useful Commands
 
