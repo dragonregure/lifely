@@ -27,6 +27,7 @@
     "lead:lifecycle": "node --loader ts-node/esm src/lead/lead-lifecycle.command.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@nestjs/bullmq": "^12.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
