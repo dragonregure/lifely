@@ -95,6 +95,14 @@ Email: maya@skyline.example
 Password: password
 ```
 
+To rebuild the local NestJS database from scratch and then seed it:
+
+```bash
+$ npm run db:fresh -- --seed
+```
+
+The `db:fresh` command drops and recreates the database from `DATABASE_URL`, runs `prisma db migrate`, and only runs the seed step when `--seed` is passed. It is development-only and refuses to run when `NODE_ENV=production`.
+
 ## Run tests
 
 ```bash

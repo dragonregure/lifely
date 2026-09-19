@@ -23,6 +23,7 @@
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --config ./test/jest-e2e.json",
     "postinstall": "prisma skills sync || exit 0",
     "contract:emit": "prisma contract emit",
+    "db:fresh": "node --loader ts-node/esm src/prisma/db-fresh.command.ts",
     "seed": "node --loader ts-node/esm src/seeders/seed.ts",
     "lead:lifecycle": "node --loader ts-node/esm src/lead/lead-lifecycle.command.ts"
   },
@@ -41,6 +42,7 @@
     "class-validator": "^0.15.1",
     "dotenv": "^17.4.2",
     "ioredis": "^6.0.0",
+    "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1"
@@ -55,6 +57,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "@types/pg": "^8.20.4",
     "@types/supertest": "^7.0.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
