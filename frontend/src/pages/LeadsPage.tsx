@@ -9,6 +9,7 @@ import { SearchInput } from "@/components/query/SearchInput";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
+import { useSessionStorageState } from "@/hooks/useSessionStorageState";
 import { LISTING_STATUS } from "@/lib/listingOptions";
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
@@ -31,6 +32,7 @@ type PendingStageMove = {
 };
 
 type LeadTab = "pipeline" | "all";
+const LEAD_FILTER_STORAGE_KEY = "lifely:leads:pipeline-filters";
 
 export function LeadsPage() {
   const layoutContext = useOutletContext<AppLayoutContext | null>();
@@ -45,7 +47,7 @@ export function LeadsPage() {
   const [pendingStageMove, setPendingStageMove] = useState<PendingStageMove | null>(null);
   const [activeTab, setActiveTab] = useState<LeadTab>("pipeline");
   const [allTableRefreshKey, setAllTableRefreshKey] = useState(0);
-  const [filters, setFilters] = useState<LeadFilters>(emptyLeadFilters);
+  const [filters, setFilters] = useSessionStorageState<LeadFilters>(LEAD_FILTER_STORAGE_KEY, emptyLeadFilters);
   const { loadAssigneeOptions, loadContactOptions, loadListingOptions, loadSourceOptions } = useLeadOptions();
   const { deals, grouped, isLoading, loadingMoreStage, error, loadMoreStage, reloadDeals, setDeals, setError } = useLeadDeals(filters);
 

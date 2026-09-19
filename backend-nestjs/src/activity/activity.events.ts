@@ -1,4 +1,5 @@
 import type { Contact } from '../contact/contact.type.js';
+import type { EmailCampaign } from '../email-campaign/email-campaign.type.js';
 import type { Lead } from '../lead/lead.type.js';
 import type { Listing } from '../listing/listing.type.js';
 import type { ActivityProperties } from './activity.type.js';
@@ -11,6 +12,8 @@ export const ActivityEvents = {
   LISTING_UPDATED: 'activity.listing.updated',
   LEAD_CREATED: 'activity.lead.created',
   LEAD_UPDATED: 'activity.lead.updated',
+  EMAIL_CAMPAIGN_CREATED: 'activity.email-campaign.created',
+  EMAIL_CAMPAIGN_UPDATED: 'activity.email-campaign.updated',
   REPORT_EXPORTED: 'activity.report.exported',
 } as const;
 
@@ -43,6 +46,15 @@ export type LeadCreatedActivityEvent = {
 export type LeadUpdatedActivityEvent = {
   before: Lead;
   after: Lead;
+};
+
+export type EmailCampaignCreatedActivityEvent = {
+  campaign: EmailCampaign;
+};
+
+export type EmailCampaignUpdatedActivityEvent = {
+  before: EmailCampaign;
+  after: EmailCampaign;
 };
 
 export type ReportExportedActivityEvent = {

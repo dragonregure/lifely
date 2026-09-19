@@ -1,0 +1,443 @@
+[
+  {
+    "id": "table.email_campaigns",
+    "label": "Create table \"email_campaigns\"",
+    "summary": "Creates table \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"email_campaigns\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"email_campaigns\"",
+        "sql": "CREATE TABLE \"public\".\"email_campaigns\" (\n  \"body\" text NOT NULL,\n  \"contactIds\" json NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"listingId\" uuid,\n  \"recipientCount\" int4 NOT NULL,\n  \"status\" text DEFAULT 'Queued' NOT NULL,\n  \"subject\" text NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" uuid,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"email_campaigns\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.tenant_email_usages",
+    "label": "Create table \"tenant_email_usages\"",
+    "summary": "Creates table \"tenant_email_usages\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "tenant_email_usages"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"tenant_email_usages\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenant_email_usages\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"tenant_email_usages\"",
+        "sql": "CREATE TABLE \"public\".\"tenant_email_usages\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"sentCount\" int4 DEFAULT 0 NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"tenantId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"tenant_email_usages\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenant_email_usages\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.email_campaigns.email_campaigns_listingId_idx_953decda",
+    "label": "Create index \"email_campaigns_listingId_idx_953decda\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "email_campaigns_listingId_idx_953decda",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"email_campaigns_listingId_idx_953decda\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_listingId_idx_953decda\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"email_campaigns_listingId_idx_953decda\"",
+        "sql": "CREATE INDEX \"email_campaigns_listingId_idx_953decda\" ON \"public\".\"email_campaigns\" (\"listingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"email_campaigns_listingId_idx_953decda\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_listingId_idx_953decda\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.email_campaigns.email_campaigns_tenantId_idx_c93ed4f1",
+    "label": "Create index \"email_campaigns_tenantId_idx_c93ed4f1\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "email_campaigns_tenantId_idx_c93ed4f1",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"email_campaigns_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"email_campaigns_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"email_campaigns_tenantId_idx_c93ed4f1\" ON \"public\".\"email_campaigns\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"email_campaigns_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.email_campaigns.email_campaigns_tenantId_listingId_idx_00ebf4b7",
+    "label": "Create index \"email_campaigns_tenantId_listingId_idx_00ebf4b7\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "email_campaigns_tenantId_listingId_idx_00ebf4b7",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"email_campaigns_tenantId_listingId_idx_00ebf4b7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_tenantId_listingId_idx_00ebf4b7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"email_campaigns_tenantId_listingId_idx_00ebf4b7\"",
+        "sql": "CREATE INDEX \"email_campaigns_tenantId_listingId_idx_00ebf4b7\" ON \"public\".\"email_campaigns\" (\"tenantId\", \"listingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"email_campaigns_tenantId_listingId_idx_00ebf4b7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_tenantId_listingId_idx_00ebf4b7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.email_campaigns.email_campaigns_tenantId_status_idx_d3d04256",
+    "label": "Create index \"email_campaigns_tenantId_status_idx_d3d04256\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "email_campaigns_tenantId_status_idx_d3d04256",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"email_campaigns_tenantId_status_idx_d3d04256\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"email_campaigns_tenantId_status_idx_d3d04256\"",
+        "sql": "CREATE INDEX \"email_campaigns_tenantId_status_idx_d3d04256\" ON \"public\".\"email_campaigns\" (\"tenantId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"email_campaigns_tenantId_status_idx_d3d04256\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.email_campaigns.email_campaigns_userId_idx_a489d58a",
+    "label": "Create index \"email_campaigns_userId_idx_a489d58a\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "email_campaigns_userId_idx_a489d58a",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"email_campaigns_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"email_campaigns_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"email_campaigns_userId_idx_a489d58a\" ON \"public\".\"email_campaigns\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"email_campaigns_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"email_campaigns_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.email_campaigns.email_campaigns_tenantId_fkey",
+    "label": "Add foreign key \"email_campaigns_tenantId_fkey\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "email_campaigns_tenantId_fkey",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"email_campaigns_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "email_campaigns_tenantId_fkey",
+          "public",
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"email_campaigns_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"email_campaigns\"\nADD CONSTRAINT \"email_campaigns_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"email_campaigns_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "email_campaigns_tenantId_fkey",
+          "public",
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.email_campaigns.email_campaigns_userId_fkey",
+    "label": "Add foreign key \"email_campaigns_userId_fkey\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "email_campaigns_userId_fkey",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"email_campaigns_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "email_campaigns_userId_fkey",
+          "public",
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"email_campaigns_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"email_campaigns\"\nADD CONSTRAINT \"email_campaigns_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"email_campaigns_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "email_campaigns_userId_fkey",
+          "public",
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.email_campaigns.email_campaigns_listingId_fkey",
+    "label": "Add foreign key \"email_campaigns_listingId_fkey\" on \"email_campaigns\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "email_campaigns_listingId_fkey",
+        "table": "email_campaigns"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"email_campaigns_listingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "email_campaigns_listingId_fkey",
+          "public",
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"email_campaigns_listingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"email_campaigns\"\nADD CONSTRAINT \"email_campaigns_listingId_fkey\"\nFOREIGN KEY (\"listingId\")\nREFERENCES \"public\".\"listings\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"email_campaigns_listingId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "email_campaigns_listingId_fkey",
+          "public",
+          "\"public\".\"email_campaigns\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.tenant_email_usages.tenant_email_usages_tenantId_fkey",
+    "label": "Add foreign key \"tenant_email_usages_tenantId_fkey\" on \"tenant_email_usages\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "tenant_email_usages_tenantId_fkey",
+        "table": "tenant_email_usages"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"tenant_email_usages_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "tenant_email_usages_tenantId_fkey",
+          "public",
+          "\"public\".\"tenant_email_usages\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"tenant_email_usages_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"tenant_email_usages\"\nADD CONSTRAINT \"tenant_email_usages_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"tenant_email_usages_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "tenant_email_usages_tenantId_fkey",
+          "public",
+          "\"public\".\"tenant_email_usages\""
+        ]
+      }
+    ]
+  }
+]

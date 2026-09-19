@@ -10,6 +10,8 @@ export const ListingContact = db.orm.public.ListingContact;
 export const ListingUser = db.orm.public.ListingUser;
 export const Document = db.orm.public.Document;
 export const ActivityLog = db.orm.public.ActivityLog;
+export const EmailCampaign = db.orm.public.EmailCampaign;
+export const TenantEmailUsage = db.orm.public.TenantEmailUsage;
 export const Reference = db.orm.public.Reference;
 export const PersonalAccessToken = db.orm.public.PersonalAccessToken;
 export const Permission = db.orm.public.Permission;
@@ -54,6 +56,14 @@ export class PrismaService {
 
   ActivityLog() {
     return ActivityLog;
+  }
+
+  EmailCampaign() {
+    return EmailCampaign;
+  }
+
+  TenantEmailUsage() {
+    return TenantEmailUsage;
   }
 
   Reference() {

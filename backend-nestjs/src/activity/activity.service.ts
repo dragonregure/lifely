@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import type { Contact } from '../contact/contact.type.js';
+import type { EmailCampaign } from '../email-campaign/email-campaign.type.js';
 import { leadStageLabel } from '../lead/lead.constants.js';
 import type { Lead } from '../lead/lead.type.js';
 import type { Listing } from '../listing/listing.type.js';
@@ -24,6 +25,8 @@ import type {
   ContactCreatedActivityEvent,
   ContactDeletedActivityEvent,
   ContactUpdatedActivityEvent,
+  EmailCampaignCreatedActivityEvent,
+  EmailCampaignUpdatedActivityEvent,
   LeadCreatedActivityEvent,
   LeadUpdatedActivityEvent,
   ListingCreatedActivityEvent,
@@ -229,6 +232,44 @@ export class ActivityService {
     );
   }
 
+  @OnEvent(ActivityEvents.EMAIL_CAMPAIGN_CREATED)
+  async recordEmailCampaignCreated({
+    campaign,
+  }: EmailCampaignCreatedActivityEvent): Promise<void> {
+    await this.recordCreated(
+      campaign,
+      'email_campaign',
+      campaign.userId,
+      'email.queued',
+      `Queued bulk email '${campaign.subject}' to ${campaign.recipientCount} contacts.`,
+      this.emailCampaignAttributes(campaign),
+    );
+  }
+
+  @OnEvent(ActivityEvents.EMAIL_CAMPAIGN_UPDATED)
+  async recordEmailCampaignUpdated({
+    before,
+    after,
+  }: EmailCampaignUpdatedActivityEvent): Promise<void> {
+    const changes = this.changes(
+      this.emailCampaignAttributes(before),
+      this.emailCampaignAttributes(after),
+    );
+
+    if (Object.keys(changes).length === 0) {
+      return;
+    }
+
+    await this.recordUpdated(
+      after,
+      'email_campaign',
+      after.userId,
+      'email.updated',
+      `Updated bulk email '${after.subject}': ${Object.keys(changes).join(', ')}.`,
+      changes,
+    );
+  }
+
   @OnEvent(ActivityEvents.REPORT_EXPORTED)
   async recordReportExported({
     tenantId,
@@ -370,6 +411,18 @@ export class ActivityService {
       isActive: 'is_active',
       nextTask: 'next_task',
       dueAt: 'due_at',
+    });
+  }
+
+  private emailCampaignAttributes(campaign: EmailCampaign): ActivityProperties {
+    return this.attributes(campaign, {
+      id: 'id',
+      tenantId: 'tenant_id',
+      userId: 'user_id',
+      listingId: 'listing_id',
+      subject: 'subject',
+      recipientCount: 'recipient_count',
+      status: 'status',
     });
   }
 

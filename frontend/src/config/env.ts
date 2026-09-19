@@ -1,5 +1,5 @@
 const explicitApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-const backendMode = (import.meta.env.VITE_BACKEND_MODE ?? "Laravel").trim();
+const backendMode = (import.meta.env.VITE_BACKEND_MODE ?? "Laravel").trim().toLowerCase();
 const laravelPort = import.meta.env.VITE_BACKEND_LARAVEL_PORT ?? "8000";
 const nestjsPort = import.meta.env.VITE_BACKEND_NESTJS_PORT ?? "3000";
 
@@ -8,7 +8,7 @@ function resolveApiBaseUrl() {
     return explicitApiBaseUrl;
   }
 
-  if (backendMode === "Nest") {
+  if (backendMode === "nest" || backendMode === "nestjs") {
     return `http://localhost:${nestjsPort}/api/v1`;
   }
 

@@ -57,6 +57,7 @@ describe('OpenAPI documentation', () => {
       'Contacts',
       'Listings',
       'Leads',
+      'Email Campaigns',
       'References',
       'Activity Logs',
     ]);
@@ -81,6 +82,12 @@ describe('OpenAPI documentation', () => {
     expect(document.paths['/leads/{lead}']?.patch?.tags).toEqual(['Leads']);
     expect(document.paths['/leads/{lead}/stage']?.patch?.tags).toEqual([
       'Leads',
+    ]);
+    expect(document.paths['/email-campaigns']?.get?.tags).toEqual([
+      'Email Campaigns',
+    ]);
+    expect(document.paths['/bulk-emails']?.post?.tags).toEqual([
+      'Email Campaigns',
     ]);
     expect(document.paths['/activity-logs']?.get?.tags).toEqual([
       'Activity Logs',

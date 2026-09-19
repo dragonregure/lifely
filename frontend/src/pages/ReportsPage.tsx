@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CONTACT_SOURCE_OPTIONS, CONTACT_STATUS_OPTIONS } from "@/pages/contacts/contactConstants";
+import { useSessionStorageState } from "@/hooks/useSessionStorageState";
 import { LEAD_STAGES } from "@/pages/leads/leadConstants";
 import { exportReportCsv, getMembers, getReportingOverview, getReportRows, type ReportFilters } from "@/services/api";
 import { isAbortError } from "@/services/httpClient";
@@ -20,6 +21,7 @@ import { formatCurrency } from "@/lib/utils";
 import type { ReportDefinition, ReportRow, ReportingOverview, User } from "@/types";
 
 const DEFAULT_REPORT = "client-summary";
+const REPORT_FILTER_STORAGE_KEY = "lifely:reports:filters";
 
 function formatMetric(value: number | null | undefined, formatter?: (value: number) => string) {
   if (value === null || value === undefined) return "N/A";
@@ -84,7 +86,7 @@ export function ReportsPage() {
   const [overview, setOverview] = useState<ReportingOverview | null>(null);
   const [members, setMembers] = useState<User[]>([]);
   const [selectedReportKey, setSelectedReportKey] = useState(DEFAULT_REPORT);
-  const [filters, setFilters] = useState<ReportFilters>({ riskThresholdDays: "30" });
+  const [filters, setFilters] = useSessionStorageState<ReportFilters>(REPORT_FILTER_STORAGE_KEY, { riskThresholdDays: "30" });
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [totalRows, setTotalRows] = useState(0);
   const [pageCount, setPageCount] = useState(1);

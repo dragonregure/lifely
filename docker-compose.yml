@@ -70,7 +70,7 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     container_name: lifely-mailpit
-    profiles: ["Laravel", "Both"]
+    profiles: ["Laravel", "Nest", "Both"]
     restart: unless-stopped
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
@@ -269,16 +269,24 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
       FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
-      LIFELY_QUEUE_ENABLED: "false"
+      LIFELY_QUEUE_ENABLED: "true"
       LIFELY_QUEUE_WORKER_ENABLED: "false"
       LIFELY_SCHEDULER_ENABLED: "false"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       postgresql:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   backend-nest-queue:
     build:
@@ -301,10 +309,16 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
       FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
       LIFELY_QUEUE_ENABLED: "true"
       LIFELY_QUEUE_WORKER_ENABLED: "true"
       LIFELY_SCHEDULER_ENABLED: "false"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       backend-nest:
@@ -313,6 +327,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     command: npm run start:background
 
   backend-nest-scheduler:
@@ -336,6 +352,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ""
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
       FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
       LIFELY_QUEUE_ENABLED: "true"
       LIFELY_QUEUE_WORKER_ENABLED: "false"

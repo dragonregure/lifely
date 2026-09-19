@@ -31,6 +31,7 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     .addTag('Contacts', 'Tenant-scoped CRM contacts and leads.')
     .addTag('Listings', 'Tenant-scoped property inventory.')
     .addTag('Leads', 'Tenant-scoped lead workflow.')
+    .addTag('Email Campaigns', 'Tenant-scoped bulk email campaigns.')
     .addTag('References', 'System and tenant reference values.')
     .addTag('Activity Logs', 'Tenant-scoped audit activity.')
     .addBearerAuth(

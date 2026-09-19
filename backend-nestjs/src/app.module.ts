@@ -7,6 +7,8 @@ import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ContactModule } from './contact/contact.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { EmailCampaignModule } from './email-campaign/email-campaign.module.js';
+import { EmailCampaignWorkerModule } from './email-campaign/email-campaign-worker.module.js';
 import { HealthController } from './health.controller.js';
 import { LeadLifecycleSchedulerModule } from './lead/lead-lifecycle-scheduler.module.js';
 import { LeadLifecycleWorkerModule } from './lead/lead-lifecycle-worker.module.js';
@@ -14,6 +16,7 @@ import { LeadModule } from './lead/lead.module.js';
 import { ListingModule } from './listing/listing.module.js';
 import {
   bullModuleOptions,
+  queueRuntimeEnabled,
   queueWorkerRuntimeEnabled,
   schedulerRuntimeEnabled,
 } from './queue/queue.config.js';
@@ -24,14 +27,15 @@ import { UserModule } from './user/user.module.js';
 
 const workerEnabled = queueWorkerRuntimeEnabled();
 const schedulerEnabled = schedulerRuntimeEnabled();
-const queueImports =
-  workerEnabled || schedulerEnabled
-    ? [BullModule.forRoot(bullModuleOptions())]
-    : [];
+const queueImports = queueRuntimeEnabled()
+  ? [BullModule.forRoot(bullModuleOptions())]
+  : [];
 const schedulerImports = schedulerEnabled
   ? [ScheduleModule.forRoot(), LeadLifecycleSchedulerModule]
   : [];
-const workerImports = workerEnabled ? [LeadLifecycleWorkerModule] : [];
+const workerImports = workerEnabled
+  ? [LeadLifecycleWorkerModule, EmailCampaignWorkerModule]
+  : [];
 
 @Module({
   imports: [
@@ -44,6 +48,7 @@ const workerImports = workerEnabled ? [LeadLifecycleWorkerModule] : [];
     LeadModule,
     ReferenceModule,
     ActivityModule,
+    EmailCampaignModule,
     ReportingModule,
     DashboardModule,
     ...queueImports,

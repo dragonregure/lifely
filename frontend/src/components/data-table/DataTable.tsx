@@ -22,6 +22,7 @@ export function DataTable<TData extends object>({
   serverPageCount,
   serverSide = false,
   serverTotalRows,
+  stateStorageKey,
   onQueryChange,
   toolbarEnd,
 }: DataTableProps<TData>) {
@@ -40,6 +41,7 @@ export function DataTable<TData extends object>({
     serverPageCount,
     serverSide,
     serverTotalRows,
+    stateStorageKey,
     toolbarEnd,
   });
 

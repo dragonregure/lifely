@@ -6,6 +6,8 @@ model Tenant {
   users     User[]
   contacts  Contact[]
   listings  Listing[]
+  emailCampaigns EmailCampaign[]
+  emailUsage TenantEmailUsage?
   activityLogs ActivityLog[]
   documents Document[]
   references Reference[]
@@ -23,6 +25,7 @@ model User {
   contacts           Contact[]
   leads              Lead[]
   activityLogs       ActivityLog[]
+  emailCampaigns     EmailCampaign[]
   listingAssignments ListingUser[]
   role               String                @default("Simple Agent")
   name               String
@@ -78,6 +81,7 @@ model Listing {
   contacts     ListingContact[]
   users        ListingUser[]
   leads        Lead[]
+  emailCampaigns EmailCampaign[]
   createdAt    TimestamptzString @default(now())
   updatedAt    temporal.updatedAtString()
 
@@ -192,6 +196,37 @@ model Reference {
   @@index([tenantId, type])
   @@index([tenantId, status])
   @@map("references")
+}
+
+model EmailCampaign {
+  id             Uuid              @id @default(uuid())
+  tenantId       Uuid
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId         Uuid?
+  user           User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  listingId      Uuid?
+  listing        Listing?          @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  subject        String
+  body           String
+  contactIds     Json
+  recipientCount Int
+  status         String            @default("Queued")
+  createdAt      TimestamptzString @default(now())
+  updatedAt      temporal.updatedAtString()
+
+  @@index([tenantId, status])
+  @@index([tenantId, listingId])
+  @@map("email_campaigns")
+}
+
+model TenantEmailUsage {
+  tenantId  Uuid              @id
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sentCount Int               @default(0)
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+
+  @@map("tenant_email_usages")
 }
 
 model PersonalAccessToken {
