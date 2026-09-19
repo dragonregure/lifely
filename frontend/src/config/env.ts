@@ -16,3 +16,5 @@ function resolveApiBaseUrl() {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl().replace(/\/$/, "");
+export const APP_MODE = (import.meta.env.LIFELY_APP_MODE ?? "").trim().toLowerCase();
+export const IS_DEMO_MODE = APP_MODE === "demo";

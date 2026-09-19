@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Send } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Send } from "lucide-react";
 import { LoadingState } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { PaginationControls } from "@/components/query/PaginationControls";
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { IS_DEMO_MODE } from "@/config/env";
 import { formatCurrency } from "@/lib/utils";
 import { getContactsPage, getEmailCampaigns, getListingsPage, sendBulkEmailDraft } from "@/services/api";
 import { PERMISSIONS } from "@/rbac/permissions";
@@ -60,6 +61,7 @@ export function BulkEmailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const { can } = useAuthorization();
   const canCreateCampaigns = can(PERMISSIONS.emailCampaigns.create);
+  const canSendCampaigns = canCreateCampaigns && !IS_DEMO_MODE;
 
   const loadListingOptions = useCallback(
     async ({ search, page: listingPage, pageSize: listingPageSize, signal }: ServerMultiSelectLoadParams): Promise<ServerMultiSelectLoadResult<ListingOption>> => {
@@ -147,7 +149,7 @@ export function BulkEmailPage() {
   };
 
   const handleQueue = async () => {
-    if (!canCreateCampaigns) return;
+    if (!canCreateCampaigns || IS_DEMO_MODE) return;
 
     setSending(true);
     setQueueError(null);
@@ -181,6 +183,15 @@ export function BulkEmailPage() {
 
       {loadError ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{loadError}</div> : null}
       {queueError ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{queueError}</div> : null}
+      {IS_DEMO_MODE ? (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="font-medium">Demo version</p>
+            <p className="text-sm">This demo version cannot send email. Bulk email delivery is disabled.</p>
+          </div>
+        </div>
+      ) : null}
 
       {queued ? (
         <div className="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
@@ -314,7 +325,7 @@ export function BulkEmailPage() {
                   </Button>
                 }
               >
-                <Button disabled={selectedCount === 0 || sending} onClick={() => setConfirmOpen(true)}>
+                <Button disabled={!canSendCampaigns || selectedCount === 0 || sending} onClick={() => setConfirmOpen(true)}>
                   <Send className="h-4 w-4" />
                   Queue email
                 </Button>
@@ -372,7 +383,7 @@ export function BulkEmailPage() {
             <Button type="button" variant="outline" disabled={sending} onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" isLoading={sending} loadingLabel="Queueing email" onClick={handleQueue}>
+            <Button type="button" disabled={IS_DEMO_MODE} isLoading={sending} loadingLabel="Queueing email" onClick={handleQueue}>
               {!sending && <Send className="h-4 w-4" />}
               {sending ? "Queueing" : "Send bulk email"}
             </Button>
