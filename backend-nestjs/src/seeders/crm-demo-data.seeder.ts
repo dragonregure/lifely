@@ -35,7 +35,7 @@ export class CrmDemoDataSeeder {
 
     const contacts = await this.seedContacts(admin.id);
     const listings = await this.seedListings();
-    const users = await this.seedUsers();
+    const users = [admin, ...(await this.seedUsers())];
 
     await this.seedListingLinks(admin.id, contacts, listings);
     await this.seedLeads(users, contacts, listings);
