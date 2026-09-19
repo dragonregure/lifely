@@ -1,0 +1,599 @@
+[
+  {
+    "id": "table.leads",
+    "label": "Create table \"leads\"",
+    "summary": "Creates table \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"leads\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"leads\"",
+        "sql": "CREATE TABLE \"public\".\"leads\" (\n  \"contactId\" uuid NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"dueAt\" timestamptz,\n  \"id\" uuid NOT NULL,\n  \"isActive\" bool DEFAULT true NOT NULL,\n  \"listingId\" uuid NOT NULL,\n  \"nextTask\" text,\n  \"source\" int2 DEFAULT 0 NOT NULL,\n  \"stage\" int2 DEFAULT 0 NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"userId\" uuid NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"leads\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_contactId_idx_ec98db2a",
+    "label": "Create index \"leads_contactId_idx_ec98db2a\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_contactId_idx_ec98db2a",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_contactId_idx_ec98db2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_contactId_idx_ec98db2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_contactId_idx_ec98db2a\"",
+        "sql": "CREATE INDEX \"leads_contactId_idx_ec98db2a\" ON \"public\".\"leads\" (\"contactId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_contactId_idx_ec98db2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_contactId_idx_ec98db2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_listingId_idx_953decda",
+    "label": "Create index \"leads_listingId_idx_953decda\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_listingId_idx_953decda",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_listingId_idx_953decda\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_listingId_idx_953decda\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_listingId_idx_953decda\"",
+        "sql": "CREATE INDEX \"leads_listingId_idx_953decda\" ON \"public\".\"leads\" (\"listingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_listingId_idx_953decda\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_listingId_idx_953decda\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_contactId_idx_1215b2c3",
+    "label": "Create index \"leads_tenantId_contactId_idx_1215b2c3\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_contactId_idx_1215b2c3",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_contactId_idx_1215b2c3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_contactId_idx_1215b2c3\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_contactId_idx_1215b2c3\"",
+        "sql": "CREATE INDEX \"leads_tenantId_contactId_idx_1215b2c3\" ON \"public\".\"leads\" (\"tenantId\", \"contactId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_contactId_idx_1215b2c3\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_contactId_idx_1215b2c3\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_idx_c93ed4f1",
+    "label": "Create index \"leads_tenantId_idx_c93ed4f1\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_idx_c93ed4f1",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"leads_tenantId_idx_c93ed4f1\" ON \"public\".\"leads\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_isActive_idx_b4d0b12b",
+    "label": "Create index \"leads_tenantId_isActive_idx_b4d0b12b\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_isActive_idx_b4d0b12b",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_isActive_idx_b4d0b12b\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_isActive_idx_b4d0b12b\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_isActive_idx_b4d0b12b\"",
+        "sql": "CREATE INDEX \"leads_tenantId_isActive_idx_b4d0b12b\" ON \"public\".\"leads\" (\"tenantId\", \"isActive\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_isActive_idx_b4d0b12b\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_isActive_idx_b4d0b12b\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_listingId_idx_00ebf4b7",
+    "label": "Create index \"leads_tenantId_listingId_idx_00ebf4b7\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_listingId_idx_00ebf4b7",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_listingId_idx_00ebf4b7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_listingId_idx_00ebf4b7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_listingId_idx_00ebf4b7\"",
+        "sql": "CREATE INDEX \"leads_tenantId_listingId_idx_00ebf4b7\" ON \"public\".\"leads\" (\"tenantId\", \"listingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_listingId_idx_00ebf4b7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_listingId_idx_00ebf4b7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_source_idx_892e802b",
+    "label": "Create index \"leads_tenantId_source_idx_892e802b\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_source_idx_892e802b",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_source_idx_892e802b\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_source_idx_892e802b\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_source_idx_892e802b\"",
+        "sql": "CREATE INDEX \"leads_tenantId_source_idx_892e802b\" ON \"public\".\"leads\" (\"tenantId\", \"source\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_source_idx_892e802b\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_source_idx_892e802b\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_stage_idx_f1ef85ba",
+    "label": "Create index \"leads_tenantId_stage_idx_f1ef85ba\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_stage_idx_f1ef85ba",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_stage_idx_f1ef85ba\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_stage_idx_f1ef85ba\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_stage_idx_f1ef85ba\"",
+        "sql": "CREATE INDEX \"leads_tenantId_stage_idx_f1ef85ba\" ON \"public\".\"leads\" (\"tenantId\", \"stage\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_stage_idx_f1ef85ba\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_stage_idx_f1ef85ba\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_tenantId_userId_idx_6c855033",
+    "label": "Create index \"leads_tenantId_userId_idx_6c855033\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_tenantId_userId_idx_6c855033",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_tenantId_userId_idx_6c855033\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_userId_idx_6c855033\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_tenantId_userId_idx_6c855033\"",
+        "sql": "CREATE INDEX \"leads_tenantId_userId_idx_6c855033\" ON \"public\".\"leads\" (\"tenantId\", \"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_tenantId_userId_idx_6c855033\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_tenantId_userId_idx_6c855033\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.leads.leads_userId_idx_a489d58a",
+    "label": "Create index \"leads_userId_idx_a489d58a\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "leads_userId_idx_a489d58a",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"leads_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"leads_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"leads_userId_idx_a489d58a\" ON \"public\".\"leads\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"leads_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"leads_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.leads.leads_tenantId_fkey",
+    "label": "Add foreign key \"leads_tenantId_fkey\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "leads_tenantId_fkey",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"leads_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_tenantId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"leads_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"leads\"\nADD CONSTRAINT \"leads_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"leads_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_tenantId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.leads.leads_contactId_fkey",
+    "label": "Add foreign key \"leads_contactId_fkey\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "leads_contactId_fkey",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"leads_contactId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_contactId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"leads_contactId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"leads\"\nADD CONSTRAINT \"leads_contactId_fkey\"\nFOREIGN KEY (\"contactId\")\nREFERENCES \"public\".\"contacts\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"leads_contactId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_contactId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.leads.leads_listingId_fkey",
+    "label": "Add foreign key \"leads_listingId_fkey\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "leads_listingId_fkey",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"leads_listingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_listingId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"leads_listingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"leads\"\nADD CONSTRAINT \"leads_listingId_fkey\"\nFOREIGN KEY (\"listingId\")\nREFERENCES \"public\".\"listings\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"leads_listingId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_listingId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.leads.leads_userId_fkey",
+    "label": "Add foreign key \"leads_userId_fkey\" on \"leads\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "leads_userId_fkey",
+        "table": "leads"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"leads_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_userId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"leads_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"leads\"\nADD CONSTRAINT \"leads_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"leads_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "leads_userId_fkey",
+          "public",
+          "\"public\".\"leads\""
+        ]
+      }
+    ]
+  }
+]

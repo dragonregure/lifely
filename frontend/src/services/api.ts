@@ -1,4 +1,4 @@
-export { login, logout, register } from "@/services/authService";
+export { login, logout, refreshTokens, register, revokeAllTokens, updatePassword } from "@/services/authService";
 export {
   createListing,
   createContact,

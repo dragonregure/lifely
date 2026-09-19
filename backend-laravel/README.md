@@ -168,7 +168,7 @@ This API uses Sanctum bearer tokens rather than Sanctum's cookie/session SPA mod
 
 ## Docker Setup
 
-From the repository root, the backend is included in the full local stack:
+From the repository root, the Laravel backend is included when `BACKEND_MODE=Laravel` or `BACKEND_MODE=Both`:
 
 ```bash
 docker compose up --build
@@ -187,7 +187,7 @@ The API service enables both flags in `docker-compose.yml`, then serves the API 
 Host request -> Nginx :8000 -> PHP-FPM :9000 -> Laravel
 ```
 
-Docker Compose configures the backend, queue worker, and scheduler to send mail through Mailpit at `mailpit:1025`. Open the local inbox at:
+Docker Compose configures `backend-laravel`, `backend-laravel-queue`, and `backend-laravel-scheduler` to send mail through Mailpit at `mailpit:1025`. Open the local inbox at:
 
 ```text
 http://localhost:8025

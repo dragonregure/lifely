@@ -11,8 +11,8 @@ on:
       - develop
 
 jobs:
-  backend:
-    name: Backend Laravel
+  backend-laravel:
+    name: backend-laravel
     runs-on: ubuntu-latest
 
     defaults:
@@ -76,6 +76,34 @@ jobs:
 
       - name: Run PHP_CodeSniffer
         run: composer lint
+
+  backend-nestjs:
+    name: backend-nestjs
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend-nestjs
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend-nestjs/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run NestJS build
+        run: npm run build
+
+      - name: Run NestJS tests
+        run: npm run test
 
   frontend:
     name: Frontend React

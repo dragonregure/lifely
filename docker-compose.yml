@@ -2,6 +2,7 @@ services:
   mysql:
     image: mysql:8.4
     container_name: lifely-mysql
+    profiles: ["Laravel", "Both"]
     restart: unless-stopped
     ports:
       - "${MYSQL_PORT:-3307}:3306"
@@ -16,9 +17,29 @@ services:
       timeout: 5s
       retries: 20
 
+  postgresql:
+    image: postgres:16-alpine
+    container_name: lifely-postgresql
+    profiles: ["Nest", "Both"]
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    environment:
+      POSTGRES_DB: "${POSTGRES_DATABASE:-lifely_nestjs}"
+      POSTGRES_USER: "${POSTGRES_USER:-lifely}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+    volumes:
+      - lifely_postgresql_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   phpmyadmin:
     image: phpmyadmin:5-apache
     container_name: lifely-phpmyadmin
+    profiles: ["Laravel", "Both"]
     restart: unless-stopped
     ports:
       - "${PHPMYADMIN_PORT:-8080}:80"
@@ -49,19 +70,21 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     container_name: lifely-mailpit
+    profiles: ["Laravel", "Nest", "Both"]
     restart: unless-stopped
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_HTTP_PORT:-8025}:8025"
 
-  backend:
+  backend-laravel:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
-    container_name: lifely-backend
+    container_name: lifely-backend-laravel
+    profiles: ["Laravel", "Both"]
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_LARAVEL_PORT:-8000}:8000"
     volumes:
       - ./backend-laravel:/var/www/html
       - ./docker/backend/xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini:ro
@@ -71,7 +94,7 @@ services:
       APP_NAME: Lifely
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: "http://localhost:${BACKEND_PORT:-8000}"
+      APP_URL: "http://localhost:${BACKEND_LARAVEL_PORT:-8000}"
       FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
       SANCTUM_STATEFUL_DOMAINS: "localhost:${FRONTEND_PORT:-5173},127.0.0.1:${FRONTEND_PORT:-5173}"
       DB_CONNECTION: mysql
@@ -109,11 +132,12 @@ services:
       mailpit:
         condition: service_started
 
-  queue:
+  backend-laravel-queue:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
-    container_name: lifely-queue
+    container_name: lifely-backend-laravel-queue
+    profiles: ["Laravel", "Both"]
     restart: unless-stopped
     volumes:
       - ./backend-laravel:/var/www/html
@@ -124,7 +148,7 @@ services:
       APP_NAME: Lifely
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: "http://localhost:${BACKEND_PORT:-8000}"
+      APP_URL: "http://localhost:${BACKEND_LARAVEL_PORT:-8000}"
       FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -154,7 +178,7 @@ services:
       LIFELY_RUN_MIGRATIONS: "false"
       LIFELY_RUN_SEEDERS: "false"
     depends_on:
-      backend:
+      backend-laravel:
         condition: service_started
       mysql:
         condition: service_healthy
@@ -164,11 +188,12 @@ services:
         condition: service_started
     command: php artisan queue:work --queue=emails,leads,default --tries=3 --timeout=90
 
-  scheduler:
+  backend-laravel-scheduler:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
-    container_name: lifely-scheduler
+    container_name: lifely-backend-laravel-scheduler
+    profiles: ["Laravel", "Both"]
     restart: unless-stopped
     volumes:
       - ./backend-laravel:/var/www/html
@@ -179,7 +204,7 @@ services:
       APP_NAME: Lifely
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: "http://localhost:${BACKEND_PORT:-8000}"
+      APP_URL: "http://localhost:${BACKEND_LARAVEL_PORT:-8000}"
       FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
       DB_CONNECTION: mysql
       DB_HOST: mysql
@@ -209,7 +234,7 @@ services:
       LIFELY_RUN_MIGRATIONS: "false"
       LIFELY_RUN_SEEDERS: "false"
     depends_on:
-      backend:
+      backend-laravel:
         condition: service_started
       mysql:
         condition: service_healthy
@@ -218,6 +243,132 @@ services:
       mailpit:
         condition: service_started
     command: php artisan schedule:work
+
+  backend-nest:
+    build:
+      context: .
+      dockerfile: docker/nestjs/Dockerfile
+    container_name: lifely-backend-nest
+    profiles: ["Nest", "Both"]
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_NESTJS_PORT:-3000}:3000"
+      - "${NESTJS_DEBUG_PORT:-9229}:9229"
+    volumes:
+      - ./backend-nestjs:/app
+      - lifely_nestjs_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-lifely}:${POSTGRES_PASSWORD:-secret}@postgresql:5432/${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      DB_DATABASE: "${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_USERNAME: "${POSTGRES_USER:-lifely}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
+      FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
+      LIFELY_QUEUE_ENABLED: "true"
+      LIFELY_QUEUE_WORKER_ENABLED: "false"
+      LIFELY_SCHEDULER_ENABLED: "false"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  backend-nest-queue:
+    build:
+      context: .
+      dockerfile: docker/nestjs/Dockerfile
+    container_name: lifely-backend-nest-queue
+    profiles: ["Nest", "Both"]
+    restart: unless-stopped
+    volumes:
+      - ./backend-nestjs:/app
+      - lifely_nestjs_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-lifely}:${POSTGRES_PASSWORD:-secret}@postgresql:5432/${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      DB_DATABASE: "${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_USERNAME: "${POSTGRES_USER:-lifely}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
+      FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
+      LIFELY_QUEUE_ENABLED: "true"
+      LIFELY_QUEUE_WORKER_ENABLED: "true"
+      LIFELY_SCHEDULER_ENABLED: "false"
+      LIFELY_APP_MODE: "${LIFELY_APP_MODE:-production}"
+      LIFELY_DEMO_EMAIL_LIMIT: "${LIFELY_DEMO_EMAIL_LIMIT:-3}"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      backend-nest:
+        condition: service_started
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    command: npm run start:background
+
+  backend-nest-scheduler:
+    build:
+      context: .
+      dockerfile: docker/nestjs/Dockerfile
+    container_name: lifely-backend-nest-scheduler
+    profiles: ["Nest", "Both"]
+    restart: unless-stopped
+    volumes:
+      - ./backend-nestjs:/app
+      - lifely_nestjs_node_modules:/app/node_modules
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-lifely}:${POSTGRES_PASSWORD:-secret}@postgresql:5432/${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_HOST: postgresql
+      DB_PORT: 5432
+      DB_DATABASE: "${POSTGRES_DATABASE:-lifely_nestjs}"
+      DB_USERNAME: "${POSTGRES_USER:-lifely}"
+      DB_PASSWORD: "${POSTGRES_PASSWORD:-secret}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-hello@lifely.local}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-Lifely}"
+      FRONTEND_URL: "http://localhost:${FRONTEND_PORT:-5173}"
+      LIFELY_QUEUE_ENABLED: "true"
+      LIFELY_QUEUE_WORKER_ENABLED: "false"
+      LIFELY_SCHEDULER_ENABLED: "true"
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      backend-nest:
+        condition: service_started
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: npm run start:background
 
   frontend:
     build:
@@ -231,14 +382,16 @@ services:
       - ./frontend:/app
       - lifely_frontend_node_modules:/app/node_modules
     environment:
-      VITE_API_BASE_URL: "http://localhost:${BACKEND_PORT:-8000}/api/v1"
+      VITE_BACKEND_MODE: "${BACKEND_MODE:-Laravel}"
+      VITE_BACKEND_LARAVEL_PORT: "${BACKEND_LARAVEL_PORT:-8000}"
+      VITE_BACKEND_NESTJS_PORT: "${BACKEND_NESTJS_PORT:-3000}"
       CHOKIDAR_USEPOLLING: "true"
-    depends_on:
-      - backend
 
 volumes:
   lifely_mysql_data:
+  lifely_postgresql_data:
   lifely_redis_data:
   lifely_backend_vendor:
   lifely_backend_bootstrap_cache:
+  lifely_nestjs_node_modules:
   lifely_frontend_node_modules:

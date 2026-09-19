@@ -1,6 +1,6 @@
 # Lifely Frontend
 
-Lifely frontend is a React CRM single-page app for real estate offices. It talks to the Laravel API through a configurable base URL and uses the backend for authentication, contacts, listings, leads, email campaign, activity, and reporting data.
+Lifely frontend is a React CRM single-page app for real estate offices. It talks to the selected Lifely API through a configurable base URL and uses the backend for authentication, contacts, listings, leads, email campaign, activity, and reporting data.
 
 ## Tech Stack
 
@@ -19,7 +19,7 @@ Lifely frontend is a React CRM single-page app for real estate offices. It talks
 
 - Node.js 20 or newer
 - npm
-- Lifely Laravel backend running locally, usually at `http://localhost:8000`
+- Lifely backend running locally, usually Laravel at `http://localhost:8000` or NestJS at `http://localhost:3000`
 
 ## Local Setup
 
@@ -47,10 +47,12 @@ Lifely frontend is a React CRM single-page app for real estate offices. It talks
    Copy-Item .env.example .env
    ```
 
-4. Confirm the API URL in `.env`.
+4. Confirm the backend mode in `.env`.
 
    ```env
-   VITE_API_BASE_URL=http://localhost:8000/api/v1
+   VITE_BACKEND_MODE=Laravel
+   VITE_BACKEND_LARAVEL_PORT=8000
+   VITE_BACKEND_NESTJS_PORT=3000
    ```
 
 5. Start the development server.
@@ -88,7 +90,7 @@ npm run lint
 ## Notes
 
 - The frontend stores Sanctum bearer tokens in local storage for the local SPA flow.
-- The API base URL is environment-driven through `VITE_API_BASE_URL`.
+- The API base URL is derived from `VITE_BACKEND_MODE` and backend ports. Set `VITE_API_BASE_URL` only to override the derived URL.
 - Keep backend CORS `FRONTEND_URL` aligned with the frontend dev server URL.
 
 ## Docker Setup

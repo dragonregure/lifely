@@ -49,6 +49,28 @@ export async function getCurrentUser() {
   return mapUser(response.data.user);
 }
 
+export async function refreshTokens() {
+  const refreshToken = getRefreshToken();
+
+  if (!refreshToken) {
+    throw new Error("Missing refresh token.");
+  }
+
+  const response = await apiRequest<ApiEnvelope<AuthPayload>>(
+    "/auth/refresh",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        refresh_token: refreshToken,
+        device_name: "lifely-frontend",
+      }),
+    },
+    false,
+  );
+
+  return persistAuth(response.data);
+}
+
 export async function logout() {
   const refreshToken = getRefreshToken();
 
@@ -56,6 +78,31 @@ export async function logout() {
     method: "POST",
     body: JSON.stringify({ refresh_token: refreshToken }),
   }).catch(() => undefined);
+
+  clearTokens();
+}
+
+export async function revokeAllTokens() {
+  await apiRequest<{ message: string }>("/auth/revoke-all", {
+    method: "POST",
+  });
+
+  clearTokens();
+}
+
+export async function updatePassword(payload: {
+  currentPassword: string;
+  password: string;
+  passwordConfirmation: string;
+}) {
+  await apiRequest<{ message: string }>("/auth/password", {
+    method: "PUT",
+    body: JSON.stringify({
+      current_password: payload.currentPassword,
+      password: payload.password,
+      password_confirmation: payload.passwordConfirmation,
+    }),
+  });
 
   clearTokens();
 }

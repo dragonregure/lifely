@@ -1,5 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { login as loginRequest, logout as logoutRequest, register as registerRequest } from "@/services/authService";
+import {
+  login as loginRequest,
+  logout as logoutRequest,
+  refreshTokens as refreshTokensRequest,
+  register as registerRequest,
+  revokeAllTokens as revokeAllTokensRequest,
+  updatePassword as updatePasswordRequest,
+} from "@/services/authService";
 import { getSession } from "@/services/crmService";
 import { clearTokens, getAccessToken } from "@/services/tokenStorage";
 import type { Tenant, User } from "@/types";
@@ -11,6 +18,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   refreshSession: () => Promise<void>;
+  refreshTokens: () => Promise<void>;
   login: (payload: { email: string; password: string }) => Promise<void>;
   register: (payload: {
     tenantName: string;
@@ -20,6 +28,12 @@ type AuthContextValue = {
     passwordConfirmation: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
+  revokeAllTokens: () => Promise<void>;
+  updatePassword: (payload: {
+    currentPassword: string;
+    password: string;
+    passwordConfirmation: string;
+  }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -37,6 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMembers(session.members);
   }, []);
 
+  const clearSession = useCallback(() => {
+    setUser(null);
+    setTenant(null);
+    setMembers([]);
+  }, []);
+
   useEffect(() => {
     if (!getAccessToken()) {
       setIsLoading(false);
@@ -46,12 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loadSession()
       .catch(() => {
         clearTokens();
-        setUser(null);
-        setTenant(null);
-        setMembers([]);
+        clearSession();
       })
       .finally(() => setIsLoading(false));
-  }, [loadSession]);
+  }, [clearSession, loadSession]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -61,6 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user),
       isLoading,
       refreshSession: loadSession,
+      refreshTokens: async () => {
+        const nextUser = await refreshTokensRequest();
+        setUser(nextUser);
+        await loadSession().catch(() => undefined);
+      },
       login: async (payload) => {
         const nextUser = await loginRequest(payload);
         setUser(nextUser);
@@ -73,12 +96,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       logout: async () => {
         await logoutRequest();
-        setUser(null);
-        setTenant(null);
-        setMembers([]);
+        clearSession();
+      },
+      revokeAllTokens: async () => {
+        await revokeAllTokensRequest();
+        clearSession();
+      },
+      updatePassword: async (payload) => {
+        await updatePasswordRequest(payload);
+        clearSession();
       },
     }),
-    [isLoading, loadSession, members, tenant, user],
+    [clearSession, isLoading, loadSession, members, tenant, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

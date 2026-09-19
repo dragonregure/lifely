@@ -1,0 +1,2599 @@
+[
+  {
+    "id": "dropTable.post",
+    "label": "Drop table \"post\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "post"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"post\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"post\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"post\"",
+        "sql": "DROP TABLE \"public\".\"post\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"post\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"post\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dropTable.user",
+    "label": "Drop table \"user\"",
+    "operationClass": "destructive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "user"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"user\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "drop table \"user\"",
+        "sql": "DROP TABLE \"public\".\"user\""
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"user\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"user\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.contacts",
+    "label": "Create table \"contacts\"",
+    "summary": "Creates table \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"contacts\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"contacts\"",
+        "sql": "CREATE TABLE \"public\".\"contacts\" (\n  \"budget\" numeric,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"firstName\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"lastContactedAt\" timestamptz,\n  \"lastName\" text NOT NULL,\n  \"ownerId\" uuid,\n  \"phone\" text,\n  \"source\" int2,\n  \"status\" bool DEFAULT true NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"contacts\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.documents",
+    "label": "Create table \"documents\"",
+    "summary": "Creates table \"documents\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "documents"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"documents\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"documents\"",
+        "sql": "CREATE TABLE \"public\".\"documents\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"fileName\" text,\n  \"id\" uuid NOT NULL,\n  \"model\" text NOT NULL,\n  \"modelId\" uuid NOT NULL,\n  \"order\" int4 DEFAULT 0 NOT NULL,\n  \"subtype\" text,\n  \"tenantId\" uuid NOT NULL,\n  \"type\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"documents\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.listing_contacts",
+    "label": "Create table \"listing_contacts\"",
+    "summary": "Creates table \"listing_contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "listing_contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"listing_contacts\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"listing_contacts\"",
+        "sql": "CREATE TABLE \"public\".\"listing_contacts\" (\n  \"contactId\" uuid NOT NULL,\n  \"listingId\" uuid NOT NULL,\n  PRIMARY KEY (\"listingId\", \"contactId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"listing_contacts\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.listing_users",
+    "label": "Create table \"listing_users\"",
+    "summary": "Creates table \"listing_users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "listing_users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"listing_users\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"listing_users\"",
+        "sql": "CREATE TABLE \"public\".\"listing_users\" (\n  \"isPrimaryOwner\" bool,\n  \"listingId\" uuid NOT NULL,\n  \"userId\" uuid NOT NULL,\n  PRIMARY KEY (\"listingId\", \"userId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"listing_users\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.listings",
+    "label": "Create table \"listings\"",
+    "summary": "Creates table \"listings\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "listings"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"listings\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"listings\"",
+        "sql": "CREATE TABLE \"public\".\"listings\" (\n  \"address\" text NOT NULL,\n  \"bathrooms\" int2 DEFAULT 0 NOT NULL,\n  \"bedrooms\" int2 DEFAULT 0 NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"price\" numeric NOT NULL,\n  \"propertyType\" int2 DEFAULT 1 NOT NULL,\n  \"status\" int2 DEFAULT 1 NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"listings\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.model_has_permissions",
+    "label": "Create table \"model_has_permissions\"",
+    "summary": "Creates table \"model_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "model_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"model_has_permissions\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"model_has_permissions\"",
+        "sql": "CREATE TABLE \"public\".\"model_has_permissions\" (\n  \"modelId\" uuid NOT NULL,\n  \"modelType\" text NOT NULL,\n  \"permissionId\" int4 NOT NULL,\n  PRIMARY KEY (\"permissionId\", \"modelId\", \"modelType\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"model_has_permissions\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.model_has_roles",
+    "label": "Create table \"model_has_roles\"",
+    "summary": "Creates table \"model_has_roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "model_has_roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"model_has_roles\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"model_has_roles\"",
+        "sql": "CREATE TABLE \"public\".\"model_has_roles\" (\n  \"modelId\" uuid NOT NULL,\n  \"modelType\" text NOT NULL,\n  \"roleId\" int4 NOT NULL,\n  PRIMARY KEY (\"roleId\", \"modelId\", \"modelType\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"model_has_roles\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.permissions",
+    "label": "Create table \"permissions\"",
+    "summary": "Creates table \"permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"permissions\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"permissions\"",
+        "sql": "CREATE TABLE \"public\".\"permissions\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"guardName\" text DEFAULT 'web' NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"name\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"permissions\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.personal_access_tokens",
+    "label": "Create table \"personal_access_tokens\"",
+    "summary": "Creates table \"personal_access_tokens\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "personal_access_tokens"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"personal_access_tokens\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_access_tokens\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"personal_access_tokens\"",
+        "sql": "CREATE TABLE \"public\".\"personal_access_tokens\" (\n  \"ability\" text NOT NULL,\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"expiresAt\" timestamptz,\n  \"id\" SERIAL NOT NULL,\n  \"lastUsedAt\" timestamptz,\n  \"name\" text NOT NULL,\n  \"token\" text NOT NULL,\n  \"tokenableId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"personal_access_tokens\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_access_tokens\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.role_has_permissions",
+    "label": "Create table \"role_has_permissions\"",
+    "summary": "Creates table \"role_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "role_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"role_has_permissions\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"role_has_permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"role_has_permissions\"",
+        "sql": "CREATE TABLE \"public\".\"role_has_permissions\" (\n  \"permissionId\" int4 NOT NULL,\n  \"roleId\" int4 NOT NULL,\n  PRIMARY KEY (\"permissionId\", \"roleId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"role_has_permissions\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"role_has_permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.roles",
+    "label": "Create table \"roles\"",
+    "summary": "Creates table \"roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"roles\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"roles\"",
+        "sql": "CREATE TABLE \"public\".\"roles\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"guardName\" text DEFAULT 'web' NOT NULL,\n  \"id\" SERIAL NOT NULL,\n  \"name\" text NOT NULL,\n  \"tenantId\" uuid,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"roles\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.tenants",
+    "label": "Create table \"tenants\"",
+    "summary": "Creates table \"tenants\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "tenants"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"tenants\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenants\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"tenants\"",
+        "sql": "CREATE TABLE \"public\".\"tenants\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"name\" text NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"tenants\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"tenants\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "table.users",
+    "label": "Create table \"users\"",
+    "summary": "Creates table \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"users\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"users\"",
+        "sql": "CREATE TABLE \"public\".\"users\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"email\" text NOT NULL,\n  \"emailVerifiedAt\" timestamptz,\n  \"id\" uuid NOT NULL,\n  \"name\" text NOT NULL,\n  \"password\" text NOT NULL,\n  \"role\" text DEFAULT 'Simple Agent' NOT NULL,\n  \"tenantId\" uuid NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"users\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.listing_users.listing_users_listingId_isPrimaryOwner_key",
+    "label": "Add unique constraint on \"listing_users\" (listingId, isPrimaryOwner)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "listing_users_listingId_isPrimaryOwner_key",
+        "table": "listing_users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"listing_users_listingId_isPrimaryOwner_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_users_listingId_isPrimaryOwner_key",
+          "public",
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"listing_users_listingId_isPrimaryOwner_key\"",
+        "sql": "ALTER TABLE \"public\".\"listing_users\" ADD CONSTRAINT \"listing_users_listingId_isPrimaryOwner_key\" UNIQUE (\"listingId\", \"isPrimaryOwner\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"listing_users_listingId_isPrimaryOwner_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_users_listingId_isPrimaryOwner_key",
+          "public",
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.permissions.permissions_name_guardName_key",
+    "label": "Add unique constraint on \"permissions\" (name, guardName)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "permissions_name_guardName_key",
+        "table": "permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"permissions_name_guardName_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "permissions_name_guardName_key",
+          "public",
+          "\"public\".\"permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"permissions_name_guardName_key\"",
+        "sql": "ALTER TABLE \"public\".\"permissions\" ADD CONSTRAINT \"permissions_name_guardName_key\" UNIQUE (\"name\", \"guardName\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"permissions_name_guardName_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "permissions_name_guardName_key",
+          "public",
+          "\"public\".\"permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.personal_access_tokens.personal_access_tokens_token_key",
+    "label": "Add unique constraint on \"personal_access_tokens\" (token)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "personal_access_tokens_token_key",
+        "table": "personal_access_tokens"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"personal_access_tokens_token_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "personal_access_tokens_token_key",
+          "public",
+          "\"public\".\"personal_access_tokens\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"personal_access_tokens_token_key\"",
+        "sql": "ALTER TABLE \"public\".\"personal_access_tokens\" ADD CONSTRAINT \"personal_access_tokens_token_key\" UNIQUE (\"token\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"personal_access_tokens_token_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "personal_access_tokens_token_key",
+          "public",
+          "\"public\".\"personal_access_tokens\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.roles.roles_tenantId_name_guardName_key",
+    "label": "Add unique constraint on \"roles\" (tenantId, name, guardName)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "roles_tenantId_name_guardName_key",
+        "table": "roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"roles_tenantId_name_guardName_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "roles_tenantId_name_guardName_key",
+          "public",
+          "\"public\".\"roles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"roles_tenantId_name_guardName_key\"",
+        "sql": "ALTER TABLE \"public\".\"roles\" ADD CONSTRAINT \"roles_tenantId_name_guardName_key\" UNIQUE (\"tenantId\", \"name\", \"guardName\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"roles_tenantId_name_guardName_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "roles_tenantId_name_guardName_key",
+          "public",
+          "\"public\".\"roles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.users.users_email_key",
+    "label": "Add unique constraint on \"users\" (email)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "users_email_key",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"users_email_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_email_key",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"users_email_key\"",
+        "sql": "ALTER TABLE \"public\".\"users\" ADD CONSTRAINT \"users_email_key\" UNIQUE (\"email\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"users_email_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_email_key",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_ownerId_idx_e2d0c1ef",
+    "label": "Create index \"contacts_ownerId_idx_e2d0c1ef\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_ownerId_idx_e2d0c1ef",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_ownerId_idx_e2d0c1ef\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_ownerId_idx_e2d0c1ef\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_ownerId_idx_e2d0c1ef\"",
+        "sql": "CREATE INDEX \"contacts_ownerId_idx_e2d0c1ef\" ON \"public\".\"contacts\" (\"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_ownerId_idx_e2d0c1ef\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_ownerId_idx_e2d0c1ef\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_idx_c93ed4f1",
+    "label": "Create index \"contacts_tenantId_idx_c93ed4f1\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_idx_c93ed4f1",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_idx_c93ed4f1\" ON \"public\".\"contacts\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_ownerId_idx_6f53c808",
+    "label": "Create index \"contacts_tenantId_ownerId_idx_6f53c808\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_ownerId_idx_6f53c808",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_ownerId_idx_6f53c808\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_ownerId_idx_6f53c808\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_ownerId_idx_6f53c808\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_ownerId_idx_6f53c808\" ON \"public\".\"contacts\" (\"tenantId\", \"ownerId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_ownerId_idx_6f53c808\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_ownerId_idx_6f53c808\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_source_idx_892e802b",
+    "label": "Create index \"contacts_tenantId_source_idx_892e802b\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_source_idx_892e802b",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_source_idx_892e802b\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_source_idx_892e802b\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_source_idx_892e802b\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_source_idx_892e802b\" ON \"public\".\"contacts\" (\"tenantId\", \"source\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_source_idx_892e802b\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_source_idx_892e802b\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.contacts.contacts_tenantId_status_idx_d3d04256",
+    "label": "Create index \"contacts_tenantId_status_idx_d3d04256\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "contacts_tenantId_status_idx_d3d04256",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"contacts_tenantId_status_idx_d3d04256\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"contacts_tenantId_status_idx_d3d04256\"",
+        "sql": "CREATE INDEX \"contacts_tenantId_status_idx_d3d04256\" ON \"public\".\"contacts\" (\"tenantId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"contacts_tenantId_status_idx_d3d04256\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"contacts_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.documents.documents_tenantId_idx_c93ed4f1",
+    "label": "Create index \"documents_tenantId_idx_c93ed4f1\" on \"documents\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "documents_tenantId_idx_c93ed4f1",
+        "table": "documents"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"documents_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"documents_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"documents_tenantId_idx_c93ed4f1\" ON \"public\".\"documents\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"documents_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.documents.documents_tenantId_model_modelId_idx_a6c86dce",
+    "label": "Create index \"documents_tenantId_model_modelId_idx_a6c86dce\" on \"documents\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "documents_tenantId_model_modelId_idx_a6c86dce",
+        "table": "documents"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"documents_tenantId_model_modelId_idx_a6c86dce\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents_tenantId_model_modelId_idx_a6c86dce\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"documents_tenantId_model_modelId_idx_a6c86dce\"",
+        "sql": "CREATE INDEX \"documents_tenantId_model_modelId_idx_a6c86dce\" ON \"public\".\"documents\" (\"tenantId\", \"model\", \"modelId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"documents_tenantId_model_modelId_idx_a6c86dce\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents_tenantId_model_modelId_idx_a6c86dce\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.documents.documents_tenantId_model_modelId_type_order_idx_177301c7",
+    "label": "Create index \"documents_tenantId_model_modelId_type_order_idx_177301c7\" on \"documents\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "documents_tenantId_model_modelId_type_order_idx_177301c7",
+        "table": "documents"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"documents_tenantId_model_modelId_type_order_idx_177301c7\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents_tenantId_model_modelId_type_order_idx_177301c7\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"documents_tenantId_model_modelId_type_order_idx_177301c7\"",
+        "sql": "CREATE INDEX \"documents_tenantId_model_modelId_type_order_idx_177301c7\" ON \"public\".\"documents\" (\"tenantId\", \"model\", \"modelId\", \"type\", \"order\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"documents_tenantId_model_modelId_type_order_idx_177301c7\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"documents_tenantId_model_modelId_type_order_idx_177301c7\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listing_contacts.listing_contacts_contactId_idx_ec98db2a",
+    "label": "Create index \"listing_contacts_contactId_idx_ec98db2a\" on \"listing_contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listing_contacts_contactId_idx_ec98db2a",
+        "table": "listing_contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listing_contacts_contactId_idx_ec98db2a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_contacts_contactId_idx_ec98db2a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listing_contacts_contactId_idx_ec98db2a\"",
+        "sql": "CREATE INDEX \"listing_contacts_contactId_idx_ec98db2a\" ON \"public\".\"listing_contacts\" (\"contactId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listing_contacts_contactId_idx_ec98db2a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_contacts_contactId_idx_ec98db2a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listing_contacts.listing_contacts_listingId_idx_953decda",
+    "label": "Create index \"listing_contacts_listingId_idx_953decda\" on \"listing_contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listing_contacts_listingId_idx_953decda",
+        "table": "listing_contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listing_contacts_listingId_idx_953decda\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_contacts_listingId_idx_953decda\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listing_contacts_listingId_idx_953decda\"",
+        "sql": "CREATE INDEX \"listing_contacts_listingId_idx_953decda\" ON \"public\".\"listing_contacts\" (\"listingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listing_contacts_listingId_idx_953decda\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_contacts_listingId_idx_953decda\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listing_users.listing_users_listingId_idx_953decda",
+    "label": "Create index \"listing_users_listingId_idx_953decda\" on \"listing_users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listing_users_listingId_idx_953decda",
+        "table": "listing_users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listing_users_listingId_idx_953decda\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_users_listingId_idx_953decda\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listing_users_listingId_idx_953decda\"",
+        "sql": "CREATE INDEX \"listing_users_listingId_idx_953decda\" ON \"public\".\"listing_users\" (\"listingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listing_users_listingId_idx_953decda\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_users_listingId_idx_953decda\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listing_users.listing_users_userId_idx_a489d58a",
+    "label": "Create index \"listing_users_userId_idx_a489d58a\" on \"listing_users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listing_users_userId_idx_a489d58a",
+        "table": "listing_users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listing_users_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_users_userId_idx_a489d58a\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listing_users_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"listing_users_userId_idx_a489d58a\" ON \"public\".\"listing_users\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listing_users_userId_idx_a489d58a\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listing_users_userId_idx_a489d58a\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listings.listings_tenantId_idx_c93ed4f1",
+    "label": "Create index \"listings_tenantId_idx_c93ed4f1\" on \"listings\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listings_tenantId_idx_c93ed4f1",
+        "table": "listings"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listings_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listings_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"listings_tenantId_idx_c93ed4f1\" ON \"public\".\"listings\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listings_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listings.listings_tenantId_propertyType_idx_d611bbc1",
+    "label": "Create index \"listings_tenantId_propertyType_idx_d611bbc1\" on \"listings\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listings_tenantId_propertyType_idx_d611bbc1",
+        "table": "listings"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listings_tenantId_propertyType_idx_d611bbc1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings_tenantId_propertyType_idx_d611bbc1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listings_tenantId_propertyType_idx_d611bbc1\"",
+        "sql": "CREATE INDEX \"listings_tenantId_propertyType_idx_d611bbc1\" ON \"public\".\"listings\" (\"tenantId\", \"propertyType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listings_tenantId_propertyType_idx_d611bbc1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings_tenantId_propertyType_idx_d611bbc1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.listings.listings_tenantId_status_idx_d3d04256",
+    "label": "Create index \"listings_tenantId_status_idx_d3d04256\" on \"listings\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "listings_tenantId_status_idx_d3d04256",
+        "table": "listings"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"listings_tenantId_status_idx_d3d04256\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"listings_tenantId_status_idx_d3d04256\"",
+        "sql": "CREATE INDEX \"listings_tenantId_status_idx_d3d04256\" ON \"public\".\"listings\" (\"tenantId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"listings_tenantId_status_idx_d3d04256\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"listings_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.model_has_permissions.model_has_permissions_modelId_idx_a8222b0e",
+    "label": "Create index \"model_has_permissions_modelId_idx_a8222b0e\" on \"model_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "model_has_permissions_modelId_idx_a8222b0e",
+        "table": "model_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"model_has_permissions_modelId_idx_a8222b0e\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions_modelId_idx_a8222b0e\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"model_has_permissions_modelId_idx_a8222b0e\"",
+        "sql": "CREATE INDEX \"model_has_permissions_modelId_idx_a8222b0e\" ON \"public\".\"model_has_permissions\" (\"modelId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"model_has_permissions_modelId_idx_a8222b0e\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions_modelId_idx_a8222b0e\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.model_has_permissions.model_has_permissions_modelId_modelType_idx_a1f47859",
+    "label": "Create index \"model_has_permissions_modelId_modelType_idx_a1f47859\" on \"model_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "model_has_permissions_modelId_modelType_idx_a1f47859",
+        "table": "model_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"model_has_permissions_modelId_modelType_idx_a1f47859\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions_modelId_modelType_idx_a1f47859\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"model_has_permissions_modelId_modelType_idx_a1f47859\"",
+        "sql": "CREATE INDEX \"model_has_permissions_modelId_modelType_idx_a1f47859\" ON \"public\".\"model_has_permissions\" (\"modelId\", \"modelType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"model_has_permissions_modelId_modelType_idx_a1f47859\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions_modelId_modelType_idx_a1f47859\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.model_has_permissions.model_has_permissions_permissionId_idx_f46fcdf5",
+    "label": "Create index \"model_has_permissions_permissionId_idx_f46fcdf5\" on \"model_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "model_has_permissions_permissionId_idx_f46fcdf5",
+        "table": "model_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"model_has_permissions_permissionId_idx_f46fcdf5\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions_permissionId_idx_f46fcdf5\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"model_has_permissions_permissionId_idx_f46fcdf5\"",
+        "sql": "CREATE INDEX \"model_has_permissions_permissionId_idx_f46fcdf5\" ON \"public\".\"model_has_permissions\" (\"permissionId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"model_has_permissions_permissionId_idx_f46fcdf5\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_permissions_permissionId_idx_f46fcdf5\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.model_has_roles.model_has_roles_modelId_idx_a8222b0e",
+    "label": "Create index \"model_has_roles_modelId_idx_a8222b0e\" on \"model_has_roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "model_has_roles_modelId_idx_a8222b0e",
+        "table": "model_has_roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"model_has_roles_modelId_idx_a8222b0e\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles_modelId_idx_a8222b0e\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"model_has_roles_modelId_idx_a8222b0e\"",
+        "sql": "CREATE INDEX \"model_has_roles_modelId_idx_a8222b0e\" ON \"public\".\"model_has_roles\" (\"modelId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"model_has_roles_modelId_idx_a8222b0e\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles_modelId_idx_a8222b0e\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.model_has_roles.model_has_roles_modelId_modelType_idx_a1f47859",
+    "label": "Create index \"model_has_roles_modelId_modelType_idx_a1f47859\" on \"model_has_roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "model_has_roles_modelId_modelType_idx_a1f47859",
+        "table": "model_has_roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"model_has_roles_modelId_modelType_idx_a1f47859\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles_modelId_modelType_idx_a1f47859\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"model_has_roles_modelId_modelType_idx_a1f47859\"",
+        "sql": "CREATE INDEX \"model_has_roles_modelId_modelType_idx_a1f47859\" ON \"public\".\"model_has_roles\" (\"modelId\", \"modelType\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"model_has_roles_modelId_modelType_idx_a1f47859\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles_modelId_modelType_idx_a1f47859\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.model_has_roles.model_has_roles_roleId_idx_ffccc9a4",
+    "label": "Create index \"model_has_roles_roleId_idx_ffccc9a4\" on \"model_has_roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "model_has_roles_roleId_idx_ffccc9a4",
+        "table": "model_has_roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"model_has_roles_roleId_idx_ffccc9a4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles_roleId_idx_ffccc9a4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"model_has_roles_roleId_idx_ffccc9a4\"",
+        "sql": "CREATE INDEX \"model_has_roles_roleId_idx_ffccc9a4\" ON \"public\".\"model_has_roles\" (\"roleId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"model_has_roles_roleId_idx_ffccc9a4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"model_has_roles_roleId_idx_ffccc9a4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.personal_access_tokens.personal_access_tokens_expiresAt_idx_6b6b8c10",
+    "label": "Create index \"personal_access_tokens_expiresAt_idx_6b6b8c10\" on \"personal_access_tokens\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "personal_access_tokens_expiresAt_idx_6b6b8c10",
+        "table": "personal_access_tokens"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"personal_access_tokens_expiresAt_idx_6b6b8c10\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_access_tokens_expiresAt_idx_6b6b8c10\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"personal_access_tokens_expiresAt_idx_6b6b8c10\"",
+        "sql": "CREATE INDEX \"personal_access_tokens_expiresAt_idx_6b6b8c10\" ON \"public\".\"personal_access_tokens\" (\"expiresAt\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"personal_access_tokens_expiresAt_idx_6b6b8c10\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_access_tokens_expiresAt_idx_6b6b8c10\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.personal_access_tokens.personal_access_tokens_tokenableId_idx_7e28c1c3",
+    "label": "Create index \"personal_access_tokens_tokenableId_idx_7e28c1c3\" on \"personal_access_tokens\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "personal_access_tokens_tokenableId_idx_7e28c1c3",
+        "table": "personal_access_tokens"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"personal_access_tokens_tokenableId_idx_7e28c1c3\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_access_tokens_tokenableId_idx_7e28c1c3\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"personal_access_tokens_tokenableId_idx_7e28c1c3\"",
+        "sql": "CREATE INDEX \"personal_access_tokens_tokenableId_idx_7e28c1c3\" ON \"public\".\"personal_access_tokens\" (\"tokenableId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"personal_access_tokens_tokenableId_idx_7e28c1c3\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"personal_access_tokens_tokenableId_idx_7e28c1c3\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.role_has_permissions.role_has_permissions_permissionId_idx_f46fcdf5",
+    "label": "Create index \"role_has_permissions_permissionId_idx_f46fcdf5\" on \"role_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "role_has_permissions_permissionId_idx_f46fcdf5",
+        "table": "role_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"role_has_permissions_permissionId_idx_f46fcdf5\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"role_has_permissions_permissionId_idx_f46fcdf5\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"role_has_permissions_permissionId_idx_f46fcdf5\"",
+        "sql": "CREATE INDEX \"role_has_permissions_permissionId_idx_f46fcdf5\" ON \"public\".\"role_has_permissions\" (\"permissionId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"role_has_permissions_permissionId_idx_f46fcdf5\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"role_has_permissions_permissionId_idx_f46fcdf5\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.role_has_permissions.role_has_permissions_roleId_idx_ffccc9a4",
+    "label": "Create index \"role_has_permissions_roleId_idx_ffccc9a4\" on \"role_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "role_has_permissions_roleId_idx_ffccc9a4",
+        "table": "role_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"role_has_permissions_roleId_idx_ffccc9a4\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"role_has_permissions_roleId_idx_ffccc9a4\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"role_has_permissions_roleId_idx_ffccc9a4\"",
+        "sql": "CREATE INDEX \"role_has_permissions_roleId_idx_ffccc9a4\" ON \"public\".\"role_has_permissions\" (\"roleId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"role_has_permissions_roleId_idx_ffccc9a4\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"role_has_permissions_roleId_idx_ffccc9a4\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.roles.roles_tenantId_idx_c93ed4f1",
+    "label": "Create index \"roles_tenantId_idx_c93ed4f1\" on \"roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "roles_tenantId_idx_c93ed4f1",
+        "table": "roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"roles_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roles_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"roles_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"roles_tenantId_idx_c93ed4f1\" ON \"public\".\"roles\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"roles_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roles_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.roles.roles_tenantId_name_idx_ff85d432",
+    "label": "Create index \"roles_tenantId_name_idx_ff85d432\" on \"roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "roles_tenantId_name_idx_ff85d432",
+        "table": "roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"roles_tenantId_name_idx_ff85d432\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roles_tenantId_name_idx_ff85d432\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"roles_tenantId_name_idx_ff85d432\"",
+        "sql": "CREATE INDEX \"roles_tenantId_name_idx_ff85d432\" ON \"public\".\"roles\" (\"tenantId\", \"name\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"roles_tenantId_name_idx_ff85d432\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"roles_tenantId_name_idx_ff85d432\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.users.users_tenantId_idx_c93ed4f1",
+    "label": "Create index \"users_tenantId_idx_c93ed4f1\" on \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "users_tenantId_idx_c93ed4f1",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"users_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"users_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"users_tenantId_idx_c93ed4f1\" ON \"public\".\"users\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"users_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"users_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contacts.contacts_tenantId_fkey",
+    "label": "Add foreign key \"contacts_tenantId_fkey\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contacts_tenantId_fkey",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contacts_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_tenantId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contacts_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contacts\"\nADD CONSTRAINT \"contacts_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contacts_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_tenantId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.contacts.contacts_ownerId_fkey",
+    "label": "Add foreign key \"contacts_ownerId_fkey\" on \"contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "contacts_ownerId_fkey",
+        "table": "contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"contacts_ownerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_ownerId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"contacts_ownerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"contacts\"\nADD CONSTRAINT \"contacts_ownerId_fkey\"\nFOREIGN KEY (\"ownerId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE SET NULL"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"contacts_ownerId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "contacts_ownerId_fkey",
+          "public",
+          "\"public\".\"contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.documents.documents_tenantId_fkey",
+    "label": "Add foreign key \"documents_tenantId_fkey\" on \"documents\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "documents_tenantId_fkey",
+        "table": "documents"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"documents_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "documents_tenantId_fkey",
+          "public",
+          "\"public\".\"documents\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"documents_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"documents\"\nADD CONSTRAINT \"documents_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"documents_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "documents_tenantId_fkey",
+          "public",
+          "\"public\".\"documents\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.listing_contacts.listing_contacts_listingId_fkey",
+    "label": "Add foreign key \"listing_contacts_listingId_fkey\" on \"listing_contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "listing_contacts_listingId_fkey",
+        "table": "listing_contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"listing_contacts_listingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_contacts_listingId_fkey",
+          "public",
+          "\"public\".\"listing_contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"listing_contacts_listingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"listing_contacts\"\nADD CONSTRAINT \"listing_contacts_listingId_fkey\"\nFOREIGN KEY (\"listingId\")\nREFERENCES \"public\".\"listings\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"listing_contacts_listingId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_contacts_listingId_fkey",
+          "public",
+          "\"public\".\"listing_contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.listing_contacts.listing_contacts_contactId_fkey",
+    "label": "Add foreign key \"listing_contacts_contactId_fkey\" on \"listing_contacts\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "listing_contacts_contactId_fkey",
+        "table": "listing_contacts"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"listing_contacts_contactId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_contacts_contactId_fkey",
+          "public",
+          "\"public\".\"listing_contacts\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"listing_contacts_contactId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"listing_contacts\"\nADD CONSTRAINT \"listing_contacts_contactId_fkey\"\nFOREIGN KEY (\"contactId\")\nREFERENCES \"public\".\"contacts\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"listing_contacts_contactId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_contacts_contactId_fkey",
+          "public",
+          "\"public\".\"listing_contacts\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.listing_users.listing_users_listingId_fkey",
+    "label": "Add foreign key \"listing_users_listingId_fkey\" on \"listing_users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "listing_users_listingId_fkey",
+        "table": "listing_users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"listing_users_listingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_users_listingId_fkey",
+          "public",
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"listing_users_listingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"listing_users\"\nADD CONSTRAINT \"listing_users_listingId_fkey\"\nFOREIGN KEY (\"listingId\")\nREFERENCES \"public\".\"listings\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"listing_users_listingId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_users_listingId_fkey",
+          "public",
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.listing_users.listing_users_userId_fkey",
+    "label": "Add foreign key \"listing_users_userId_fkey\" on \"listing_users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "listing_users_userId_fkey",
+        "table": "listing_users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"listing_users_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_users_userId_fkey",
+          "public",
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"listing_users_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"listing_users\"\nADD CONSTRAINT \"listing_users_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"listing_users_userId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listing_users_userId_fkey",
+          "public",
+          "\"public\".\"listing_users\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.listings.listings_tenantId_fkey",
+    "label": "Add foreign key \"listings_tenantId_fkey\" on \"listings\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "listings_tenantId_fkey",
+        "table": "listings"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"listings_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listings_tenantId_fkey",
+          "public",
+          "\"public\".\"listings\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"listings_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"listings\"\nADD CONSTRAINT \"listings_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"listings_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "listings_tenantId_fkey",
+          "public",
+          "\"public\".\"listings\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.model_has_permissions.model_has_permissions_permissionId_fkey",
+    "label": "Add foreign key \"model_has_permissions_permissionId_fkey\" on \"model_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "model_has_permissions_permissionId_fkey",
+        "table": "model_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"model_has_permissions_permissionId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_permissions_permissionId_fkey",
+          "public",
+          "\"public\".\"model_has_permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"model_has_permissions_permissionId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"model_has_permissions\"\nADD CONSTRAINT \"model_has_permissions_permissionId_fkey\"\nFOREIGN KEY (\"permissionId\")\nREFERENCES \"public\".\"permissions\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"model_has_permissions_permissionId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_permissions_permissionId_fkey",
+          "public",
+          "\"public\".\"model_has_permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.model_has_permissions.model_has_permissions_modelId_fkey",
+    "label": "Add foreign key \"model_has_permissions_modelId_fkey\" on \"model_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "model_has_permissions_modelId_fkey",
+        "table": "model_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"model_has_permissions_modelId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_permissions_modelId_fkey",
+          "public",
+          "\"public\".\"model_has_permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"model_has_permissions_modelId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"model_has_permissions\"\nADD CONSTRAINT \"model_has_permissions_modelId_fkey\"\nFOREIGN KEY (\"modelId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"model_has_permissions_modelId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_permissions_modelId_fkey",
+          "public",
+          "\"public\".\"model_has_permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.model_has_roles.model_has_roles_roleId_fkey",
+    "label": "Add foreign key \"model_has_roles_roleId_fkey\" on \"model_has_roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "model_has_roles_roleId_fkey",
+        "table": "model_has_roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"model_has_roles_roleId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_roles_roleId_fkey",
+          "public",
+          "\"public\".\"model_has_roles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"model_has_roles_roleId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"model_has_roles\"\nADD CONSTRAINT \"model_has_roles_roleId_fkey\"\nFOREIGN KEY (\"roleId\")\nREFERENCES \"public\".\"roles\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"model_has_roles_roleId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_roles_roleId_fkey",
+          "public",
+          "\"public\".\"model_has_roles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.model_has_roles.model_has_roles_modelId_fkey",
+    "label": "Add foreign key \"model_has_roles_modelId_fkey\" on \"model_has_roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "model_has_roles_modelId_fkey",
+        "table": "model_has_roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"model_has_roles_modelId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_roles_modelId_fkey",
+          "public",
+          "\"public\".\"model_has_roles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"model_has_roles_modelId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"model_has_roles\"\nADD CONSTRAINT \"model_has_roles_modelId_fkey\"\nFOREIGN KEY (\"modelId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"model_has_roles_modelId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "model_has_roles_modelId_fkey",
+          "public",
+          "\"public\".\"model_has_roles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.personal_access_tokens.personal_access_tokens_tokenableId_fkey",
+    "label": "Add foreign key \"personal_access_tokens_tokenableId_fkey\" on \"personal_access_tokens\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "personal_access_tokens_tokenableId_fkey",
+        "table": "personal_access_tokens"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"personal_access_tokens_tokenableId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "personal_access_tokens_tokenableId_fkey",
+          "public",
+          "\"public\".\"personal_access_tokens\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"personal_access_tokens_tokenableId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"personal_access_tokens\"\nADD CONSTRAINT \"personal_access_tokens_tokenableId_fkey\"\nFOREIGN KEY (\"tokenableId\")\nREFERENCES \"public\".\"users\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"personal_access_tokens_tokenableId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "personal_access_tokens_tokenableId_fkey",
+          "public",
+          "\"public\".\"personal_access_tokens\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.role_has_permissions.role_has_permissions_permissionId_fkey",
+    "label": "Add foreign key \"role_has_permissions_permissionId_fkey\" on \"role_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "role_has_permissions_permissionId_fkey",
+        "table": "role_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"role_has_permissions_permissionId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "role_has_permissions_permissionId_fkey",
+          "public",
+          "\"public\".\"role_has_permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"role_has_permissions_permissionId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"role_has_permissions\"\nADD CONSTRAINT \"role_has_permissions_permissionId_fkey\"\nFOREIGN KEY (\"permissionId\")\nREFERENCES \"public\".\"permissions\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"role_has_permissions_permissionId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "role_has_permissions_permissionId_fkey",
+          "public",
+          "\"public\".\"role_has_permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.role_has_permissions.role_has_permissions_roleId_fkey",
+    "label": "Add foreign key \"role_has_permissions_roleId_fkey\" on \"role_has_permissions\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "role_has_permissions_roleId_fkey",
+        "table": "role_has_permissions"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"role_has_permissions_roleId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "role_has_permissions_roleId_fkey",
+          "public",
+          "\"public\".\"role_has_permissions\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"role_has_permissions_roleId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"role_has_permissions\"\nADD CONSTRAINT \"role_has_permissions_roleId_fkey\"\nFOREIGN KEY (\"roleId\")\nREFERENCES \"public\".\"roles\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"role_has_permissions_roleId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "role_has_permissions_roleId_fkey",
+          "public",
+          "\"public\".\"role_has_permissions\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.roles.roles_tenantId_fkey",
+    "label": "Add foreign key \"roles_tenantId_fkey\" on \"roles\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "roles_tenantId_fkey",
+        "table": "roles"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"roles_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "roles_tenantId_fkey",
+          "public",
+          "\"public\".\"roles\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"roles_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"roles\"\nADD CONSTRAINT \"roles_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"roles_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "roles_tenantId_fkey",
+          "public",
+          "\"public\".\"roles\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.users.users_tenantId_fkey",
+    "label": "Add foreign key \"users_tenantId_fkey\" on \"users\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "users_tenantId_fkey",
+        "table": "users"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"users_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_tenantId_fkey",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"users_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"users\"\nADD CONSTRAINT \"users_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"users_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "users_tenantId_fkey",
+          "public",
+          "\"public\".\"users\""
+        ]
+      }
+    ]
+  }
+]

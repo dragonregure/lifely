@@ -9,6 +9,7 @@ import { LISTING_STATUS_OPTIONS, LISTING_TYPE_OPTIONS } from "@/lib/listingOptio
 import { PERMISSIONS } from "@/rbac/permissions";
 import { useAuthorization } from "@/rbac/useAuthorization";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useSessionStorageState } from "@/hooks/useSessionStorageState";
 import type { ServerMultiSelectLoadParams, ServerMultiSelectLoadResult } from "@/components/ui/server-multi-select";
 import type { Listing } from "@/types";
 import { ListingFilters, ListingPagination } from "./listings/ListingControls";
@@ -19,6 +20,13 @@ import { contactToOption, draftFromListing, emptyListingDraft, payloadFromDraft,
 
 const PAGE_SIZE_OPTIONS = [8, 12, 16, 24];
 const LISTING_DETAIL_INCLUDES = ["documents", "contacts", "users"] satisfies ListingInclude[];
+const LISTING_FILTER_STORAGE_KEY = "lifely:listings:filters";
+
+type ListingFilterState = {
+  searchInput: string;
+  statusFilter: string;
+  typeFilter: string;
+};
 
 export function ListingsPage() {
   const { can } = useAuthorization();
@@ -38,11 +46,13 @@ export function ListingsPage() {
   const [pageSize, setPageSize] = useState(12);
   const [pageCount, setPageCount] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
-  const [searchInput, setSearchInput] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [filters, setFilters] = useSessionStorageState<ListingFilterState>(LISTING_FILTER_STORAGE_KEY, {
+    searchInput: "",
+    statusFilter: "all",
+    typeFilter: "all",
+  });
   const [refreshKey, setRefreshKey] = useState(0);
-  const search = useDebouncedValue(searchInput, 350);
+  const search = useDebouncedValue(filters.searchInput, 350);
   const assignedContactIds = useMemo(() => new Set(formDraft.contacts.map((contact) => contact.id)), [formDraft.contacts]);
   const assignedAgentIds = useMemo(() => new Set(formDraft.agents.map((agent) => agent.id)), [formDraft.agents]);
 
@@ -114,8 +124,8 @@ export function ListingsPage() {
         pageSize,
         search,
         filters: {
-          status: statusFilter,
-          property_type: typeFilter,
+          status: filters.statusFilter,
+          property_type: filters.typeFilter,
         },
         sort: { columnId: "created_at", direction: "desc" },
       },
@@ -138,7 +148,7 @@ export function ListingsPage() {
       });
 
     return () => controller.abort();
-  }, [page, pageSize, refreshKey, search, statusFilter, typeFilter]);
+  }, [filters.statusFilter, filters.typeFilter, page, pageSize, refreshKey, search]);
 
   const range = useMemo(() => {
     if (totalRows === 0) {
@@ -226,18 +236,18 @@ export function ListingsPage() {
       />
 
       <ListingFilters
-        searchInput={searchInput}
-        statusFilter={statusFilter}
+        searchInput={filters.searchInput}
+        statusFilter={filters.statusFilter}
         statusOptions={LISTING_STATUS_OPTIONS}
-        typeFilter={typeFilter}
+        typeFilter={filters.typeFilter}
         typeOptions={LISTING_TYPE_OPTIONS}
-        onSearchInputChange={setSearchInput}
+        onSearchInputChange={(searchInput) => setFilters((current) => ({ ...current, searchInput }))}
         onStatusFilterChange={(value) => {
-          setStatusFilter(value);
+          setFilters((current) => ({ ...current, statusFilter: value }));
           setPage(1);
         }}
         onTypeFilterChange={(value) => {
-          setTypeFilter(value);
+          setFilters((current) => ({ ...current, typeFilter: value }));
           setPage(1);
         }}
       />

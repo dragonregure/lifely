@@ -80,6 +80,7 @@ export type DataTableProps<TData extends object> = {
   rowKey?: keyof TData | ((row: TData, index: number) => string | number);
   rowClassName?: string | ((row: TData, index: number) => string);
   search?: boolean | DataTableSearch<TData>;
+  stateStorageKey?: string;
   serverSide?: boolean;
   serverTotalRows?: number;
   serverPageCount?: number;

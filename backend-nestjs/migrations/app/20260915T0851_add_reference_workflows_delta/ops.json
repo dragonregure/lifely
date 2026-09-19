@@ -1,0 +1,281 @@
+[
+  {
+    "id": "table.references",
+    "label": "Create table \"references\"",
+    "summary": "Creates table \"references\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"references\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"references\"",
+        "sql": "CREATE TABLE \"public\".\"references\" (\n  \"createdAt\" timestamptz DEFAULT (now()) NOT NULL,\n  \"deletedAt\" timestamptz,\n  \"group\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"meta\" json,\n  \"referenceKey\" text NOT NULL,\n  \"status\" text DEFAULT 'ACTIVE' NOT NULL,\n  \"tenantId\" uuid,\n  \"type\" text DEFAULT 'string' NOT NULL,\n  \"updatedAt\" timestamptz NOT NULL,\n  \"value\" text,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"references\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.references.references_tenantId_group_referenceKey_key",
+    "label": "Add unique constraint on \"references\" (tenantId, group, referenceKey)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "references_tenantId_group_referenceKey_key",
+        "table": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"references_tenantId_group_referenceKey_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "references_tenantId_group_referenceKey_key",
+          "public",
+          "\"public\".\"references\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"references_tenantId_group_referenceKey_key\"",
+        "sql": "ALTER TABLE \"public\".\"references\" ADD CONSTRAINT \"references_tenantId_group_referenceKey_key\" UNIQUE (\"tenantId\", \"group\", \"referenceKey\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify constraint \"references_tenantId_group_referenceKey_key\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "references_tenantId_group_referenceKey_key",
+          "public",
+          "\"public\".\"references\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.references.references_tenantId_group_idx_24c71a56",
+    "label": "Create index \"references_tenantId_group_idx_24c71a56\" on \"references\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "references_tenantId_group_idx_24c71a56",
+        "table": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"references_tenantId_group_idx_24c71a56\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_group_idx_24c71a56\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"references_tenantId_group_idx_24c71a56\"",
+        "sql": "CREATE INDEX \"references_tenantId_group_idx_24c71a56\" ON \"public\".\"references\" (\"tenantId\", \"group\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"references_tenantId_group_idx_24c71a56\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_group_idx_24c71a56\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.references.references_tenantId_idx_c93ed4f1",
+    "label": "Create index \"references_tenantId_idx_c93ed4f1\" on \"references\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "references_tenantId_idx_c93ed4f1",
+        "table": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"references_tenantId_idx_c93ed4f1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"references_tenantId_idx_c93ed4f1\"",
+        "sql": "CREATE INDEX \"references_tenantId_idx_c93ed4f1\" ON \"public\".\"references\" (\"tenantId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"references_tenantId_idx_c93ed4f1\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_idx_c93ed4f1\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.references.references_tenantId_status_idx_d3d04256",
+    "label": "Create index \"references_tenantId_status_idx_d3d04256\" on \"references\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "references_tenantId_status_idx_d3d04256",
+        "table": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"references_tenantId_status_idx_d3d04256\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"references_tenantId_status_idx_d3d04256\"",
+        "sql": "CREATE INDEX \"references_tenantId_status_idx_d3d04256\" ON \"public\".\"references\" (\"tenantId\", \"status\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"references_tenantId_status_idx_d3d04256\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_status_idx_d3d04256\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.references.references_tenantId_type_idx_11d0b022",
+    "label": "Create index \"references_tenantId_type_idx_11d0b022\" on \"references\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "references_tenantId_type_idx_11d0b022",
+        "table": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"references_tenantId_type_idx_11d0b022\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_type_idx_11d0b022\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"references_tenantId_type_idx_11d0b022\"",
+        "sql": "CREATE INDEX \"references_tenantId_type_idx_11d0b022\" ON \"public\".\"references\" (\"tenantId\", \"type\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"references_tenantId_type_idx_11d0b022\" exists",
+        "sql": "SELECT (to_regclass($1)) IS NOT NULL AS \"result\"",
+        "params": [
+          "\"public\".\"references_tenantId_type_idx_11d0b022\""
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.references.references_tenantId_fkey",
+    "label": "Add foreign key \"references_tenantId_fkey\" on \"references\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "references_tenantId_fkey",
+        "table": "references"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"references_tenantId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "references_tenantId_fkey",
+          "public",
+          "\"public\".\"references\""
+        ]
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"references_tenantId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"references\"\nADD CONSTRAINT \"references_tenantId_fkey\"\nFOREIGN KEY (\"tenantId\")\nREFERENCES \"public\".\"tenants\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"references_tenantId_fkey\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "references_tenantId_fkey",
+          "public",
+          "\"public\".\"references\""
+        ]
+      }
+    ]
+  }
+]

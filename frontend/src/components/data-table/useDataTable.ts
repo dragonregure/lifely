@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import { useSessionStorageState } from "@/hooks/useSessionStorageState";
 import { ALL_FILTER_VALUE, DEFAULT_PAGE_SIZES } from "./constants";
 import type { DataTableActions, DataTableColumn, DataTableProps, DataTableSearch, DataTableSortState } from "./types";
 import { clampPageSize, compareSortValues, getAccessorValue, getColumnSortValue, isColumnSortable, toSearchText } from "./utils";
@@ -19,6 +21,7 @@ type UseDataTableProps<TData extends object> = Pick<
   | "serverPageCount"
   | "serverSide"
   | "serverTotalRows"
+  | "stateStorageKey"
   | "toolbarEnd"
 >;
 
@@ -37,17 +40,27 @@ export function useDataTable<TData extends object>({
   serverPageCount,
   serverSide = false,
   serverTotalRows,
+  stateStorageKey,
   toolbarEnd,
 }: UseDataTableProps<TData>) {
+  const location = useLocation();
   const normalizedPageSizeOptions = useMemo(() => {
     return Array.from(new Set([...pageSizeOptions, initialPageSize].map(clampPageSize))).sort((a, b) => a - b);
   }, [initialPageSize, pageSizeOptions]);
+  const defaultStateStorageKey = useMemo(() => {
+    if (filters.length === 0) return null;
+
+    return `lifely:data-table:${location.pathname}:${filters.map((filter) => filter.id).join(",")}`;
+  }, [filters, location.pathname]);
+  const resolvedStateStorageKey = stateStorageKey ?? defaultStateStorageKey;
+  const queryStorageKey = resolvedStateStorageKey ? `${resolvedStateStorageKey}:search` : null;
+  const filtersStorageKey = resolvedStateStorageKey ? `${resolvedStateStorageKey}:filters` : null;
 
   const [pageSize, setPageSize] = useState(clampPageSize(initialPageSize));
   const [page, setPage] = useState(1);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useSessionStorageState(queryStorageKey, "");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [filterValues, setFilterValues] = useState<Record<string, string>>({});
+  const [filterValues, setFilterValues] = useSessionStorageState<Record<string, string>>(filtersStorageKey, {});
   const [sortState, setSortState] = useState<DataTableSortState | null>(initialSort ?? null);
   const requestControllerRef = useRef<AbortController | null>(null);
 
@@ -68,7 +81,7 @@ export function useDataTable<TData extends object>({
       const changed = currentKeys.length !== nextKeys.length || nextKeys.some((key) => current[key] !== next[key]);
       return changed ? next : current;
     });
-  }, [filters]);
+  }, [filters, setFilterValues]);
 
   useEffect(() => {
     setPage(1);

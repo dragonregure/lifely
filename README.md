@@ -1,23 +1,25 @@
 # Lifely
 
-Lifely is a decoupled, multi-tenant real estate CRM portfolio project. It combines a React single-page app with a Laravel API backend for tenant-scoped contacts, listings, leads, bulk email campaigns, activity logs, reports, settings, and RBAC.
+Lifely is a decoupled, multi-tenant real estate CRM portfolio project. It combines a React single-page app with a Laravel API backend for tenant-scoped contacts, listings, leads, bulk email campaigns, activity logs, reports, settings, and RBAC. It also includes a NestJS backend option for showcasing an alternative Node.js API environment.
 
-The Docker stack is the main local workflow. It runs the frontend, backend, queue worker, scheduler, MySQL, Redis, phpMyAdmin, and Mailpit without requiring local PHP, Composer, Node.js, MySQL, Redis, or an SMTP service.
+The Docker stack is the main local workflow. It runs the frontend plus the selected backend mode without requiring local PHP, Composer, Node.js, MySQL, PostgreSQL, Redis, or an SMTP service.
 
 ## Stack
 
 - Frontend: React 18, TypeScript, Vite 6, Tailwind CSS, Radix/shadcn-style primitives, Lucide icons, Recharts
 - Backend: PHP 8.4, Laravel 13, Laravel Sanctum bearer-token auth, Spatie Laravel Permission, L5-Swagger
-- Data, jobs, and mail: MySQL 8.4, Redis 7, Laravel queue worker and scheduler, Mailpit
-- Local runtime: Docker Compose, Nginx, PHP-FPM, Vite
+- Alternative backend: NestJS 11 on Node.js 20
+- Data, jobs, and mail: MySQL 8.4, PostgreSQL 16, Redis 7, Laravel queue worker and scheduler, Mailpit
+- Local runtime: Docker Compose, Nginx, PHP-FPM, Vite, NestJS watch mode
 
 ## Repository Structure
 
 ```text
 lifely/
 |-- backend-laravel/   Laravel API, migrations, tests, OpenAPI spec
+|-- backend-nestjs/    NestJS API option backed by PostgreSQL
 |-- frontend/          React CRM app and API service layer
-|-- docker/            Backend/frontend Docker image config
+|-- docker/            Docker image config
 |-- docs/              Architecture, API, RBAC, and component docs
 |-- docker-compose.yml Local multi-service stack
 |-- Makefile           Docker command shortcuts
@@ -34,6 +36,7 @@ lifely/
 For non-Docker setup, use the stack-specific guides:
 
 - [Backend setup](backend-laravel/README.md)
+- [NestJS backend setup](backend-nestjs/README.md)
 - [Frontend setup](frontend/README.md)
 
 ## Quick Start
@@ -50,11 +53,13 @@ For non-Docker setup, use the stack-specific guides:
    Copy-Item .env.example .env
    ```
 
-2. Start the full stack.
+2. Start the default Laravel stack.
 
    ```bash
    docker compose up
    ```
+
+   Set `BACKEND_MODE=Nest` for the NestJS stack, or `BACKEND_MODE=Both` for both backends. The root `.env` mirrors this value to `COMPOSE_PROFILES`, which is how Docker Compose activates the matching services.
 
    Rebuild when Dockerfiles or dependency manifests change:
 
@@ -65,15 +70,17 @@ For non-Docker setup, use the stack-specific guides:
 3. Open the local services.
 
    ```text
-   Frontend:       http://localhost:5173
-   Backend health: http://localhost:8000/api/v1/health
-   Swagger UI:     http://localhost:8000/api/documentation
-   OpenAPI YAML:   http://localhost:8000/api/docs
-   phpMyAdmin:     http://localhost:8080
-   Mailpit inbox:  http://localhost:8025
+   Frontend:               http://localhost:5173
+   Laravel backend health: http://localhost:8000/api/v1/health (Laravel/Both)
+   NestJS backend:         http://localhost:3000 (Nest/Both)
+   NestJS debugger:        localhost:9229
+   Swagger UI:             http://localhost:8000/api/documentation (Laravel/Both)
+   OpenAPI YAML:           http://localhost:8000/api/docs (Laravel/Both)
+   phpMyAdmin:             http://localhost:8080 (Laravel/Both)
+   Mailpit inbox:          http://localhost:8025 (Laravel/Both)
    ```
 
-The backend container runs migrations and seeders on startup when the Docker flags in `docker-compose.yml` are enabled, so a fresh Docker database is login-ready after the stack finishes booting.
+The Laravel backend container runs migrations and seeders on startup when the Docker flags in `docker-compose.yml` are enabled, so a fresh Docker database is login-ready after the stack finishes booting.
 
 ## Demo Login
 
@@ -85,10 +92,14 @@ Password: password
 ## Services
 
 - `frontend`: Vite React app served on port `5173`
-- `backend`: Laravel API served by Nginx/PHP-FPM on port `8000`
-- `queue`: Laravel Redis queue worker for `emails`, `leads`, and `default`
-- `scheduler`: Laravel scheduler process for due scheduled tasks
+- `backend-laravel`: Laravel API served by Nginx/PHP-FPM on port `8000`
+- `backend-laravel-queue`: Laravel Redis queue worker for `emails`, `leads`, and `default`
+- `backend-laravel-scheduler`: Laravel scheduler process for due scheduled tasks
+- `backend-nest`: NestJS API option served on port `3000`
+- `backend-nest-queue`: NestJS BullMQ worker process
+- `backend-nest-scheduler`: NestJS scheduled workflow process
 - `mysql`: MySQL database
+- `postgresql`: PostgreSQL database for the NestJS backend option
 - `redis`: Redis queue/cache service
 - `phpmyadmin`: browser database admin UI on port `8080`
 - `mailpit`: local SMTP capture service with a browser inbox on port `8025`
@@ -98,18 +109,26 @@ Password: password
 Defaults are configured in the root `.env.example` and can be overridden in `.env`.
 
 ```text
-BACKEND_PORT=8000
+BACKEND_MODE=Laravel
+COMPOSE_PROFILES=${BACKEND_MODE}
+BACKEND_LARAVEL_PORT=8000
+BACKEND_NESTJS_PORT=3000
+NESTJS_DEBUG_PORT=9229
 FRONTEND_PORT=5173
 MYSQL_PORT=3307
 MYSQL_DATABASE=lifely
 MYSQL_ROOT_PASSWORD=secret
 PHPMYADMIN_PORT=8080
+POSTGRES_PORT=5433
+POSTGRES_DATABASE=lifely_nestjs
+POSTGRES_USER=lifely
+POSTGRES_PASSWORD=secret
 REDIS_PORT=6380
 MAILPIT_SMTP_PORT=1025
 MAILPIT_HTTP_PORT=8025
 ```
 
-The frontend receives `VITE_API_BASE_URL=http://localhost:8000/api/v1` from Docker Compose. The backend receives its Docker database, Redis, Mailpit SMTP, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`.
+Docker Compose passes `VITE_BACKEND_MODE` and backend ports into the frontend from root `BACKEND_MODE`: `Laravel` uses `http://localhost:8000/api/v1`, `Nest` uses `http://localhost:3000/api/v1`, and `Both` defaults the frontend to Laravel. Set frontend `VITE_API_BASE_URL` only when a fully custom API URL should override that mode-based behavior. The Laravel backend receives its Docker database, Redis, Mailpit SMTP, CORS, token lifetime, and migration/seeder settings from `docker-compose.yml`. The NestJS backend receives PostgreSQL, Redis queue, Mailpit SMTP, CORS, and Lifely demo-mode email settings from Docker Compose so its API and background worker can mirror Laravel email workflows.
 
 ## Useful Commands
 
@@ -133,25 +152,42 @@ docker compose up --build
 docker compose up
 docker compose down
 docker compose down -v
-docker compose logs -f backend
-docker compose exec backend php artisan test
-docker compose exec backend composer test
-docker compose exec backend composer analyse
-docker compose exec backend composer lint
-docker compose exec backend php artisan db:seed --force
-docker compose exec backend php artisan migrate:fresh --seed
+docker compose logs -f backend-laravel
+docker compose exec backend-laravel php artisan test
+docker compose exec backend-laravel composer test
+docker compose exec backend-laravel composer analyse
+docker compose exec backend-laravel composer lint
+docker compose exec backend-laravel php artisan db:seed --force
+docker compose exec backend-laravel php artisan migrate:fresh --seed
+docker compose logs -f backend-nest
+docker compose exec backend-nest npm run test
 docker compose exec frontend npm run build
 docker compose exec frontend npm run lint
 ```
+
+## Debugging
+
+Start the Docker stack, open the repository in VS Code, set breakpoints, and run the matching debugger from the Run and Debug panel.
+
+```bash
+docker compose up --build
+```
+
+- `Listen for Laravel Xdebug`: listens on port `9003` and maps container paths from `/var/www/html` to `backend-laravel`.
+- `Attach to NestJS (Docker)`: attaches to the NestJS inspector on port `9229`; the Docker service runs `npm run start:debug:docker` so TypeScript breakpoints in `backend-nestjs/src` can be hit.
+- `Launch Frontend in Chrome`: opens `http://localhost:5173` with source maps enabled for React/Vite breakpoints in `frontend/src`.
+- `Debug Full Docker Stack`: starts all three debugger configurations together.
+
+Laravel Xdebug requires the VS Code PHP Debug extension. NestJS and frontend debugging use VS Code's JavaScript debugger.
 
 ## Validation
 
 Run relevant validation before handing off code changes:
 
 ```bash
-docker compose exec backend composer test
-docker compose exec backend composer analyse
-docker compose exec backend composer lint
+docker compose exec backend-laravel composer test
+docker compose exec backend-laravel composer analyse
+docker compose exec backend-laravel composer lint
 docker compose exec frontend npm run build
 docker compose exec frontend npm run lint
 ```
@@ -169,9 +205,9 @@ Project handoff docs live in [docs/](docs/README.md):
 
 ## Local Mail
 
-Docker Compose routes Laravel mail from the backend, queue worker, and scheduler through Mailpit. Open `http://localhost:8025` to inspect captured emails. The SMTP endpoint is available to containers as `mailpit:1025` and to the host at `localhost:1025` by default.
+Docker Compose routes Laravel mail from `backend-laravel`, `backend-laravel-queue`, and `backend-laravel-scheduler` through Mailpit. Open `http://localhost:8025` to inspect captured emails. The SMTP endpoint is available to containers as `mailpit:1025` and to the host at `localhost:1025` by default.
 
-To send through Resend, keep `LIFELY_EMAIL_SENDER=mail` and set these values in the root `.env` before recreating the backend, queue, and scheduler containers:
+To send through Resend, keep `LIFELY_EMAIL_SENDER=mail` and set these values in the root `.env` before recreating the Laravel backend, queue, and scheduler containers:
 
 ```env
 MAIL_MAILER=resend
@@ -196,8 +232,8 @@ If you changed `MYSQL_ROOT_PASSWORD` or `MYSQL_DATABASE` in `.env`, use those va
 
 ## Notes
 
-- Docker bind-mounts backend and frontend source for local development.
-- Backend `vendor/`, frontend `node_modules/`, Laravel config cache, MySQL data, and Redis data are stored in Docker named volumes.
+- Docker bind-mounts backend and frontend source directories for local development.
+- Backend `vendor/`, frontend/NestJS `node_modules/`, Laravel config cache, MySQL data, PostgreSQL data, and Redis data are stored in Docker named volumes.
 - Xdebug is installed in the backend image and configured through `docker/backend/xdebug.ini`.
-- Backend API routes are versioned under `/api/v1`.
+- Laravel API routes are versioned under `/api/v1`.
 - Protected API routes use Sanctum bearer tokens and tenant context. Backend authorization is the source of truth; frontend RBAC controls only route and UI visibility.

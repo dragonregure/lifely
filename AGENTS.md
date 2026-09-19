@@ -51,6 +51,14 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Prefer existing project conventions, modules, and structure before creating new abstractions, directories, services, repositories, hooks, utilities, or patterns.
 - Do not introduce new architectural patterns unless there is a clear and documented benefit.
 - Preserve multi-tenant data boundaries and authentication behavior.
+- Keep `backend-nestjs` isolated as an alternative backend/runtime showcase unless the user explicitly asks to wire it into Laravel or frontend flows. It uses PostgreSQL from Docker Compose by default. Its public API contracts must match the canonical Lifely API contract consumed by the existing frontend service layer, while keeping NestJS code and naming framework-neutral.
+- Treat `backend-nestjs` as a modular monolith: controllers own HTTP/DTO concerns, services own business workflows, and repositories own persistence/data access. A service may inject only repositories from its own workflow module; cross-workflow access must go through the other module's exported public service via Nest dependency injection.
+- Use Nest modules as the connector between `backend-nestjs` workflows. Do not bypass DI with direct service/repository construction or by importing another workflow's repository into a service/provider.
+- When adding or changing `backend-nestjs` API endpoints, include API-focused tests built with Nest's `@nestjs/testing` utilities and align the covered cases with the equivalent Laravel feature tests in `backend-laravel/tests/Feature` when a canonical Laravel API exists.
+- In `backend-nestjs`, publish CRM audit activity through `@nestjs/event-emitter` events and keep activity row creation in `ActivityService` listeners; workflow services should not inject `ActivityService` just to record activity logs.
+- In `backend-nestjs`, implement scheduled or queued background workflows with `@nestjs/schedule` and `@nestjs/bullmq`; keep processors thin, delegate domain rules to workflow services/repositories, and mirror canonical Laravel queue names where an equivalent workflow exists.
+- Keep Docker debugging path mappings and exposed debug ports aligned with `.vscode/launch.json` when changing backend or frontend runtime roots.
+- Docker Compose backend selection is controlled by root `BACKEND_MODE` (`Laravel`, `Nest`, or `Both`) mirrored to `COMPOSE_PROFILES`; keep the `frontend` service unprofiled, and when `BACKEND_MODE=Both`, keep the frontend API target on Laravel by default.
 - Because Lifely is already in production, never modify existing migrations to change database schema or seed data; add a new migration instead.
 - Put validation, serialization, persistence, and UI concerns in their appropriate layers.
 - Backend authorization is the source of truth. Frontend RBAC is only for route and UI visibility.
@@ -60,6 +68,7 @@ If two sources at the same level conflict, stop and ask for clarification.
 - Frontend callers should request relation includes only for flows that render or mutate relation-aware state; listing/table pages should use main model fields unless the UI explicitly needs relation data.
 - Frontend UI should use shared primitives for repeated controls such as selects, checkboxes, search fields, filter menus, and pagination instead of hand-rolled class strings.
 - Server-side data tables should handle pagination, search, filtering, and sorting on the backend. Frontend tables should send query state instead of processing large datasets locally.
+- Backend data table execution should go through the Yajra-backed `App\Support\DataTables\EloquentDataTable` adapter so public API query parameters stay consistent across resources.
 - Frontend "get all" service helpers that wrap paginated APIs must page through all available pages or expose pagination; do not silently return only the first page.
 - Frontend public marketing lives at `/`, while login and registration live at `/login`; protected routes should redirect unauthenticated users to `/login`.
 - Update OpenAPI, frontend service types/mappers, and docs when public API request or response shapes change.

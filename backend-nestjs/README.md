@@ -1,0 +1,157 @@
+<p align="center">
+  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+</p>
+
+[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+[circleci-url]: https://circleci.com/gh/nestjs/nest
+
+  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
+    <p align="center">
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
+<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
+<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
+<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
+<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
+  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
+    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
+  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+</p>
+  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
+  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+## Description
+
+[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+
+## Lifely Docker runtime
+
+The root Docker Compose stack runs the API service as `backend-nest` on `http://localhost:3000` when `BACKEND_MODE=Nest` or `BACKEND_MODE=Both`. It uses the `docker/nestjs/Dockerfile`, bind-mounts this directory for watch-mode development, starts the Node inspector on `localhost:9229`, and connects to the `postgresql` service with these container environment values:
+
+```text
+DATABASE_URL=postgresql://lifely:secret@postgresql:5432/lifely_nestjs
+DB_HOST=postgresql
+DB_PORT=5432
+DB_DATABASE=lifely_nestjs
+DB_USERNAME=lifely
+DB_PASSWORD=secret
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+Override the host port and PostgreSQL credentials from the root `.env` file when needed.
+
+Use the VS Code `Attach to NestJS (Docker)` debugger to stop at TypeScript breakpoints while the Compose service is running.
+
+NestJS queue and scheduler support mirrors the Laravel service split:
+
+```bash
+docker compose up backend-nest backend-nest-queue backend-nest-scheduler redis postgresql
+```
+
+- `backend-nest` serves the API only.
+- `backend-nest-queue` runs BullMQ processors, including the `leads` queue worker.
+- `backend-nest-scheduler` runs `@nestjs/schedule` and enqueues the lead lifecycle job daily at midnight.
+
+For local testing without waiting for midnight, run one of these from `backend-nestjs`:
+
+```bash
+npm run lead:lifecycle -- enqueue
+npm run lead:lifecycle -- run
+```
+
+`enqueue` pushes the BullMQ job onto Redis for the queue worker to process. `run` executes the lifecycle workflow immediately in the current process. These commands are development-only and refuse to run when `NODE_ENV=production`.
+
+## Project setup
+
+```bash
+$ npm install
+```
+
+## Compile and run the project
+
+```bash
+# development
+$ npm run start
+
+# watch mode
+$ npm run start:dev
+
+# production mode
+$ npm run start:prod
+```
+
+## Seed local demo data
+
+```bash
+$ npm run seed
+```
+
+The seed command creates RBAC permissions and roles, then creates the same basic demo login used by the Laravel backend:
+
+```text
+Email: maya@skyline.example
+Password: password
+```
+
+To rebuild the local NestJS database from scratch and then seed it:
+
+```bash
+$ npm run db:fresh -- --seed
+```
+
+The `db:fresh` command drops and recreates the database from `DATABASE_URL`, runs `prisma db migrate`, and only runs the seed step when `--seed` is passed. It is development-only and refuses to run when `NODE_ENV=production`.
+
+## Run tests
+
+```bash
+# unit tests
+$ npm run test
+
+# e2e tests
+$ npm run test:e2e
+
+# test coverage
+$ npm run test:cov
+```
+
+## Deployment
+
+When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+
+If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+
+```bash
+$ npm install -g @nestjs/mau
+$ mau deploy
+```
+
+With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+## Resources
+
+Check out a few resources that may come in handy when working with NestJS:
+
+- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
+- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
+- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
+- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
+- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
+- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
+- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
+- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+
+## Support
+
+Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+
+## Stay in touch
+
+- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
+- Website - [https://nestjs.com](https://nestjs.com/)
+- Twitter - [@nestframework](https://twitter.com/nestframework)
+
+## License
+
+Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
