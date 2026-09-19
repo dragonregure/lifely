@@ -27,7 +27,7 @@
 
 ## Lifely Docker runtime
 
-The root Docker Compose stack runs the API service as `backend-nestjs` on `http://localhost:3000` by default. It uses the `docker/nestjs/Dockerfile`, bind-mounts this directory for watch-mode development, starts the Node inspector on `localhost:9229`, and connects to the `postgresql` service with these container environment values:
+The root Docker Compose stack runs the API service as `backend-nest` on `http://localhost:3000` when `BACKEND_MODE=Nest` or `BACKEND_MODE=Both`. It uses the `docker/nestjs/Dockerfile`, bind-mounts this directory for watch-mode development, starts the Node inspector on `localhost:9229`, and connects to the `postgresql` service with these container environment values:
 
 ```text
 DATABASE_URL=postgresql://lifely:secret@postgresql:5432/lifely_nestjs
@@ -47,12 +47,12 @@ Use the VS Code `Attach to NestJS (Docker)` debugger to stop at TypeScript break
 NestJS queue and scheduler support mirrors the Laravel service split:
 
 ```bash
-docker compose up backend-nestjs backend-nestjs-queue backend-nestjs-scheduler redis postgresql
+docker compose up backend-nest backend-nest-queue backend-nest-scheduler redis postgresql
 ```
 
-- `backend-nestjs` serves the API only.
-- `backend-nestjs-queue` runs BullMQ processors, including the `leads` queue worker.
-- `backend-nestjs-scheduler` runs `@nestjs/schedule` and enqueues the lead lifecycle job daily at midnight.
+- `backend-nest` serves the API only.
+- `backend-nest-queue` runs BullMQ processors, including the `leads` queue worker.
+- `backend-nest-scheduler` runs `@nestjs/schedule` and enqueues the lead lifecycle job daily at midnight.
 
 For local testing without waiting for midnight, run one of these from `backend-nestjs`:
 

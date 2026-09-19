@@ -58,6 +58,7 @@ If two sources at the same level conflict, stop and ask for clarification.
 - In `backend-nestjs`, publish CRM audit activity through `@nestjs/event-emitter` events and keep activity row creation in `ActivityService` listeners; workflow services should not inject `ActivityService` just to record activity logs.
 - In `backend-nestjs`, implement scheduled or queued background workflows with `@nestjs/schedule` and `@nestjs/bullmq`; keep processors thin, delegate domain rules to workflow services/repositories, and mirror canonical Laravel queue names where an equivalent workflow exists.
 - Keep Docker debugging path mappings and exposed debug ports aligned with `.vscode/launch.json` when changing backend or frontend runtime roots.
+- Docker Compose backend selection is controlled by root `BACKEND_MODE` (`Laravel`, `Nest`, or `Both`) mirrored to `COMPOSE_PROFILES`; keep the `frontend` service unprofiled, and when `BACKEND_MODE=Both`, keep the frontend API target on Laravel by default.
 - Because Lifely is already in production, never modify existing migrations to change database schema or seed data; add a new migration instead.
 - Put validation, serialization, persistence, and UI concerns in their appropriate layers.
 - Backend authorization is the source of truth. Frontend RBAC is only for route and UI visibility.
