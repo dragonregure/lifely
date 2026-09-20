@@ -1,9 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nestjs",
-  "functions": {
-    "src/main.ts": {
-      "includeFiles": "node_modules/swagger-ui-dist/**"
-    }
-  }
+  "framework": "nestjs"
 }
