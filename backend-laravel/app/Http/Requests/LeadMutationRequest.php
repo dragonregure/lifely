@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Contracts\LeadRepositoryInterface;
+use App\Contracts\LeadServiceInterface;
 use App\Http\Requests\Concerns\ResolvesTenantForValidation;
 use App\Models\Lead;
 use App\Models\User;
@@ -57,7 +57,7 @@ abstract class LeadMutationRequest extends FormRequest
             throw new NotFoundHttpException('Lead not found.');
         }
 
-        $lead = app(LeadRepositoryInterface::class)->find($tenantId, $leadId);
+        $lead = app(LeadServiceInterface::class)->find($tenantId, $leadId);
 
         if (! $lead) {
             throw new NotFoundHttpException('Lead not found.');

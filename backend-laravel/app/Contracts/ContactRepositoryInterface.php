@@ -22,4 +22,10 @@ interface ContactRepositoryInterface
     public function delete(string $tenantId, string $contactId): bool;
 
     public function countByStatus(string $tenantId): Collection;
+
+    /**
+     * @param  array<int, string>  $contactIds
+     * @return array<int, string>
+     */
+    public function findExistingIds(string $tenantId, array $contactIds, bool $activeOnly = false): array;
 }

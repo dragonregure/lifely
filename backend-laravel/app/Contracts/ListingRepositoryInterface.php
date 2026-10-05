@@ -18,4 +18,10 @@ interface ListingRepositoryInterface
     public function create(string $tenantId, array $data): Listing;
 
     public function update(string $tenantId, string $listingId, array $data): ?Listing;
+
+    /**
+     * @param  array<int, string>  $listingIds
+     * @return array<int, string>
+     */
+    public function findExistingIds(string $tenantId, array $listingIds): array;
 }

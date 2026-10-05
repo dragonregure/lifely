@@ -2,13 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Contracts\EmailSenderInterface;
+use App\Contracts\EmailCampaignServiceInterface;
 use App\Jobs\SendBulkEmailCampaign;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Support\Email\CampaignEmailRenderer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -68,7 +67,7 @@ class QuickTestBulkEmailCommand extends Command
         $job = new SendBulkEmailCampaign($campaign->id, (bool) $this->option('sync'));
 
         if ($this->option('sync')) {
-            $job->handle(app(EmailSenderInterface::class), app(CampaignEmailRenderer::class));
+            $job->handle(app(EmailCampaignServiceInterface::class));
             $this->info("Sent quick test bulk email campaign {$campaign->id} to {$campaign->recipient_count} recipients.");
 
             return self::SUCCESS;

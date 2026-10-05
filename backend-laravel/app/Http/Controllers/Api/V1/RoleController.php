@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\RbacServiceInterface;
 use App\Http\Requests\Rbac\StoreRoleRequest;
 use App\Http\Requests\Rbac\UpdateRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\Role;
-use App\Services\RbacService;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class RoleController extends BaseApiController
 {
     protected const ALLOWED_INCLUDES = ['permissions'];
 
-    public function __construct(private readonly RbacService $rbac)
+    public function __construct(private readonly RbacServiceInterface $rbac)
     {
     }
 

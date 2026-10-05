@@ -3,7 +3,6 @@
 namespace App\Repositories;
 
 use App\Contracts\LeadRepositoryInterface;
-use App\Models\Listing;
 use App\Models\Lead;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\DataTables\EloquentDataTable;
@@ -64,16 +63,12 @@ class LeadRepository implements LeadRepositoryInterface
     public function create(string $tenantId, array $data): Lead
     {
         return DB::transaction(function () use ($tenantId, $data): Lead {
-            $lead = Lead::query()->create($data + [
+            return Lead::query()->create($data + [
                 'tenant_id' => $tenantId,
                 'stage' => Lead::STAGE_NEW_LEAD,
                 'source' => Lead::SOURCE_MANUAL_ENTRY,
                 'is_active' => true,
             ]);
-
-            $this->markListingSoldWhenClosedWon($tenantId, $lead);
-
-            return $lead;
         });
     }
 
@@ -94,9 +89,8 @@ class LeadRepository implements LeadRepositoryInterface
             return null;
         }
 
-        return DB::transaction(function () use ($tenantId, $lead, $data): Lead {
+        return DB::transaction(function () use ($lead, $data): Lead {
             $lead->update($data);
-            $this->markListingSoldWhenClosedWon($tenantId, $lead);
 
             return $lead->refresh();
         });
@@ -112,9 +106,8 @@ class LeadRepository implements LeadRepositoryInterface
             return null;
         }
 
-        return DB::transaction(function () use ($tenantId, $lead, $stage): Lead {
+        return DB::transaction(function () use ($lead, $stage): Lead {
             $lead->update(['stage' => $stage]);
-            $this->markListingSoldWhenClosedWon($tenantId, $lead);
 
             return $lead->refresh();
         });
@@ -319,22 +312,5 @@ class LeadRepository implements LeadRepositoryInterface
         ];
 
         return array_intersect_key($relations, array_flip($includes));
-    }
-
-    private function markListingSoldWhenClosedWon(string $tenantId, Lead $lead): void
-    {
-        if ((int) $lead->stage !== Lead::STAGE_CLOSED_WON) {
-            return;
-        }
-
-        $listing = Listing::query()
-            ->where('tenant_id', $tenantId)
-            ->find($lead->listing_id);
-
-        if (! $listing || (int) $listing->status === Listing::STATUS_SOLD) {
-            return;
-        }
-
-        $listing->update(['status' => Listing::STATUS_SOLD]);
     }
 }

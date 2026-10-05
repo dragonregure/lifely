@@ -83,6 +83,11 @@ class ContactApiTest extends TestCase
             {
                 return collect();
             }
+
+            public function findExistingIds(string $tenantId, array $contactIds, bool $activeOnly = false): array
+            {
+                return $contactIds;
+            }
         });
 
         $this->withHeader('X-Tenant-Id', $tenant->id)

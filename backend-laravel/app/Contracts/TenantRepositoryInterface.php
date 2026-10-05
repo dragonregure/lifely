@@ -14,4 +14,10 @@ interface TenantRepositoryInterface
     public function members(string $tenantId): Collection;
 
     public function paginateMembers(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
+
+    /**
+     * @param  array<int, string>  $userIds
+     * @return array<int, string>
+     */
+    public function findExistingMemberIds(string $tenantId, array $userIds): array;
 }

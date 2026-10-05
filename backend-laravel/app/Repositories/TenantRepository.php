@@ -42,4 +42,20 @@ class TenantRepository implements TenantRepositoryInterface
             'asc'
         );
     }
+
+    public function findExistingMemberIds(string $tenantId, array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        $allowedUserIds = User::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', array_values(array_unique($userIds)))
+            ->pluck('id')
+            ->filter(fn (mixed $userId): bool => is_string($userId))
+            ->all();
+
+        return array_values(array_intersect($userIds, $allowedUserIds));
+    }
 }

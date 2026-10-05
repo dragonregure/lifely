@@ -2,8 +2,7 @@
 
 namespace App\Services\Email;
 
-use App\Models\EmailCampaign;
-use App\Models\TenantEmailUsage;
+use App\Contracts\DemoEmailLimitRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -13,6 +12,10 @@ class DemoEmailLimiter
 
     public const RESERVED_HEADER = 'X-Lifely-Email-Limit-Reserved';
 
+    public function __construct(private readonly DemoEmailLimitRepositoryInterface $limits)
+    {
+    }
+
     public function reserve(string $tenantId, int $requestedCount): void
     {
         if (! $this->enabled() || $requestedCount <= 0) {
@@ -20,25 +23,12 @@ class DemoEmailLimiter
         }
 
         DB::transaction(function () use ($tenantId, $requestedCount): void {
-            $now = now();
+            $this->limits->ensureUsageExists($tenantId);
 
-            DB::table('tenant_email_usages')->upsert(
-                [[
-                    'tenant_id' => $tenantId,
-                    'sent_count' => 0,
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]],
-                ['tenant_id'],
-                ['updated_at']
+            $usedCount = max(
+                $this->limits->lockedSentCount($tenantId),
+                $this->limits->campaignRecipientCount($tenantId)
             );
-
-            $usage = TenantEmailUsage::query()
-                ->whereKey($tenantId)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $usedCount = max($usage->sent_count, $this->campaignRecipientCount($tenantId));
             $remainingCount = max(0, $this->limit() - $usedCount);
 
             if ($requestedCount > $remainingCount) {
@@ -47,7 +37,7 @@ class DemoEmailLimiter
                 ]);
             }
 
-            $usage->update(['sent_count' => $usedCount + $requestedCount]);
+            $this->limits->saveSentCount($tenantId, $usedCount + $requestedCount);
         });
     }
 
@@ -59,13 +49,6 @@ class DemoEmailLimiter
     public function limit(): int
     {
         return max(0, (int) config('lifely.demo_email_limit', 3));
-    }
-
-    private function campaignRecipientCount(string $tenantId): int
-    {
-        return (int) EmailCampaign::query()
-            ->where('tenant_id', $tenantId)
-            ->sum('recipient_count');
     }
 
     private function message(int $remainingCount): string

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\LeadRepositoryInterface;
+use App\Contracts\LeadServiceInterface;
 use App\Http\Requests\UpdateLeadRequest;
 use App\Http\Requests\StoreLeadRequest;
 use App\Http\Requests\UpdateLeadStageRequest;
@@ -19,7 +19,7 @@ class LeadController extends BaseApiController
 {
     protected const ALLOWED_INCLUDES = ['contact', 'listing', 'user'];
 
-    public function __construct(private readonly LeadRepositoryInterface $leads)
+    public function __construct(private readonly LeadServiceInterface $leads)
     {
     }
 

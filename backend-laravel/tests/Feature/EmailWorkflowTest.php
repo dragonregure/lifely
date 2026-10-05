@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\EmailSenderInterface;
+use App\Contracts\EmailCampaignServiceInterface;
 use App\Jobs\SendBulkEmailCampaign;
 use App\Jobs\SendCampaignEmailToContact;
 use App\Models\Contact;
@@ -10,7 +11,6 @@ use App\Models\EmailCampaign;
 use App\Models\Listing;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Support\Email\CampaignEmailRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\Fakes\FakeEmailSender;
@@ -37,7 +37,7 @@ class EmailWorkflowTest extends TestCase
             'status' => 'Queued',
         ]);
 
-        (new SendBulkEmailCampaign($campaign->id))->handle(new FakeEmailSender(), app(CampaignEmailRenderer::class));
+        (new SendBulkEmailCampaign($campaign->id))->handle(app(EmailCampaignServiceInterface::class));
 
         Queue::assertPushed(SendCampaignEmailToContact::class, 2);
         Queue::assertPushedOn('emails', SendCampaignEmailToContact::class);
@@ -47,6 +47,7 @@ class EmailWorkflowTest extends TestCase
     public function test_campaign_recipient_job_sends_through_the_email_sender_contract(): void
     {
         $sender = new FakeEmailSender();
+        $this->app->instance(EmailSenderInterface::class, $sender);
         $tenant = Tenant::factory()->create();
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
         $contact = Contact::factory()->create([
@@ -77,7 +78,7 @@ class EmailWorkflowTest extends TestCase
             'status' => 'Sending',
         ]);
 
-        (new SendCampaignEmailToContact($campaign->id, $contact->id))->handle($sender, app(CampaignEmailRenderer::class));
+        (new SendCampaignEmailToContact($campaign->id, $contact->id))->handle(app(EmailCampaignServiceInterface::class));
 
         $this->assertCount(1, $sender->messages);
         $this->assertSame('New listings', $sender->messages[0]->subject);

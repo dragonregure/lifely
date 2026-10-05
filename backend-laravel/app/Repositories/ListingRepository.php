@@ -99,6 +99,22 @@ class ListingRepository implements ListingRepositoryInterface
         });
     }
 
+    public function findExistingIds(string $tenantId, array $listingIds): array
+    {
+        if ($listingIds === []) {
+            return [];
+        }
+
+        $allowedListingIds = Listing::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', array_values(array_unique($listingIds)))
+            ->pluck('id')
+            ->filter(fn (mixed $listingId): bool => is_string($listingId))
+            ->all();
+
+        return array_values(array_intersect($listingIds, $allowedListingIds));
+    }
+
     private function relations(string $tenantId, array $includes): array
     {
         $relations = [
