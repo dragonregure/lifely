@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\ReferenceRepositoryInterface;
+use App\Contracts\ReferenceServiceInterface;
 use App\Http\Requests\StoreReferenceRequest;
 use App\Http\Requests\UpdateReferenceRequest;
 use App\Http\Resources\ReferenceResource;
@@ -17,7 +17,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ReferenceController extends BaseApiController
 {
-    public function __construct(private readonly ReferenceRepositoryInterface $references)
+    public function __construct(private readonly ReferenceServiceInterface $references)
     {
     }
 

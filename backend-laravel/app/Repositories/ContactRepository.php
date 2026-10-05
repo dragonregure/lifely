@@ -101,6 +101,23 @@ class ContactRepository implements ContactRepositoryInterface
             ->pluck('total', 'status_label');
     }
 
+    public function findExistingIds(string $tenantId, array $contactIds, bool $activeOnly = false): array
+    {
+        if ($contactIds === []) {
+            return [];
+        }
+
+        $allowedContactIds = Contact::query()
+            ->where('tenant_id', $tenantId)
+            ->whereIn('id', array_values(array_unique($contactIds)))
+            ->when($activeOnly, fn (Builder $query) => $query->where('status', true))
+            ->pluck('id')
+            ->filter(fn (mixed $contactId): bool => is_string($contactId))
+            ->all();
+
+        return array_values(array_intersect($contactIds, $allowedContactIds));
+    }
+
     /**
      * @return Builder<Contact>
      */

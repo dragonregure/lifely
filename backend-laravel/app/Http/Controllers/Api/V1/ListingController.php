@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\ListingRepositoryInterface;
+use App\Contracts\ListingServiceInterface;
 use App\Http\Requests\StoreListingRequest;
 use App\Http\Requests\UpdateListingRequest;
 use App\Http\Resources\ListingResource;
@@ -18,7 +18,7 @@ class ListingController extends BaseApiController
 {
     protected const ALLOWED_INCLUDES = ['documents', 'contacts', 'users'];
 
-    public function __construct(private readonly ListingRepositoryInterface $listings)
+    public function __construct(private readonly ListingServiceInterface $listings)
     {
     }
 

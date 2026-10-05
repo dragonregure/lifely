@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\ActivityRepositoryInterface;
+use App\Contracts\ActivityServiceInterface;
 use App\Contracts\ExportServiceInterface;
 use App\Contracts\ReportingServiceInterface;
 use App\Support\DataTables\DataTableQuery;
@@ -27,7 +27,7 @@ class ReportingController extends BaseApiController
 
     public function __construct(
         private readonly ReportingServiceInterface $reports,
-        private readonly ActivityRepositoryInterface $activity,
+        private readonly ActivityServiceInterface $activity,
         private readonly ExportServiceInterface $exports,
     ) {
     }

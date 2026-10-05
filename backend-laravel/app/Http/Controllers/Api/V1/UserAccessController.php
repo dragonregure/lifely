@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\RbacServiceInterface;
 use App\Http\Requests\Rbac\SyncUserPermissionsRequest;
 use App\Http\Requests\Rbac\SyncUserRolesRequest;
 use App\Http\Resources\MemberResource;
 use App\Http\Resources\UserPermissionsResource;
 use App\Models\User;
-use App\Services\RbacService;
 use Illuminate\Http\Request;
 
 class UserAccessController extends BaseApiController
 {
-    public function __construct(private readonly RbacService $rbac)
+    public function __construct(private readonly RbacServiceInterface $rbac)
     {
     }
 

@@ -2,53 +2,37 @@
 
 namespace App\Services;
 
+use App\Contracts\RbacRepositoryInterface;
+use App\Contracts\RbacServiceInterface;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\Rbac\Permissions;
 use App\Support\Rbac\Roles;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class RbacService
+class RbacService implements RbacServiceInterface
 {
+    public function __construct(private readonly RbacRepositoryInterface $rbac)
+    {
+    }
+
     public function roles(string $tenantId, bool $canManageSystem, array $includes = []): Collection
     {
-        $query = Role::query()->visibleToTenant($tenantId);
-
-        $this->applySystemOnlyRoleVisibility($query, $canManageSystem);
-
-        return $query
-            ->with(array_intersect(['permissions'], $includes))
-            ->orderBy('tenant_id')
-            ->orderBy('name')
-            ->get();
+        return $this->rbac->roles($tenantId, $canManageSystem, $includes);
     }
 
     public function findRole(string $tenantId, string $roleId, bool $canManageSystem, array $includes = []): ?Role
     {
-        $query = Role::query()->visibleToTenant($tenantId);
-
-        $this->applySystemOnlyRoleVisibility($query, $canManageSystem);
-
-        return $query
-            ->with(array_intersect(['permissions'], $includes))
-            ->find($roleId);
+        return $this->rbac->findRole($tenantId, $roleId, $canManageSystem, $includes);
     }
 
     public function permissions(bool $canManageSystem, array $includes = []): Collection
     {
-        $query = Permission::query()->orderBy('name');
-
-        $this->applySystemOnlyPermissionVisibility($query, $canManageSystem);
-        $query->with($this->permissionRelations($canManageSystem, $includes));
-
-        return $query->get();
+        return $this->rbac->permissions($canManageSystem, $includes);
     }
 
     public function permissionWithRelations(Permission $permission, bool $canManageSystem, array $includes = []): ?Permission
@@ -57,7 +41,7 @@ class RbacService
             return null;
         }
 
-        return $permission->load($this->permissionRelations($canManageSystem, $includes));
+        return $this->rbac->permissionWithRelations($permission, $canManageSystem, $includes);
     }
 
     public function createRole(string $tenantId, array $data): Role
@@ -67,14 +51,14 @@ class RbacService
         return DB::transaction(function () use ($data): Role {
             $this->ensureUniqueRole($data['tenant_id'], $data['name'], $data['guard_name'] ?? 'web');
 
-            $role = Role::query()->create([
+            $role = $this->rbac->createRole([
                 'tenant_id' => $data['tenant_id'],
                 'name' => $data['name'],
                 'guard_name' => $data['guard_name'] ?? 'web',
             ]);
 
             $this->syncRolePermissions($role, $data['permissions'] ?? []);
-            $this->forgetCache();
+            $this->rbac->forgetCache();
 
             return $role;
         });
@@ -97,19 +81,19 @@ class RbacService
 
             $this->ensureUniqueRole($nextTenantId, $nextName, $nextGuardName, $role->id);
 
-            $role->fill([
+            $role = $this->rbac->updateRole($role, [
                 'tenant_id' => $nextTenantId,
                 'name' => $nextName,
                 'guard_name' => $nextGuardName,
-            ])->save();
+            ]);
 
             if (array_key_exists('permissions', $data)) {
                 $this->syncRolePermissions($role, $data['permissions']);
             }
 
-            $this->forgetCache();
+            $this->rbac->forgetCache();
 
-            return $role->refresh();
+            return $role;
         });
     }
 
@@ -120,20 +104,20 @@ class RbacService
                 throw new HttpException(422, 'The Office Admin role cannot be deleted.');
             }
 
-            $role->delete();
-            $this->forgetCache();
+            $this->rbac->deleteRole($role);
+            $this->rbac->forgetCache();
         });
     }
 
     public function createPermission(array $data): Permission
     {
         return DB::transaction(function () use ($data): Permission {
-            $permission = Permission::query()->create([
+            $permission = $this->rbac->createPermission([
                 'name' => $data['name'],
                 'guard_name' => $data['guard_name'] ?? 'web',
             ]);
 
-            $this->forgetCache();
+            $this->rbac->forgetCache();
 
             return $permission;
         });
@@ -146,12 +130,12 @@ class RbacService
                 throw new HttpException(422, 'Protected administrative permissions cannot be renamed.');
             }
 
-            $permission->fill([
+            $permission = $this->rbac->updatePermission($permission, [
                 'name' => $data['name'] ?? $permission->name,
                 'guard_name' => $data['guard_name'] ?? $permission->guard_name,
-            ])->save();
+            ]);
 
-            $this->forgetCache();
+            $this->rbac->forgetCache();
 
             return $permission;
         });
@@ -164,12 +148,12 @@ class RbacService
                 throw new HttpException(422, 'Protected administrative permissions cannot be deleted.');
             }
 
-            if ($permission->roles()->where('name', Roles::protectedAdmin())->exists()) {
+            if ($this->rbac->permissionIsAssignedToRole($permission, Roles::protectedAdmin())) {
                 throw new HttpException(422, 'Permissions assigned to Office Admin cannot be deleted.');
             }
 
-            $permission->delete();
-            $this->forgetCache();
+            $this->rbac->deletePermission($permission);
+            $this->rbac->forgetCache();
         });
     }
 
@@ -181,11 +165,11 @@ class RbacService
 
             $roles = $this->rolesVisibleToTenant($tenantId, $roleNames);
 
-            $user->syncRoles($roles);
-            $user->forceFill(['role' => $roleNames[0] ?? Roles::SIMPLE_AGENT])->save();
-            $this->forgetCache();
+            $this->rbac->syncUserRoles($user, $roles);
+            $this->rbac->saveUserRoleLabel($user, $roleNames[0] ?? Roles::SIMPLE_AGENT);
+            $this->rbac->forgetCache();
 
-            return $user->load('roles.permissions', 'permissions');
+            return $this->rbac->loadUserAccess($user);
         });
     }
 
@@ -193,11 +177,24 @@ class RbacService
     {
         return DB::transaction(function () use ($user, $permissionNames, $tenantId): User {
             $this->ensureUserBelongsToTenant($tenantId, $user);
-            $user->syncPermissions($permissionNames);
-            $this->forgetCache();
+            $this->rbac->syncUserPermissions($user, $permissionNames);
+            $this->rbac->forgetCache();
 
-            return $user->load('roles.permissions', 'permissions');
+            return $this->rbac->loadUserAccess($user);
         });
+    }
+
+    public function ensureRoleExists(string $name, string $guardName = 'web', ?string $tenantId = null): Role
+    {
+        if (! $this->rbac->roleExists($tenantId, $name, $guardName)) {
+            return $this->rbac->createRole([
+                'tenant_id' => $tenantId,
+                'name' => $name,
+                'guard_name' => $guardName,
+            ]);
+        }
+
+        return $this->rbac->findOrCreateRole($name, $guardName);
     }
 
     private function syncRolePermissions(Role $role, array $permissionNames): void
@@ -206,15 +203,12 @@ class RbacService
             $permissionNames = array_values(array_unique(array_merge($permissionNames, Permissions::tenantAdminProtected())));
         }
 
-        $role->syncPermissions($permissionNames);
+        $this->rbac->syncRolePermissions($role, $permissionNames);
     }
 
     private function rolesVisibleToTenant(string $tenantId, array $roleNames): array
     {
-        $roles = Role::query()
-            ->visibleToTenant($tenantId)
-            ->whereIn('name', $roleNames)
-            ->get();
+        $roles = $this->rbac->rolesVisibleToTenant($tenantId, $roleNames);
 
         $foundNames = $roles->pluck('name')->all();
         $missing = array_values(array_diff($roleNames, $foundNames));
@@ -229,43 +223,8 @@ class RbacService
     }
 
     /**
-     * @param  Builder<Role>  $query
+     * @param  array<string, mixed>  $data
      */
-    private function applySystemOnlyRoleVisibility(Builder|BelongsToMany $query, bool $canManageSystem): void
-    {
-        if ($canManageSystem) {
-            return;
-        }
-
-        $query->whereDoesntHave('permissions', function (Builder $query): void {
-            $query->whereIn('name', Permissions::systemOnly());
-        });
-    }
-
-    /**
-     * @param  Builder<Permission>  $query
-     */
-    private function applySystemOnlyPermissionVisibility(Builder $query, bool $canManageSystem): void
-    {
-        if (! $canManageSystem) {
-            $query->whereNotIn('name', Permissions::systemOnly());
-        }
-    }
-
-    private function permissionRelations(bool $canManageSystem, array $includes): array
-    {
-        if (! in_array('roles', $includes, true)) {
-            return [];
-        }
-
-        return [
-            'roles' => function (BelongsToMany $query) use ($canManageSystem): void {
-                $this->applySystemOnlyRoleVisibility($query, $canManageSystem);
-                $query->orderBy('tenant_id')->orderBy('name');
-            },
-        ];
-    }
-
     private function tenantIdFromPayload(string $currentTenantId, array $data, ?string $defaultTenantId): ?string
     {
         $tenantId = array_key_exists('tenant_id', $data) ? $data['tenant_id'] : $defaultTenantId;
@@ -279,18 +238,7 @@ class RbacService
 
     private function ensureUniqueRole(?string $tenantId, string $name, string $guardName, ?int $ignoreId = null): void
     {
-        $exists = Role::query()
-            ->where('name', $name)
-            ->where('guard_name', $guardName)
-            ->when($tenantId === null, fn ($query) => $query, function ($query) use ($tenantId): void {
-                $query->where(function ($query) use ($tenantId): void {
-                    $query->whereNull('tenant_id')->orWhere('tenant_id', $tenantId);
-                });
-            })
-            ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
-            ->exists();
-
-        if ($exists) {
+        if ($this->rbac->roleExists($tenantId, $name, $guardName, $ignoreId)) {
             throw ValidationException::withMessages([
                 'name' => ['A role with this name already exists for this role scope.'],
             ]);
@@ -303,7 +251,7 @@ class RbacService
             return;
         }
 
-        if (User::role(Roles::protectedAdmin())->count() <= 1) {
+        if ($this->rbac->protectedAdminUserCount() <= 1) {
             throw ValidationException::withMessages([
                 'roles' => ['At least one Office Admin must remain active.'],
             ]);
@@ -315,10 +263,5 @@ class RbacService
         if ($user->tenant_id !== $tenantId) {
             throw new HttpException(403, 'User does not belong to the current tenant context.');
         }
-    }
-
-    private function forgetCache(): void
-    {
-        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

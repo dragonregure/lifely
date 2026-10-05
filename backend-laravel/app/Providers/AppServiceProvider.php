@@ -3,16 +3,31 @@
 namespace App\Providers;
 
 use App\Contracts\ActivityRepositoryInterface;
+use App\Contracts\ActivityServiceInterface;
+use App\Contracts\AuthRepositoryInterface;
+use App\Contracts\AuthServiceInterface;
 use App\Contracts\ContactRepositoryInterface;
+use App\Contracts\ContactServiceInterface;
+use App\Contracts\DemoEmailLimitRepositoryInterface;
 use App\Contracts\DocumentRepositoryInterface;
 use App\Contracts\EmailCampaignRepositoryInterface;
+use App\Contracts\EmailCampaignServiceInterface;
 use App\Contracts\EmailSenderInterface;
 use App\Contracts\ExportServiceInterface;
+use App\Contracts\LeadLifecycleRepositoryInterface;
+use App\Contracts\LeadLifecycleServiceInterface;
 use App\Contracts\ListingRepositoryInterface;
+use App\Contracts\ListingServiceInterface;
 use App\Contracts\LeadRepositoryInterface;
+use App\Contracts\LeadServiceInterface;
+use App\Contracts\RbacRepositoryInterface;
+use App\Contracts\RbacServiceInterface;
 use App\Contracts\ReferenceRepositoryInterface;
+use App\Contracts\ReferenceServiceInterface;
+use App\Contracts\ReportingRepositoryInterface;
 use App\Contracts\ReportingServiceInterface;
 use App\Contracts\TenantRepositoryInterface;
+use App\Contracts\TenantServiceInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
 use App\Models\Listing;
@@ -29,19 +44,34 @@ use App\Policies\ReferencePolicy;
 use App\Policies\RolePolicy;
 use App\Policies\UserPolicy;
 use App\Repositories\ActivityRepository;
+use App\Repositories\AuthRepository;
 use App\Repositories\ContactRepository;
+use App\Repositories\DemoEmailLimitRepository;
 use App\Repositories\DocumentRepository;
 use App\Repositories\EmailCampaignRepository;
+use App\Repositories\LeadLifecycleRepository;
 use App\Repositories\ListingRepository;
 use App\Repositories\LeadRepository;
+use App\Repositories\RbacRepository;
 use App\Repositories\ReferenceRepository;
+use App\Repositories\ReportingRepository;
 use App\Repositories\TenantRepository;
+use App\Services\ActivityService;
+use App\Services\AuthService;
+use App\Services\ContactService;
+use App\Services\EmailCampaignService;
 use App\Services\Email\DemoEmailLimiter;
 use App\Services\Email\DemoLimitedEmailSender;
 use App\Services\Email\LaravelMailEmailSender;
 use App\Services\Email\ResendApiEmailSender;
 use App\Services\ExportService;
+use App\Services\LeadLifecycleService;
+use App\Services\LeadService;
+use App\Services\ListingService;
+use App\Services\RbacService;
+use App\Services\ReferenceService;
 use App\Services\ReportingService;
+use App\Services\TenantService;
 use App\Support\Rbac\Permissions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -56,9 +86,15 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(ActivityRepositoryInterface::class, ActivityRepository::class);
+        $this->app->bind(ActivityServiceInterface::class, ActivityService::class);
+        $this->app->bind(AuthRepositoryInterface::class, AuthRepository::class);
+        $this->app->bind(AuthServiceInterface::class, AuthService::class);
         $this->app->bind(ContactRepositoryInterface::class, ContactRepository::class);
+        $this->app->bind(ContactServiceInterface::class, ContactService::class);
+        $this->app->bind(DemoEmailLimitRepositoryInterface::class, DemoEmailLimitRepository::class);
         $this->app->bind(DocumentRepositoryInterface::class, DocumentRepository::class);
         $this->app->bind(EmailCampaignRepositoryInterface::class, EmailCampaignRepository::class);
+        $this->app->bind(EmailCampaignServiceInterface::class, EmailCampaignService::class);
         $this->app->bind(EmailSenderInterface::class, function (): EmailSenderInterface {
             $sender = config('lifely_email.sender', 'mail');
             $mailer = config('lifely_email.mailer');
@@ -80,11 +116,20 @@ class AppServiceProvider extends ServiceProvider
             return new DemoLimitedEmailSender($configuredSender, $this->app->make(DemoEmailLimiter::class));
         });
         $this->app->bind(ExportServiceInterface::class, ExportService::class);
+        $this->app->bind(LeadLifecycleRepositoryInterface::class, LeadLifecycleRepository::class);
+        $this->app->bind(LeadLifecycleServiceInterface::class, LeadLifecycleService::class);
         $this->app->bind(ListingRepositoryInterface::class, ListingRepository::class);
+        $this->app->bind(ListingServiceInterface::class, ListingService::class);
         $this->app->bind(LeadRepositoryInterface::class, LeadRepository::class);
+        $this->app->bind(LeadServiceInterface::class, LeadService::class);
+        $this->app->bind(RbacRepositoryInterface::class, RbacRepository::class);
+        $this->app->bind(RbacServiceInterface::class, RbacService::class);
         $this->app->bind(ReferenceRepositoryInterface::class, ReferenceRepository::class);
+        $this->app->bind(ReferenceServiceInterface::class, ReferenceService::class);
+        $this->app->bind(ReportingRepositoryInterface::class, ReportingRepository::class);
         $this->app->bind(ReportingServiceInterface::class, ReportingService::class);
         $this->app->bind(TenantRepositoryInterface::class, TenantRepository::class);
+        $this->app->bind(TenantServiceInterface::class, TenantService::class);
     }
 
     /**

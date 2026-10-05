@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Contracts\RbacServiceInterface;
 use App\Http\Requests\Rbac\StorePermissionRequest;
 use App\Http\Requests\Rbac\UpdatePermissionRequest;
 use App\Http\Resources\PermissionResource;
-use App\Services\RbacService;
 use App\Support\Rbac\Permissions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -19,7 +19,7 @@ class PermissionController extends BaseApiController
 {
     protected const ALLOWED_INCLUDES = ['roles'];
 
-    public function __construct(private readonly RbacService $rbac)
+    public function __construct(private readonly RbacServiceInterface $rbac)
     {
     }
 

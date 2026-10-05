@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\ActivityRepositoryInterface;
+use App\Contracts\ActivityServiceInterface;
 use App\Http\Resources\ActivityLogResource;
 use App\Support\DataTables\DataTableQuery;
 use App\Support\Rbac\Permissions;
@@ -11,7 +11,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ActivityLogController extends BaseApiController
 {
-    public function __construct(private readonly ActivityRepositoryInterface $activity)
+    public function __construct(private readonly ActivityServiceInterface $activity)
     {
     }
 

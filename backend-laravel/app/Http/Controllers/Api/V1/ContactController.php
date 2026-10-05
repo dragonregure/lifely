@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\ContactRepositoryInterface;
+use App\Contracts\ContactServiceInterface;
 use App\Http\Requests\StoreContactRequest;
 use App\Http\Requests\UpdateContactRequest;
 use App\Http\Resources\ContactResource;
@@ -17,7 +17,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ContactController extends BaseApiController
 {
-    public function __construct(private readonly ContactRepositoryInterface $contacts)
+    public function __construct(private readonly ContactServiceInterface $contacts)
     {
     }
 

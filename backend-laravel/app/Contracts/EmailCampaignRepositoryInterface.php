@@ -13,5 +13,12 @@ interface EmailCampaignRepositoryInterface
 
     public function paginate(string $tenantId, DataTableQuery $dataTable): LengthAwarePaginator;
 
-    public function queue(string $tenantId, array $data): EmailCampaign;
+    public function find(string $campaignId): ?EmailCampaign;
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function createQueued(string $tenantId, array $data): EmailCampaign;
+
+    public function updateStatus(EmailCampaign $campaign, string $status): EmailCampaign;
 }

@@ -2,7 +2,7 @@
 
 namespace App\Support\Activity;
 
-use App\Contracts\ActivityRepositoryInterface;
+use App\Contracts\ActivityServiceInterface;
 use App\Models\ActivityLog;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -15,7 +15,7 @@ class ModelActivityRecorder
         'deleted_at',
     ];
 
-    public function __construct(private readonly ActivityRepositoryInterface $activity)
+    public function __construct(private readonly ActivityServiceInterface $activity)
     {
     }
 

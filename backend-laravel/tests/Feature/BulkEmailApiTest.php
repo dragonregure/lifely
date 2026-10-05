@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Contracts\EmailCampaignRepositoryInterface;
+use App\Contracts\EmailCampaignServiceInterface;
 use App\Models\Contact;
 use App\Models\EmailCampaign;
 use App\Models\Listing;
@@ -69,9 +70,14 @@ class BulkEmailApiTest extends TestCase
                 return new Paginator([], 0, $dataTable->perPage, $dataTable->page);
             }
 
-            public function queue(string $tenantId, array $data): EmailCampaign
+            public function find(string $campaignId): ?EmailCampaign
             {
-                return new EmailCampaign([
+                return null;
+            }
+
+            public function createQueued(string $tenantId, array $data): EmailCampaign
+            {
+                $campaign = new EmailCampaign([
                     'tenant_id' => $tenantId,
                     'user_id' => $data['user_id'] ?? null,
                     'listing_id' => $data['listing_id'] ?? null,
@@ -81,6 +87,17 @@ class BulkEmailApiTest extends TestCase
                     'recipient_count' => count($data['contact_ids']),
                     'status' => 'Queued',
                 ]);
+
+                $campaign->id = 'campaign-1';
+
+                return $campaign;
+            }
+
+            public function updateStatus(EmailCampaign $campaign, string $status): EmailCampaign
+            {
+                $campaign->status = $status;
+
+                return $campaign;
             }
         });
 
@@ -164,7 +181,7 @@ class BulkEmailApiTest extends TestCase
         $this->assertSame([$includedContact->id], $campaign->contact_ids);
     }
 
-    public function test_repository_keeps_campaign_relationships_tenant_scoped(): void
+    public function test_campaign_service_keeps_campaign_relationships_tenant_scoped(): void
     {
         Queue::fake();
 
@@ -184,7 +201,7 @@ class BulkEmailApiTest extends TestCase
         ]);
         $otherTenantListing = Listing::factory()->create(['tenant_id' => $otherTenant->id]);
 
-        $campaign = app(EmailCampaignRepositoryInterface::class)->queue($tenant->id, [
+        $campaign = app(EmailCampaignServiceInterface::class)->queue($tenant->id, [
             'user_id' => $otherUser->id,
             'listing_id' => $otherTenantListing->id,
             'contact_ids' => [$tenantContact->id, $otherTenantContact->id],

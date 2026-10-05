@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Contracts\LeadLifecycleServiceInterface;
 use App\Jobs\ProcessLeadLifecycle;
 use App\Models\ActivityLog;
 use App\Models\Contact;
@@ -71,7 +72,7 @@ class ProcessLeadLifecycleJobTest extends TestCase
             'updated_at' => '2026-06-06 00:00:00',
         ]);
 
-        (new ProcessLeadLifecycle())->handle();
+        (new ProcessLeadLifecycle())->handle(app(LeadLifecycleServiceInterface::class));
 
         $this->assertLeadState($staleActiveLead, Lead::STAGE_DORMANT, true);
         $this->assertLeadState($freshActiveLead, Lead::STAGE_QUALIFIED, true);

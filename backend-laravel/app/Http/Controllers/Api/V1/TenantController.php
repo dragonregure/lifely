@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\TenantRepositoryInterface;
+use App\Contracts\TenantServiceInterface;
 use App\Http\Resources\MemberResource;
 use App\Http\Resources\TenantResource;
 use App\Support\DataTables\DataTableQuery;
@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class TenantController extends BaseApiController
 {
-    public function __construct(private readonly TenantRepositoryInterface $tenants)
+    public function __construct(private readonly TenantServiceInterface $tenants)
     {
     }
 

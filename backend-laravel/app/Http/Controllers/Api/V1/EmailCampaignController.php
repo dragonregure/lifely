@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Contracts\EmailCampaignRepositoryInterface;
+use App\Contracts\EmailCampaignServiceInterface;
 use App\Http\Requests\SendBulkEmailRequest;
 use App\Http\Resources\EmailCampaignResource;
 use App\Support\DataTables\DataTableQuery;
@@ -14,7 +14,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EmailCampaignController extends BaseApiController
 {
-    public function __construct(private readonly EmailCampaignRepositoryInterface $campaigns)
+    public function __construct(private readonly EmailCampaignServiceInterface $campaigns)
     {
     }
 
